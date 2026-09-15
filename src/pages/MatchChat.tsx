@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AiIcebreakers } from "@/components/AiIcebreakers";
 import { ChatIcebreakerCard } from "@/components/ChatIcebreakerCard";
 import { MatchSidebarProfile } from "@/components/MatchSidebarProfile";
+import MatchActions from "@/components/MatchActions";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { calculateDistanceKm } from "@/lib/postalCodeUtils";
 
@@ -381,6 +382,16 @@ const MatchChat = () => {
   const distanceKm = calculateDistanceKm(myProfile?.location_city, otherProfile?.location_city);
   const displayScore = matchData?.match?.compatibility_score || 91;
 
+  // Find the most recent sent message that has been read by the recipient
+  const lastReadMsgId = messages
+    .filter((m) => m.sender_id === user?.id)
+    .filter(
+      (m) =>
+        isOtherUserInChat ||
+        (otherLastReadAt && new Date(otherLastReadAt) >= new Date(m.created_at))
+    )
+    .pop()?.id;
+
   return (
     <div className="flex h-full w-full bg-[#FAF7F2] overflow-hidden">
       {/* Primary Chat Column */}
@@ -491,6 +502,16 @@ const MatchChat = () => {
             >
               <Info className="h-4 w-4" />
             </Button>
+
+            {/* Block & Report Actions */}
+            {matchId && matchData?.otherId && (
+              <MatchActions
+                matchId={matchId}
+                otherUserId={matchData.otherId}
+                otherName={otherProfile?.first_name || "Match"}
+                onBlocked={() => navigate("/matches")}
+              />
+            )}
           </div>
         </header>
 
@@ -598,43 +619,61 @@ const MatchChat = () => {
                       {msg.isLast && (
                         <div
                           className={cn(
-                            "text-[10px] mt-1 font-medium flex items-center gap-1.5",
-                            isMe ? "justify-end mr-1 text-[#888177]" : "ml-1.5 text-[#888177]"
+                            "text-[10px] mt-1 font-medium flex flex-col",
+                            isMe ? "items-end mr-1" : "items-start ml-1.5"
                           )}
                         >
-                          <span>{time}</span>
-                          {isMe && (
-                            (() => {
-                              const isRead =
-                                isOtherUserInChat ||
-                                (otherLastReadAt && new Date(otherLastReadAt) >= new Date(msg.created_at));
+                          <div className="flex items-center gap-1.5 text-[#888177]">
+                            <span>{time}</span>
+                            {isMe && (
+                              (() => {
+                                const isRead =
+                                  isOtherUserInChat ||
+                                  (otherLastReadAt && new Date(otherLastReadAt) >= new Date(msg.created_at));
 
-                              if (isRead) {
+                                if (isRead) {
+                                  return (
+                                    <span
+                                      className="inline-flex items-center gap-1 text-[#FF5436] font-bold transition-all animate-in fade-in duration-300"
+                                      title={`Seen by match ${
+                                        otherLastReadAt
+                                          ? "at " + format(new Date(otherLastReadAt), "h:mm a")
+                                          : ""
+                                      }`}
+                                    >
+                                      <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
+                                      <span className="text-[10px] tracking-tight">Seen</span>
+                                    </span>
+                                  );
+                                }
+
                                 return (
                                   <span
-                                    className="inline-flex items-center gap-0.5 text-[#FF5436] font-semibold transition-colors"
-                                    title={`Read ${
-                                      otherLastReadAt
-                                        ? format(new Date(otherLastReadAt), "h:mm a")
-                                        : "just now"
-                                    }`}
+                                    className="inline-flex items-center gap-1 text-[#9E978D] font-medium"
+                                    title="Delivered to match"
                                   >
-                                    <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
-                                    <span className="text-[9.5px]">Read</span>
+                                    <CheckCheck className="h-3.5 w-3.5 stroke-[2]" />
+                                    <span className="text-[10px] tracking-tight">Delivered</span>
                                   </span>
                                 );
-                              }
+                              })()
+                            )}
+                          </div>
 
-                              return (
-                                <span
-                                  className="inline-flex items-center gap-0.5 text-[#A29A8F]"
-                                  title="Delivered to match"
-                                >
-                                  <CheckCheck className="h-3.5 w-3.5 stroke-[2]" />
-                                  <span className="text-[9.5px]">Delivered</span>
-                                </span>
-                              );
-                            })()
+                          {/* Seen Avatar Indicator below the most recent seen message */}
+                          {isMe && msg.id === lastReadMsgId && otherProfile && (
+                            <div className="flex items-center gap-1 mt-1 text-[9.5px] text-[#FF5436] font-medium bg-[#FFF5F2] px-2 py-0.5 rounded-full border border-[#FFD5CC] shadow-2xs">
+                              <Avatar className="h-3.5 w-3.5 border border-white shrink-0">
+                                {otherProfile.avatar_url && <AvatarImage src={otherProfile.avatar_url} />}
+                                <AvatarFallback className="bg-[#FF5436] text-white text-[7px] font-bold">
+                                  {otherProfile.first_name?.[0]?.toUpperCase() || "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>
+                                Seen by {otherProfile.first_name || "Match"}{" "}
+                                {otherLastReadAt ? `• ${format(new Date(otherLastReadAt), "h:mm a")}` : ""}
+                              </span>
+                            </div>
                           )}
                         </div>
                       )}

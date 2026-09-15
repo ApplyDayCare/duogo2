@@ -5,8 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Loader2, Bell } from "lucide-react";
+import { Loader2, Bell, BellRing, Sparkles, CheckCircle2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 interface Notification {
   id: string;
@@ -22,6 +23,7 @@ const Notifications = () => {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { isSupported, permission, requestPermission, sendTestNotification } = usePushNotifications();
 
   useEffect(() => {
     if (!user) return;
@@ -102,6 +104,64 @@ const Notifications = () => {
         <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">Notifications</h1>
         <p className="text-xs text-muted-foreground">Match alerts, message reminders, and community updates</p>
       </div>
+
+      {/* Web Push Background Notification Status Card */}
+      {isSupported && (
+        <Card className="rounded-2xl border border-[#FFE0D6] bg-gradient-to-br from-[#FFF8F5] to-white p-4 shadow-2xs">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF0EB] text-[#FF5436] shrink-0 mt-0.5">
+                <BellRing className="h-4 w-4" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-bold text-[#2C2825]">Background Push Notifications</h3>
+                  {permission === "granted" ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Active
+                    </span>
+                  ) : permission === "denied" ? (
+                    <span className="inline-flex items-center text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                      Blocked in Browser
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                      Off
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-[#666059] leading-relaxed">
+                  Get notified when matches message you or when new couples want to connect—even when duogo is minimized.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#F5ECE2]">
+            {permission !== "granted" ? (
+              <Button
+                size="sm"
+                className="rounded-full bg-[#FF5436] hover:bg-[#E5482D] text-white text-xs font-bold h-8 px-4"
+                onClick={requestPermission}
+              >
+                <BellRing className="h-3.5 w-3.5 mr-1.5" />
+                Enable Push Alerts
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full border-[#EFE8DD] text-xs font-semibold h-8 px-3 text-[#666059] hover:text-[#2C2825]"
+                onClick={sendTestNotification}
+              >
+                <Sparkles className="h-3.5 w-3.5 mr-1 text-[#FF5436]" />
+                Send Test Push
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
 
       {notifications.length === 0 ? (
         <Card className="rounded-3xl border border-[#EFE8DD] shadow-soft bg-white">

@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useChatSummary } from "@/hooks/useChatSummary";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 const DESKTOP_NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: Home },
@@ -36,6 +37,7 @@ const AppLayout = () => {
   const isChatRoute = pathname.includes("/chat");
 
   const { totalChatAlerts, incomingRequestsCount, totalUnreadMessages } = useChatSummary();
+  usePushNotifications();
 
   const { data: profile } = useQuery({
     queryKey: ["app-layout-profile", user?.id],

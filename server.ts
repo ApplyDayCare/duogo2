@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
+import webpush from "web-push";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,20 @@ const PORT = 3000;
 const app = express();
 
 app.use(express.json());
+
+// Configure Web Push VAPID
+const VAPID_PUBLIC_KEY =
+  process.env.VAPID_PUBLIC_KEY ||
+  "BFenrfWblKrdVKBkKrxLgsEVJ51So2YQ4GomdjpusNrHKj3E5AVKWEKjnKXiR2cxzvdOQ49q7Qth8DfBPt0Ec7o";
+const VAPID_PRIVATE_KEY =
+  process.env.VAPID_PRIVATE_KEY || "EthUTKhFS6weuz64Xc-zUrHXrGVk1_AUkzwdtRvySis";
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:hello@duogo.space";
+
+try {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+} catch (vapidErr) {
+  console.warn("Failed to configure WebPush VAPID:", vapidErr);
+}
 
 // Lazy-initialized Gemini AI client
 let aiClient: GoogleGenAI | null = null;
@@ -199,6 +214,45 @@ Rules for the icebreakers:
   } catch (error) {
     console.error("Error generating icebreakers:", error);
     res.status(500).json({ error: "Failed to generate conversation starters" });
+  }
+});
+
+/**
+ * Endpoint 3: Web Push Dispatcher
+ * Sends encrypted push notifications to a device subscription
+ */
+app.post("/api/push/dispatch", async (req, res) => {
+  try {
+    const { subscription, title, body, url, type = "general", tag } = req.body;
+
+    if (!subscription || !subscription.endpoint || !subscription.keys) {
+      return res.status(400).json({ error: "Invalid subscription object. Must contain endpoint and keys." });
+    }
+
+    if (!title) {
+      return res.status(400).json({ error: "Missing required notification title" });
+    }
+
+    const payload = JSON.stringify({
+      title,
+      body: body || "",
+      url: url || "/notifications",
+      type,
+      tag: tag || `duogo-push-${Date.now()}`,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      timestamp: Date.now(),
+    });
+
+    await webpush.sendNotification(subscription, payload);
+
+    return res.json({ success: true, message: "Push notification dispatched successfully" });
+  } catch (err: any) {
+    console.error("Push notification dispatch error:", err);
+    return res.status(err.statusCode || 500).json({
+      error: err.message || "Failed to dispatch push notification",
+      statusCode: err.statusCode,
+    });
   }
 });
 
