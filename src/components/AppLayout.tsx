@@ -79,6 +79,14 @@ const AppLayout = () => {
     refetchInterval: 30000,
   });
 
+  const handleMatchesNav = () => {
+    if (incomingRequestsCount > 0) {
+      navigate("/matches?tab=received");
+    } else {
+      navigate("/matches");
+    }
+  };
+
   if (isMobile) {
     // If in chat, give full-screen native app viewport without double header or tab bar
     if (isChatRoute) {
@@ -158,7 +166,13 @@ const AppLayout = () => {
               return (
                 <button
                   key={item.path}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => {
+                    if (item.label === "Matches") {
+                      handleMatchesNav();
+                    } else {
+                      navigate(item.path);
+                    }
+                  }}
                   className={cn(
                     "flex flex-col items-center justify-center gap-1 min-w-[56px] min-h-[44px] py-1.5 px-2 rounded-2xl transition-all active:scale-90",
                     active
@@ -208,7 +222,13 @@ const AppLayout = () => {
         {/* Match Finder / Quiz CTA */}
         <div className="mt-3 px-1">
           <button
-            onClick={() => navigate(profile?.quiz_completed === false ? "/quiz" : "/matches")}
+            onClick={() => {
+              if (profile?.quiz_completed === false) {
+                navigate("/quiz");
+              } else {
+                handleMatchesNav();
+              }
+            }}
             className="w-full h-12 rounded-2xl bg-[#FF5436] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,84,54,0.28)] hover:bg-[#E03E22] transition-all duration-200 active:scale-98 cursor-pointer"
           >
             {profile?.quiz_completed === false ? (
@@ -232,7 +252,13 @@ const AppLayout = () => {
             return (
               <button
                 key={item.path}
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  if (item.label === "Matches") {
+                    handleMatchesNav();
+                  } else {
+                    navigate(item.path);
+                  }
+                }}
                 className={cn(
                   "flex w-full items-center gap-3.5 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-all duration-200",
                   active

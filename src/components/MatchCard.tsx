@@ -231,8 +231,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         </motion.div>
       )}
 
-      {/* Main Content Area (Scrollable if height exceeds available space) */}
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-0.5 pb-2">
+      {/* Main Content Area - Clean flow without internal scrollbar */}
+      <div className="flex-1 flex flex-col justify-between space-y-3.5 sm:space-y-4 pb-2">
         {/* Header Badges: Minimal & Clean */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">

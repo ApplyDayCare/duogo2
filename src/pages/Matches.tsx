@@ -61,6 +61,7 @@ const Matches = () => {
   const [activeTab, setActiveTab] = useState<"discover" | "received" | "pending" | "connected">(
     initialTab && ["discover", "received", "pending", "connected"].includes(initialTab) ? initialTab : "discover"
   );
+  const hasAutoDefaultedTabRef = useRef(false);
 
   // Keep activeTab in sync whenever the URL tab query param changes (e.g. clicking Review Requests from Dashboard)
   useEffect(() => {
@@ -175,64 +176,15 @@ const Matches = () => {
     return currentReceivedMatch ? getTopSharedVibes(currentReceivedMatch.my_dimensions, currentReceivedMatch.dimensions) : [];
   }, [currentReceivedMatch]);
 
-  // Prioritize matches within 5 km radius from user's postal code, followed by vibe score
-  // Always places incoming connection requests at the very top of Discover!
-  const matchesList = useMemo(() => {
-    const queueMap = new Map<string, MatchData>();
-
-    // Prepend all incoming connection requests so they are Candidate #1 in Discover
-    incomingMatches.forEach((inc) => {
-      queueMap.set(inc.user_id, inc);
-    });
-
-    if (data?.matches && data.matches.length > 0) {
-      // Filter out cross-type matches (couples with couples, solo with solo), but NEVER filter out incoming requests!
-      const filtered = data.matches.filter((m) => {
-        if (m.has_incoming_request) return true;
-        if (myProfile?.user_type === "couple") {
-          return m.user_type === "couple";
-        }
-        if (myProfile?.user_type === "solo") {
-          return m.user_type === "solo" || !m.user_type;
-        }
-        return true;
-      });
-
-      const candidatesToDisplay = filtered.length > 0 ? filtered : data.matches;
-      candidatesToDisplay.forEach((cand) => {
-        if (!queueMap.has(cand.user_id)) {
-          queueMap.set(cand.user_id, cand);
-        }
-      });
+  // Auto-route to Received tab when there are incoming connection requests waiting,
+  // unless the user explicitly specified a tab parameter in the URL.
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (!tabParam && !hasAutoDefaultedTabRef.current && incomingMatches.length > 0) {
+      setActiveTab("received");
+      hasAutoDefaultedTabRef.current = true;
     }
-
-    const allCandidates = Array.from(queueMap.values());
-    if (allCandidates.length === 0) return [];
-
-    return allCandidates.sort((a, b) => {
-      // Incoming match request always at the very top of discover
-      if (a.has_incoming_request && !b.has_incoming_request) return -1;
-      if (!a.has_incoming_request && b.has_incoming_request) return 1;
-
-      if (!myProfile?.location_city) return b.score - a.score;
-
-      const distA = calculateDistanceKm(myProfile.location_city, a.location_city);
-      const distB = calculateDistanceKm(myProfile.location_city, b.location_city);
-      const aNear = distA !== null && distA <= 5.0;
-      const bNear = distB !== null && distB <= 5.0;
-
-      // 5 km neighborhood matches prioritized at the front
-      if (aNear && !bNear) return -1;
-      if (!aNear && bNear) return 1;
-
-      // If both are nearby or both are far, closer distance first
-      if (aNear && bNear && distA !== null && distB !== null) {
-        return distA - distB;
-      }
-
-      return b.score - a.score;
-    });
-  }, [incomingMatches, data?.matches, myProfile?.location_city, myProfile?.user_type]);
+  }, [incomingMatches.length, searchParams]);
 
   // Fetch established mutual connections to demonstrate explicit first names once connected
   const { data: mutualMatches = [] } = useQuery<MatchCardItem[]>({
@@ -428,6 +380,65 @@ const Matches = () => {
     };
   }, [user, myCouplePartner, queryClient]);
 
+  const pendingMatches = useMemo(() => data?.pending_matches || [], [data?.pending_matches]);
+
+  // Strictly for discovering new people who haven't connected or requested yet
+  const matchesList = useMemo(() => {
+    const queueMap = new Map<string, MatchData>();
+
+    const incomingUserIds = new Set(incomingMatches.map((m) => m.user_id));
+    const pendingUserIds = new Set(pendingMatches.map((m) => m.user_id));
+    const mutualUserIds = new Set(mutualMatches.map((m) => m.user_id));
+
+    if (data?.matches && data.matches.length > 0) {
+      // Exclude any candidates with incoming requests, pending requests, or existing mutual connections
+      const candidates = data.matches.filter((m) => {
+        if (m.has_incoming_request || m.pending_match_id) return false;
+        if (incomingUserIds.has(m.user_id)) return false;
+        if (pendingUserIds.has(m.user_id)) return false;
+        if (mutualUserIds.has(m.user_id)) return false;
+
+        // Couple vs solo filtering
+        if (myProfile?.user_type === "couple") {
+          return m.user_type === "couple";
+        }
+        if (myProfile?.user_type === "solo") {
+          return m.user_type === "solo" || !m.user_type;
+        }
+        return true;
+      });
+
+      candidates.forEach((cand) => {
+        if (!queueMap.has(cand.user_id)) {
+          queueMap.set(cand.user_id, cand);
+        }
+      });
+    }
+
+    const allCandidates = Array.from(queueMap.values());
+    if (allCandidates.length === 0) return [];
+
+    return allCandidates.sort((a, b) => {
+      if (!myProfile?.location_city) return b.score - a.score;
+
+      const distA = calculateDistanceKm(myProfile.location_city, a.location_city);
+      const distB = calculateDistanceKm(myProfile.location_city, b.location_city);
+      const aNear = distA !== null && distA <= 5.0;
+      const bNear = distB !== null && distB <= 5.0;
+
+      // 5 km neighborhood matches prioritized at the front
+      if (aNear && !bNear) return -1;
+      if (!aNear && bNear) return 1;
+
+      // If both are nearby or both are far, closer distance first
+      if (aNear && bNear && distA !== null && distB !== null) {
+        return distA - distB;
+      }
+
+      return b.score - a.score;
+    });
+  }, [incomingMatches, pendingMatches, mutualMatches, data?.matches, myProfile?.location_city, myProfile?.user_type]);
+
   const currentMatch = matchesList[0];
 
   // If the candidate is also a couple, fetch their partner profile
@@ -480,8 +491,6 @@ const Matches = () => {
     }
     return myProfile?.first_name || "You";
   }, [myProfile, myCouplePartner]);
-
-  const pendingMatches = useMemo(() => data?.pending_matches || [], [data?.pending_matches]);
 
   const vibes = useMemo(() => {
     return currentMatch ? getTopSharedVibes(currentMatch.my_dimensions, currentMatch.dimensions) : [];
@@ -667,8 +676,8 @@ const Matches = () => {
   }
 
   return (
-    <div className="flex w-full flex-col bg-[#FAF7F2] dark:bg-background px-4 sm:px-6 lg:px-8 py-5 lg:py-6 lg:h-full lg:max-h-screen lg:justify-between">
-      <div className="w-full max-w-6xl mx-auto flex flex-col lg:h-full lg:min-h-0 space-y-4">
+    <div className="flex w-full flex-col bg-[#FAF7F2] dark:bg-background px-4 sm:px-6 lg:px-8 py-5 lg:py-6 min-h-full">
+      <div className="w-full max-w-6xl mx-auto flex flex-col space-y-5">
         {/* Top Header Bar with View Toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
           <div>
@@ -824,19 +833,7 @@ const Matches = () => {
 
         {/* TAB: RECEIVED REQUESTS - Requests from other members waiting for you to connect back */}
         {activeTab === "received" && (
-          <div className="flex-1 overflow-y-auto pt-2 space-y-4">
-            <div className="rounded-2xl bg-[#FFF9F6] border border-[#FFD9CE] p-3.5 text-xs text-[#7A3E2D] flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <Heart className="h-4 w-4 text-primary shrink-0 fill-primary" />
-                <span>
-                  <strong>Incoming Connection Requests:</strong> These members reviewed your profile and sent you a request. Click <strong>Connect Back</strong> to instantly unlock mutual reveal and start chatting!
-                </span>
-              </div>
-              <Badge className="bg-primary text-white font-bold text-xs">
-                {incomingMatches.length} Waiting
-              </Badge>
-            </div>
-
+          <div className="flex-1 pt-1 space-y-4">
             {incomingMatches.length === 0 ? (
               <Card className="rounded-3xl border border-[#EFE8DD] shadow-card bg-white p-8 text-center max-w-md mx-auto my-8">
                 <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFF0EB] text-primary mb-3 mx-auto">
@@ -898,9 +895,9 @@ const Matches = () => {
                 </div>
 
                 {/* Single Focused Request View with Compatibility Breakdown */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 lg:min-h-0 lg:flex-1 items-stretch">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
                   {/* LEFT COLUMN: Modular MatchCard with Connect Back & Pass */}
-                  <div className="lg:col-span-5 flex flex-col lg:min-h-0 relative">
+                  <div className="lg:col-span-5 flex flex-col relative">
                     <MatchCard
                       key={currentReceivedMatch.pending_match_id || currentReceivedMatch.user_id}
                       match={currentReceivedMatch}
@@ -917,12 +914,12 @@ const Matches = () => {
                       }}
                       acting={acting}
                       enableSwipe={false}
-                      className="h-full"
+                      className="w-full"
                     />
                   </div>
 
                   {/* RIGHT COLUMN: Compatibility Breakdown for this Candidate */}
-                  <div className="lg:col-span-7 flex flex-col gap-4 lg:min-h-0 lg:overflow-y-auto pr-0.5">
+                  <div className="lg:col-span-7 flex flex-col gap-4">
                     <CompatibilityScoreMeter
                       myDimensions={currentReceivedMatch.my_dimensions}
                       candidateDimensions={currentReceivedMatch.dimensions}
@@ -1156,64 +1153,7 @@ const Matches = () => {
               </div>
             ) : (
               /* Responsive Layout: 2-Column Split on Desktop, Stack on Mobile */
-              <div className="space-y-3 flex-1 flex flex-col min-h-0">
-                {/* Incoming requests alert banner if user has received requests waiting */}
-                {incomingMatches.length > 0 && (
-                  <div className="rounded-2xl bg-gradient-to-r from-[#FFF0EB] via-[#FFEBE5] to-[#FFF5F2] border-2 border-primary/30 px-4 py-3 text-xs text-[#1A1816] flex items-center justify-between gap-3 shrink-0 shadow-xs">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white shrink-0 shadow-xs animate-bounce">
-                        <Heart className="h-4 w-4 fill-white" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-sm text-primary flex items-center gap-1.5">
-                          <span>{incomingMatches.length} Connection Request{incomingMatches.length > 1 ? "s" : ""} Received!</span>
-                        </p>
-                        <p className="text-xs text-[#706A62]">
-                          {currentMatch?.has_incoming_request
-                            ? "Candidate in view wants to connect with you! Click 'Connect Back' to instantly unlock mutual reveal."
-                            : "Members have sent you a connection request. Review them below or open the Received tab."}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        className="h-8 text-xs font-bold bg-primary hover:bg-primary/90 text-white px-3.5 rounded-full shadow-xs"
-                        onClick={() => {
-                          if (currentMatch?.has_incoming_request) {
-                            handleAction(currentMatch, "accept");
-                          } else {
-                            setActiveTab("received");
-                          }
-                        }}
-                      >
-                        <Heart className="h-3.5 w-3.5 mr-1 fill-white" />
-                        {currentMatch?.has_incoming_request ? "Connect Back Now" : "View Requests"}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Pending requests info banner if user has outgoing requests */}
-                {pendingMatches.length > 0 && (
-                  <div className="rounded-2xl bg-[#FFF9F6] border border-[#FFD9CE] px-4 py-2.5 text-xs text-[#7A3E2D] flex items-center justify-between gap-2 shrink-0">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-primary shrink-0 animate-pulse" />
-                      <span>
-                        You have <strong>{pendingMatches.length}</strong> pending connection request(s) sent · Awaiting candidate responses.
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs font-bold text-primary hover:bg-[#FFEBE5] px-2.5 rounded-full"
-                      onClick={() => setActiveTab("pending")}
-                    >
-                      View Pending →
-                    </Button>
-                  </div>
-                )}
-
+              <div className="space-y-3.5 flex-1 flex flex-col">
                 {/* Candidate counter bar */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground px-1 shrink-0">
                   <div className="flex items-center gap-2.5">
@@ -1233,9 +1173,9 @@ const Matches = () => {
                   <span className="text-[11px] hidden sm:inline">Swipe card or press C (Connect) / P (Pass)</span>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 lg:min-h-0 lg:flex-1 items-stretch">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
                   {/* LEFT COLUMN: Modular MatchCard Component with Integrated Synergy & Action Controls */}
-                  <div className="lg:col-span-5 flex flex-col lg:min-h-0 relative">
+                  <div className="lg:col-span-5 flex flex-col relative">
                     <AnimatePresence mode="popLayout">
                       <MatchCard
                         key={currentMatch.user_id}
@@ -1248,13 +1188,13 @@ const Matches = () => {
                         onConnect={() => handleAction(currentMatch, "accept")}
                         onPass={() => handleAction(currentMatch, "pass")}
                         acting={acting}
-                        className="h-full"
+                        className="w-full"
                       />
                     </AnimatePresence>
                   </div>
 
                   {/* RIGHT COLUMN: CompatibilityScoreMeter on Top + Dimensions Radar Below */}
-                  <div className="lg:col-span-7 flex flex-col gap-4 lg:min-h-0 lg:overflow-y-auto pr-0.5">
+                  <div className="lg:col-span-7 flex flex-col gap-4">
                     {/* Primary Decision Element: Visual D3 Compatibility Score Meter */}
                     <CompatibilityScoreMeter
                       myDimensions={currentMatch.my_dimensions}
