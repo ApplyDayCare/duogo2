@@ -1,0 +1,19 @@
+project_id = "hdbobqzqsmmsnzbjtzbn"
+
+[functions.admin-verify]
+verify_jwt = false
+
+[functions.admin-reports]
+verify_jwt = false
+
+[functions.send-pulse-email]
+verify_jwt = false
+
+[functions.weekly-match-digest]
+verify_jwt = false
+
+[functions.send-match-intro]
+verify_jwt = false
+
+[functions.send-push]
+verify_jwt = false

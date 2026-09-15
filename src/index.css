@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --cream: #F6F1E6;
+    --cream-dim: #EFE6D2;
+    --ink: #1A1A1A;
+    --ink-soft: #5C5548;
+    --coral-1: #FFB79E;
+    --coral-2: #FF6F5E;
+    --mint-1: #D3F1DE;
+    --mint-2: #77CBA6;
+    --butter-1: #FCE79A;
+    --butter-2: #F2CE55;
+    --line: rgba(26,26,26,0.10);
+
+    --background: 42 35% 93%; /* #F6F1E6 */
+    --foreground: 0 0% 10%; /* #1A1A1A */
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    --primary: 6 100% 68%; /* #FF6F5E */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 16 100% 81%; /* #FFB79E */
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 40 40% 88%; /* #EFE6D2 */
+    --muted-foreground: 39 12% 32%; /* #5C5548 */
+
+    --accent: 139 52% 91%; /* #D3F1DE */
+    --accent-foreground: 153 45% 63%; /* #77CBA6 */
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 10% / 0.10;
+    --input: 0 0% 10% / 0.10;
+    --ring: 6 100% 68%;
+
+    --radius: 1.25rem;
+
+    --sidebar-background: 42 35% 93%;
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 6 100% 68%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 139 52% 91%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 10% / 0.10;
+    --sidebar-ring: 6 100% 68%;
+  }
+
+  .dark {
+    --background: 167 35% 8%;
+    --foreground: 40 20% 95%;
+
+    --card: 167 30% 11%;
+    --card-foreground: 40 20% 95%;
+
+    --popover: 167 30% 11%;
+    --popover-foreground: 40 20% 95%;
+
+    --primary: 167 35% 36%;
+    --primary-foreground: 40 25% 97%;
+
+    --secondary: 167 20% 18%;
+    --secondary-foreground: 40 20% 95%;
+
+    --muted: 167 20% 18%;
+    --muted-foreground: 160 10% 65%;
+
+    --accent: 167 20% 18%;
+    --accent-foreground: 40 20% 95%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 40 20% 95%;
+
+    --border: 167 15% 20%;
+    --input: 167 15% 20%;
+    --ring: 167 35% 36%;
+
+    --sidebar-background: 167 30% 10%;
+    --sidebar-foreground: 40 20% 95%;
+    --sidebar-primary: 167 35% 36%;
+    --sidebar-primary-foreground: 40 25% 97%;
+    --sidebar-accent: 167 20% 18%;
+    --sidebar-accent-foreground: 40 20% 95%;
+    --sidebar-border: 167 15% 20%;
+    --sidebar-ring: 167 35% 36%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-[#FFE5DC] selection:text-[#191715];
+  }
+}
+
+@layer utilities {
+  .shadow-soft {
+    box-shadow: 0 4px 20px -2px rgba(25, 23, 21, 0.04), 0 2px 6px -1px rgba(25, 23, 21, 0.02);
+  }
+  .shadow-glow {
+    box-shadow: 0 10px 30px -6px rgba(255, 84, 54, 0.28), 0 4px 12px -2px rgba(255, 84, 54, 0.16);
+  }
+  .shadow-card {
+    box-shadow: 0 10px 28px -6px rgba(45, 30, 20, 0.06), 0 2px 8px -2px rgba(45, 30, 20, 0.03);
+  }
+  .shadow-elevated {
+    box-shadow: 0 20px 40px -12px rgba(25, 23, 21, 0.08), 0 8px 16px -4px rgba(25, 23, 21, 0.04);
+  }
+  .bg-radial-glow {
+    background: radial-gradient(circle at 50% 30%, rgba(255, 84, 54, 0.12), transparent 70%);
+  }
+  .bg-subtle-mesh {
+    background-color: #F6F1E6;
+    background-image: radial-gradient(#E8DFD3 0.75px, transparent 0.75px), radial-gradient(#E8DFD3 0.75px, #F6F1E6 0.75px);
+    background-size: 30px 30px;
+    background-position: 0 0, 15px 15px;
+  }
+
+  /* duogo Timeleft Signature Style tokens */
+  .photo-banner-glow {
+    background:
+      radial-gradient(circle at 15% 30%, rgba(255,183,158,0.55), transparent 55%),
+      radial-gradient(circle at 80% 70%, rgba(119,203,166,0.35), transparent 50%),
+      linear-gradient(135deg, #1A1A1A 0%, #2E2A26 55%, #3A2E28 100%);
+  }
+
+  .btn-gradient-duogo {
+    background: linear-gradient(135deg, var(--coral-1), var(--coral-2));
+    color: var(--ink);
+  }
+
+  .card-mint-gradient {
+    background: linear-gradient(135deg, var(--mint-1), var(--mint-2));
+  }
+
+  /* Custom modern sleek scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(45, 30, 20, 0.12);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(45, 30, 20, 0.25);
+  }
+
+  /* Support for Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(45, 30, 20, 0.12) transparent;
+  }
+}

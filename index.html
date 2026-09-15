@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>duogo · friendship, matched properly</title>
+    <meta name="description" content="Find your people. Making friends as an adult is broken. We fix that. One real match at a time.">
+    <meta name="author" content="duogo" />
+    <meta name="theme-color" content="#FF5436" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="duogo" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icon-512.png">
+
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <meta property="og:title" content="duogo · friendship, matched properly">
+    <meta name="twitter:title" content="duogo · friendship, matched properly">
+    <meta property="og:description" content="Find your people. Making friends as an adult is broken. We fix that. One real match at a time.">
+    <meta name="twitter:description" content="Find your people. Making friends as an adult is broken. We fix that. One real match at a time.">
+    <link rel="icon" type="image/png" href="/icon-192.png">
+    <meta name="twitter:image" content="/icon-512.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      // Capture PWA install event early before any React components mount
+      window.__pwaPrompt = null;
+      window.__pwaInstalled = false;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaPrompt = e;
+        window.dispatchEvent(new CustomEvent('pwa-prompt-ready', { detail: e }));
+        console.log('[PWA] beforeinstallprompt captured globally');
+      });
+      window.addEventListener('appinstalled', function() {
+        window.__pwaPrompt = null;
+        window.__pwaInstalled = true;
+        window.dispatchEvent(new CustomEvent('pwa-installed'));
+        console.log('[PWA] app was installed');
+      });
+    </script>
+</head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js');
+      }
+    </script>
+  </body>
+</html>

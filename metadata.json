@@ -1,0 +1,11 @@
+{
+  "name": "duogo",
+  "description": "Find your people. Making friends as an adult is broken. We fix that. One real match at a time.",
+  "requestFramePermissions": [
+    "geolocation",
+    "notifications"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
