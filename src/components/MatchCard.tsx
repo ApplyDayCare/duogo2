@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { calculateDistanceKm } from "@/lib/postalCodeUtils";
 import { MatchSynergyCard } from "@/components/MatchSynergyCard";
 import { getCandidateDisplayName } from "@/lib/matchUtils";
+import MatchActions from "@/components/MatchActions";
 
 export interface MatchCardItem {
   user_id: string;
@@ -53,6 +54,7 @@ export interface MatchCardProps {
   onConnect?: (match: MatchCardItem) => void;
   onPass?: (match: MatchCardItem) => void;
   onOpenChat?: (matchId: string) => void;
+  onBlocked?: (match: MatchCardItem) => void;
   acting?: boolean;
   compact?: boolean;
   className?: string;
@@ -69,6 +71,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
   onConnect,
   onPass,
   onOpenChat,
+  onBlocked,
   acting = false,
   className = "",
   enableSwipe = true,
@@ -264,6 +267,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 {distanceKm !== null && <span className="text-[#8C847B]">· ~{distanceKm} km</span>}
               </span>
             )}
+          </div>
+
+          <div className="shrink-0">
+            <MatchActions
+              matchId={match.match_id || null}
+              otherUserId={match.user_id}
+              otherName={match.first_name || "Candidate"}
+              onBlocked={() => onBlocked?.(match)}
+            />
           </div>
         </div>
 

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCouplePartnerId, resolveOtherId } from "@/lib/coupleUtils";
+import { fetchBlockedUserIds } from "@/lib/blockService";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -108,6 +109,13 @@ export function useChatSummary() {
         filterParts.push(`user_a_id.eq.${partnerId},user_b_id.eq.${partnerId}`);
       }
 
+      // Fetch blocked user IDs for current user and couple partner
+      const blockedUserIds = await fetchBlockedUserIds(user.id);
+      if (partnerId) {
+        const partnerBlocked = await fetchBlockedUserIds(partnerId);
+        partnerBlocked.forEach((id) => blockedUserIds.add(id));
+      }
+
       // Fetch all matches for the user
       const { data: rawMatches } = await supabase
         .from("matches")
@@ -126,11 +134,13 @@ export function useChatSummary() {
         };
       }
 
-      // Deduplicate matches
+      // Deduplicate matches and filter out blocked users
       const seen = new Set<string>();
       const matches = rawMatches.filter((m) => {
         if (seen.has(m.id)) return false;
         seen.add(m.id);
+        const otherId = resolveOtherId(m, user.id, partnerId);
+        if (blockedUserIds.has(otherId) || m.status === "blocked") return false;
         return true;
       });
 

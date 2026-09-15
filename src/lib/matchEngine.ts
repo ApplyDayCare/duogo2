@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ALL_DIMS, getDim, soloScore, QuizRow } from "@/lib/scoring";
 import { ensureUserQuizResponse, getSavedQuizAnswers } from "@/lib/quizSync";
+import { fetchBlockedUserIds } from "@/lib/blockService";
 
 export interface MatchData {
   user_id: string;
@@ -168,6 +169,36 @@ export async function fetchMatchesWithFallback(
     console.error("Error fetching existing matches from Supabase:", matchesErr);
   }
 
+  // Initialize master exclusion list: exclude current user and partner
+  const excludeIds = new Set<string>([userId]);
+  if (partnerId) excludeIds.add(partnerId);
+
+  // Fetch all globally blocked user IDs from blocks table
+  try {
+    const blockedIds = await fetchBlockedUserIds(userId);
+    blockedIds.forEach((id) => excludeIds.add(id));
+    if (partnerId) {
+      const partnerBlockedIds = await fetchBlockedUserIds(partnerId);
+      partnerBlockedIds.forEach((id) => excludeIds.add(id));
+    }
+  } catch (err) {
+    console.warn("Error fetching blocked user IDs in matchEngine:", err);
+  }
+
+  // Populate exclusion list with users already passed, mutual, blocked, or pending
+  for (const m of existingMatches || []) {
+    if (
+      m.status === "passed_by_a" ||
+      m.status === "passed_by_b" ||
+      m.status === "mutual" ||
+      m.status === "blocked" ||
+      m.status === "pending"
+    ) {
+      excludeIds.add(m.user_a_id);
+      excludeIds.add(m.user_b_id);
+    }
+  }
+
   // Check outgoing pending match records (where current user has accepted, waiting for other party)
   const outgoingPendingRecords = (existingMatches || []).filter((m) => {
     if (m.status !== "pending") return false;
@@ -182,6 +213,8 @@ export async function fetchMatchesWithFallback(
   for (const out of outgoingPendingRecords) {
     const isUserA = out.user_a_id === userId || (partnerId && out.user_a_id === partnerId);
     const otherId = isUserA ? out.user_b_id : out.user_a_id;
+    if (excludeIds.has(otherId) && out.status === "blocked") continue;
+
     const { data: otherProfile } = await supabase
       .from("profiles")
       .select("id, first_name, user_type, location_city, travel_radius_km")
@@ -231,24 +264,6 @@ export async function fetchMatchesWithFallback(
     return false;
   });
 
-  // Initialize master exclusion list: exclude current user and partner
-  const excludeIds = new Set<string>([userId]);
-  if (partnerId) excludeIds.add(partnerId);
-
-  // Populate exclusion list with users already passed, mutual, blocked, or pending
-  for (const m of existingMatches || []) {
-    if (
-      m.status === "passed_by_a" ||
-      m.status === "passed_by_b" ||
-      m.status === "mutual" ||
-      m.status === "blocked" ||
-      m.status === "pending"
-    ) {
-      excludeIds.add(m.user_a_id);
-      excludeIds.add(m.user_b_id);
-    }
-  }
-
   // Load local storage demo swipes and add to exclusion list (merging user-specific and anonymous fallback keys)
   let demoSwipes: Record<string, "accept" | "pass"> = {};
   try {
@@ -269,6 +284,7 @@ export async function fetchMatchesWithFallback(
   for (const inc of incomingMatchRecords) {
     const isUserA = inc.user_a_id === userId || (partnerId && inc.user_a_id === partnerId);
     const otherId = isUserA ? inc.user_b_id : inc.user_a_id;
+    if (excludeIds.has(otherId) && inc.status === "blocked") continue;
     const { data: otherProfile } = await supabase
       .from("profiles")
       .select("id, first_name, user_type, location_city, travel_radius_km")

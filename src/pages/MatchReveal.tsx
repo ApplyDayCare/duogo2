@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Loader2, PartyPopper, MapPin, ExternalLink, Mail, Search, Home, Flag, MessageCircle } from "lucide-react";
+import { Loader2, PartyPopper, MapPin, ExternalLink, Mail, Search, Home, Flag, MessageCircle, Ban } from "lucide-react";
 import { calculateDistanceKm } from "@/lib/postalCodeUtils";
 import { MatchSynergyCard } from "@/components/MatchSynergyCard";
 import { soloScore, QuizRow } from "@/lib/scoring";
+import MatchActions from "@/components/MatchActions";
 
 interface MatchProfile {
   first_name: string | null;
@@ -331,13 +332,30 @@ const MatchReveal = () => {
               </Button>
             </div>
 
-            <div className="text-center pt-1">
+            <div className="flex items-center justify-center gap-4 pt-1 flex-wrap">
               <button
                 onClick={() => navigate(`/report/${matchId}`)}
                 className="text-xs text-muted-foreground hover:text-destructive transition-colors inline-flex items-center gap-1"
               >
-                <Flag className="h-3 w-3" /> Report or unmatch this user
+                <Flag className="h-3 w-3" /> Report user
               </button>
+
+              <span className="text-[#D8D2C6] text-xs">·</span>
+
+              <MatchActions
+                matchId={matchId}
+                otherUserId={data.otherId}
+                otherName={data.otherProfile?.first_name || "this user"}
+                directDialog={true}
+                onBlocked={() => navigate("/matches")}
+              >
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:text-destructive transition-colors inline-flex items-center gap-1"
+                >
+                  <Ban className="h-3 w-3" /> Block profile
+                </button>
+              </MatchActions>
             </div>
           </CardContent>
         </Card>

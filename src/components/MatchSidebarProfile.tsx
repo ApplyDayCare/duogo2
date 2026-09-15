@@ -2,8 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, MapPin, ShieldCheck, Heart, ExternalLink, Flag } from "lucide-react";
+import { Sparkles, MapPin, ShieldCheck, Heart, ExternalLink, Flag, Ban } from "lucide-react";
 import { calculateDistanceKm } from "@/lib/postalCodeUtils";
+import MatchActions from "@/components/MatchActions";
 
 interface MatchSidebarProfileProps {
   matchId: string;
@@ -125,6 +126,27 @@ export const MatchSidebarProfile = ({
           <ShieldCheck className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
           Safety & Comfort Guidelines
         </Button>
+
+        {otherProfile?.id && (
+          <MatchActions
+            matchId={matchId}
+            otherUserId={otherProfile.id}
+            otherName={displayName}
+            directDialog={true}
+            onBlocked={() => {
+              if (onClose) onClose();
+              navigate("/chats");
+            }}
+          >
+            <Button
+              variant="outline"
+              className="w-full rounded-2xl h-10 text-xs font-semibold border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-colors"
+            >
+              <Ban className="h-3.5 w-3.5 mr-1.5" />
+              Block Profile
+            </Button>
+          </MatchActions>
+        )}
       </div>
 
       {/* Safe Connection Notice */}

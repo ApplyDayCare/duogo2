@@ -1187,6 +1187,10 @@ const Matches = () => {
                         userName={myProfile?.user_type === "couple" ? "Your Duo" : "You"}
                         onConnect={() => handleAction(currentMatch, "accept")}
                         onPass={() => handleAction(currentMatch, "pass")}
+                        onBlocked={() => {
+                          queryClient.invalidateQueries({ queryKey: ["matches"] });
+                          queryClient.invalidateQueries({ queryKey: ["chat-summary"] });
+                        }}
                         acting={acting}
                         className="w-full"
                       />
