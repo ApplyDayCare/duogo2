@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Send, MessageCircle, Info, Sparkles, MapPin, Heart } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Info, Sparkles, MapPin, Heart, Check, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -39,6 +39,15 @@ const MatchChat = () => {
   const [loading, setLoading] = useState(true);
   const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
   const [showIcebreakerCard, setShowIcebreakerCard] = useState(false);
+  const [isOtherUserInChat, setIsOtherUserInChat] = useState(false);
+  const [otherLastReadAt, setOtherLastReadAt] = useState<string | null>(() => {
+    if (!matchId) return null;
+    try {
+      return localStorage.getItem(`duogo_chat_partner_last_read_${matchId}`);
+    } catch {
+      return null;
+    }
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -131,38 +140,127 @@ const MatchChat = () => {
   }, [matchId, toast]);
 
   useEffect(() => {
-    if (!matchId) return;
+    if (!matchId || !user) return;
     fetchMessages();
 
-    // Mark current chat as read
+    // Mark current chat as read locally
+    const nowIso = new Date().toISOString();
     try {
-      localStorage.setItem(`duogo_chat_last_read_${matchId}`, new Date().toISOString());
+      localStorage.setItem(`duogo_chat_last_read_${matchId}`, nowIso);
       window.dispatchEvent(new Event("storage"));
     } catch {
       // ignore
     }
 
-    const channel = supabase
-      .channel(`chat-${matchId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `match_id=eq.${matchId}` },
-        (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+    const channel = supabase.channel(`chat-${matchId}`, {
+      config: {
+        presence: { key: user.id },
+        broadcast: { self: false },
+      },
+    });
+
+    // Listen for broadcast read receipts from match partner
+    channel.on("broadcast", { event: "read_receipt" }, (payload) => {
+      const { readerId, readAt } = payload.payload || {};
+      if (readerId && readerId !== user.id) {
+        const timestamp = readAt || new Date().toISOString();
+        setOtherLastReadAt((prev) => {
+          if (!prev || new Date(timestamp) > new Date(prev)) {
+            try {
+              localStorage.setItem(`duogo_chat_partner_last_read_${matchId}`, timestamp);
+            } catch {
+              // ignore
+            }
+            return timestamp;
+          }
+          return prev;
+        });
+      }
+    });
+
+    // Realtime presence tracking for "Active in chat" status & instant read receipts
+    channel
+      .on("presence", { event: "sync" }, () => {
+        const presenceState = channel.presenceState();
+        const otherPresent = Object.keys(presenceState).some((key) => key !== user.id);
+        setIsOtherUserInChat(otherPresent);
+        if (otherPresent) {
+          const now = new Date().toISOString();
+          setOtherLastReadAt(now);
           try {
-            localStorage.setItem(`duogo_chat_last_read_${matchId}`, new Date().toISOString());
-            window.dispatchEvent(new Event("storage"));
+            localStorage.setItem(`duogo_chat_partner_last_read_${matchId}`, now);
           } catch {
             // ignore
           }
         }
-      )
-      .subscribe();
+      })
+      .on("presence", { event: "join" }, ({ key }) => {
+        if (key !== user.id) {
+          setIsOtherUserInChat(true);
+          const now = new Date().toISOString();
+          setOtherLastReadAt(now);
+          try {
+            localStorage.setItem(`duogo_chat_partner_last_read_${matchId}`, now);
+          } catch {
+            // ignore
+          }
+        }
+      })
+      .on("presence", { event: "leave" }, ({ key }) => {
+        if (key !== user.id) {
+          setIsOtherUserInChat(false);
+        }
+      });
+
+    // Listen for incoming messages
+    channel.on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages", filter: `match_id=eq.${matchId}` },
+      (payload) => {
+        const newMsg = payload.new as Message;
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+
+        // If the message is from the partner, we are reading it right now
+        if (newMsg.sender_id !== user.id) {
+          const readTimestamp = new Date().toISOString();
+          try {
+            localStorage.setItem(`duogo_chat_last_read_${matchId}`, readTimestamp);
+            window.dispatchEvent(new Event("storage"));
+          } catch {
+            // ignore
+          }
+          channel.send({
+            type: "broadcast",
+            event: "read_receipt",
+            payload: { readerId: user.id, readAt: readTimestamp },
+          });
+        }
+      }
+    );
+
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track({
+          userId: user.id,
+          onlineAt: new Date().toISOString(),
+        });
+        // Broadcast that we've read everything up to now
+        channel.send({
+          type: "broadcast",
+          event: "read_receipt",
+          payload: { readerId: user.id, readAt: new Date().toISOString() },
+        });
+      }
+    });
 
     return () => {
+      channel.untrack();
       supabase.removeChannel(channel);
     };
-  }, [matchId, fetchMessages]);
+  }, [matchId, user, fetchMessages]);
 
   useEffect(() => {
     if (matchData?.match && matchData.match.status !== "mutual") {
@@ -333,10 +431,17 @@ const MatchChat = () => {
                   {headerName}
                 </p>
                 <div className="flex items-center gap-2 text-xs text-[#666059]">
-                  <span className="flex items-center gap-1 text-emerald-600 font-semibold">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Mutual Match
-                  </span>
+                  {isOtherUserInChat ? (
+                    <span className="inline-flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Active in chat
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-emerald-600 font-semibold">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      Mutual Match
+                    </span>
+                  )}
                   {otherProfile?.location_city && (
                     <span className="hidden sm:inline-flex items-center gap-1 text-[#888177]">
                       • 📍 {otherProfile.location_city} {distanceKm !== null && `(${distanceKm.toFixed(1)} km)`}
@@ -491,9 +596,47 @@ const MatchChat = () => {
                         {msg.content}
                       </div>
                       {msg.isLast && (
-                        <p className={cn("text-[10px] text-[#888177] mt-1 font-medium", isMe ? "text-right mr-1" : "ml-1.5")}>
-                          {time} {isMe && "✓✓"}
-                        </p>
+                        <div
+                          className={cn(
+                            "text-[10px] mt-1 font-medium flex items-center gap-1.5",
+                            isMe ? "justify-end mr-1 text-[#888177]" : "ml-1.5 text-[#888177]"
+                          )}
+                        >
+                          <span>{time}</span>
+                          {isMe && (
+                            (() => {
+                              const isRead =
+                                isOtherUserInChat ||
+                                (otherLastReadAt && new Date(otherLastReadAt) >= new Date(msg.created_at));
+
+                              if (isRead) {
+                                return (
+                                  <span
+                                    className="inline-flex items-center gap-0.5 text-[#FF5436] font-semibold transition-colors"
+                                    title={`Read ${
+                                      otherLastReadAt
+                                        ? format(new Date(otherLastReadAt), "h:mm a")
+                                        : "just now"
+                                    }`}
+                                  >
+                                    <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
+                                    <span className="text-[9.5px]">Read</span>
+                                  </span>
+                                );
+                              }
+
+                              return (
+                                <span
+                                  className="inline-flex items-center gap-0.5 text-[#A29A8F]"
+                                  title="Delivered to match"
+                                >
+                                  <CheckCheck className="h-3.5 w-3.5 stroke-[2]" />
+                                  <span className="text-[9.5px]">Delivered</span>
+                                </span>
+                              );
+                            })()
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
