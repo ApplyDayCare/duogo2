@@ -271,17 +271,20 @@ export default function Landing() {
 
           {/* Nav links */}
           <div className="hidden md:flex items-center gap-7 text-[14.5px] font-medium text-[var(--ink-soft)]">
+            <a href="#about" className="hover:text-[var(--coral-2)] transition-colors">
+              Find your people
+            </a>
             <a href="#how" className="hover:text-[var(--coral-2)] transition-colors">
               How it works
             </a>
             <a href="#modes" className="hover:text-[var(--coral-2)] transition-colors">
-              Solo &amp; couples
+              Ways to connect
             </a>
             <a href="#radar" className="hover:text-[var(--coral-2)] transition-colors">
-              Lifestyle radar
+              Compatibility
             </a>
             <a href="#safety" className="hover:text-[var(--coral-2)] transition-colors">
-              Safety
+              Privacy
             </a>
             <a href="#faq" className="hover:text-[var(--coral-2)] transition-colors">
               FAQ
@@ -334,277 +337,217 @@ export default function Landing() {
         </nav>
       </header>
 
-      {/* ---------- HERO TOP BANNER ---------- */}
-      <div className="max-w-[1180px] mx-auto px-6 sm:px-8 pt-6">
-        <div
-          className="rounded-[36px] relative overflow-hidden min-h-[440px] sm:min-h-[460px] lg:min-h-[480px] p-7 sm:p-10 lg:p-12 flex flex-col justify-between border border-[var(--line)] shadow-xl text-white bg-[#1A1A1A]"
-        >
-          {/* Background lifestyle image with real human faces */}
-          <div className="absolute inset-0 z-0">
-            <img
-              src={cafeLifestyleImg}
-              alt="Diverse adult friends laughing and talking together at a sunlit outdoor cafe"
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover object-[center_30%] scale-105 filter brightness-[0.96]"
-            />
-            {/* Dual gradient overlay: ensures high contrast for copy while revealing vivid smiling faces */}
-            <div
-              className="absolute inset-0"
-              style={{
-                background: `
-                  linear-gradient(90deg, rgba(20,18,16,0.94) 0%, rgba(20,18,16,0.85) 45%, rgba(20,18,16,0.30) 80%, rgba(20,18,16,0.15) 100%),
-                  linear-gradient(0deg, rgba(20,18,16,0.92) 0%, rgba(20,18,16,0.40) 50%, transparent 80%)
-                `,
-              }}
-            />
-          </div>
-
-          {/* Top meta indicator */}
-          <div className="relative z-10 flex items-center justify-between flex-wrap gap-3">
-            <div className="inline-flex items-center gap-2 bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[12px] font-semibold tracking-wide uppercase text-white/95 border border-white/20 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-[var(--coral-2)] animate-pulse" />
-              Real-Time Match Alerts · Intentional Connections
+      {/* ---------- 1. HERO SECTION ---------- */}
+      <section className="pt-6 pb-12">
+        <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
+          <div
+            className="rounded-[36px] relative overflow-hidden min-h-[460px] sm:min-h-[490px] lg:min-h-[510px] p-7 sm:p-10 lg:p-12 flex flex-col justify-between border border-[var(--line)] shadow-xl text-white bg-[#1A1A1A]"
+          >
+            {/* Background lifestyle photo with real human connection */}
+            <div className="absolute inset-0 z-0">
+              <img
+                src={cafeLifestyleImg}
+                alt="Diverse friends connecting and laughing at an outdoor cafe"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover object-[center_30%] scale-105 filter brightness-[0.96]"
+              />
+              {/* Dual gradient overlay for high contrast and readability */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: `
+                    linear-gradient(90deg, rgba(20,18,16,0.95) 0%, rgba(20,18,16,0.86) 48%, rgba(20,18,16,0.35) 82%, rgba(20,18,16,0.18) 100%),
+                    linear-gradient(0deg, rgba(20,18,16,0.92) 0%, rgba(20,18,16,0.40) 50%, transparent 80%)
+                  `,
+                }}
+              />
             </div>
-          </div>
 
-          {/* Banner bottom punch & floating match pill */}
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 items-end pt-12">
-            <div className="max-w-xl">
-              <div className="text-[12.5px] font-semibold text-[var(--coral-1)] mb-2">
-                <span>Platonic Friendship · Gender-Blind · Solo &amp; Couples</span>
+            {/* Top Badge */}
+            <div className="relative z-10 flex items-center justify-between flex-wrap gap-3">
+              <div className="inline-flex items-center gap-2 bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[12px] font-semibold tracking-wide uppercase text-white/95 border border-white/20 shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-[var(--coral-2)] animate-pulse" />
+                Intentional Introductions · Real Connections
               </div>
-              <h2 className="font-['Fraunces',serif] text-[28px] sm:text-[38px] lg:text-[42px] text-white font-semibold leading-[1.15]">
-                Real adult friends near you.{" "}
-                <span className="italic font-medium text-[var(--coral-1)]">One match at a time.</span>
-              </h2>
-              <p className="text-white/85 text-[15px] sm:text-[16.5px] mt-2.5 leading-relaxed max-w-[50ch]">
-                Connect over third-wave coffee, trail hikes, live indie gigs, and board games. No endless scrolling casino. No romantic ambiguity.
-              </p>
+            </div>
 
-              <div className="mt-6 flex items-center gap-3.5 flex-wrap">
-                <button
-                  onClick={() => handleStartSignup()}
-                  className="inline-flex items-center justify-center gap-2 px-[26px] py-[13px] rounded-full font-bold text-[15px] cursor-pointer transition-all duration-150 active:scale-[0.97] hover:opacity-90 shadow-lg text-[var(--ink)]"
-                  style={{
-                    background: "linear-gradient(135deg, var(--coral-1), var(--coral-2))",
-                  }}
-                >
-                  <span>
-                    {session
-                      ? isProfileComplete
-                        ? "Go to Dashboard"
-                        : "Resume Setup"
-                      : "Take the 5-min quiz"}
-                  </span>
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-                <div className="text-[12.5px] font-medium text-white/70">
-                  Curated by lifestyle, values &amp; proximity
+            {/* Hero Copy */}
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-8 items-end pt-10 sm:pt-14">
+              <div className="max-w-2xl">
+                <h1 className="font-['Fraunces',serif] text-[32px] sm:text-[44px] lg:text-[50px] text-white font-semibold leading-[1.12] tracking-[-0.02em]">
+                  Making friends shouldn&apos;t be this hard.
+                </h1>
+                <p className="font-['Fraunces',serif] text-[20px] sm:text-[23px] text-[var(--coral-1)] italic mt-2.5 font-normal">
+                  Meet people who actually fit your personality and lifestyle.
+                </p>
+                <p className="text-white/85 text-[15.5px] sm:text-[17px] mt-4 leading-relaxed max-w-[52ch]">
+                  We match you with people nearby based on personality, values, and interests—so conversations feel natural from the start.
+                </p>
+
+                <div className="mt-7 flex items-center gap-4 flex-wrap">
+                  <button
+                    onClick={() => handleStartSignup()}
+                    className="inline-flex items-center justify-center gap-2 px-[28px] py-[14px] rounded-full font-bold text-[16px] cursor-pointer transition-all duration-150 active:scale-[0.97] hover:opacity-90 shadow-lg text-[var(--ink)]"
+                    style={{
+                      background: "linear-gradient(135deg, var(--coral-1), var(--coral-2))",
+                    }}
+                  >
+                    <span>
+                      {session
+                        ? isProfileComplete
+                          ? "Go to Dashboard"
+                          : "Resume Setup"
+                        : "Find Your People"}
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                  <a
+                    href="#how"
+                    className="inline-flex items-center gap-1.5 font-semibold text-[14.5px] text-white/85 hover:text-white transition-colors py-2 px-3"
+                  >
+                    How it works
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
                 </div>
               </div>
-            </div>
 
-            {/* Right side floating real-life match highlights */}
-            <div className="hidden lg:flex flex-col gap-3 items-end">
-              <div className="bg-white/95 backdrop-blur-md text-[var(--ink)] p-3.5 rounded-[20px] shadow-2xl border border-white/40 max-w-[290px] transition-transform hover:-translate-y-1 duration-200">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={parkWalkImg}
-                    alt="Maya & Sam"
-                    referrerPolicy="no-referrer"
-                    className="w-12 h-12 rounded-full object-cover border-2 border-[var(--coral-2)]"
-                  />
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[var(--mint-2)] inline-block" />
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-soft)]">
-                        New Match
-                      </span>
-                    </div>
-                    <div className="font-['Fraunces',serif] font-semibold text-[14.5px] text-[var(--ink)]">
-                      Maya &amp; Sam
-                    </div>
-                    <div className="text-[12px] text-[var(--ink-soft)]">
-                      Bruce Trail hike &amp; pour-over coffee
+              {/* Floating Real Match Preview */}
+              <div className="hidden lg:flex flex-col gap-3 items-end">
+                <div className="bg-white/95 backdrop-blur-md text-[var(--ink)] p-4 rounded-[22px] shadow-2xl border border-white/40 max-w-[300px] transition-transform hover:-translate-y-1 duration-200">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={parkWalkImg}
+                      alt="Maya & Sam"
+                      referrerPolicy="no-referrer"
+                      className="w-12 h-12 rounded-full object-cover border-2 border-[var(--coral-2)]"
+                    />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[var(--mint-2)] inline-block" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-soft)]">
+                          Intentional Intro
+                        </span>
+                      </div>
+                      <div className="font-['Fraunces',serif] font-semibold text-[15px] text-[var(--ink)]">
+                        Maya &amp; Sam
+                      </div>
+                      <div className="text-[12px] text-[var(--ink-soft)]">
+                        Trail hikes &amp; pour-over coffee
+                      </div>
                     </div>
                   </div>
+                  <div className="mt-3 pt-2.5 border-t border-[var(--line)] flex items-center justify-between text-[11.5px] font-bold">
+                    <span className="text-[var(--coral-2)]">92% Lifestyle Alignment</span>
+                    <span className="bg-[var(--mint-1)] text-[#123022] px-2.5 py-0.5 rounded-full">Matched</span>
+                  </div>
                 </div>
-                <div className="mt-2.5 pt-2 border-t border-[var(--line)] flex items-center justify-between text-[11.5px] font-bold">
-                  <span className="text-[var(--coral-2)]">92% Lifestyle Match</span>
-                  <span className="bg-[var(--mint-1)] text-[#123022] px-2 py-0.5 rounded-full">Connected</span>
-                </div>
-              </div>
 
-              <div className="bg-white/90 backdrop-blur-md text-[var(--ink)] py-2 px-3.5 rounded-full shadow-lg border border-white/30 text-[12.5px] font-medium flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[var(--mint-2)] animate-pulse" />
-                <span>Active matching: <strong>Instant alert when matched</strong></span>
+                <div className="bg-white/90 backdrop-blur-md text-[var(--ink)] py-2 px-4 rounded-full shadow-lg border border-white/30 text-[12.5px] font-medium flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[var(--mint-2)] animate-pulse" />
+                  <span>One meaningful introduction at a time</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ---------- HEADLINE SECTION ---------- */}
-      <section className="pt-14 pb-20 sm:pb-24">
+      {/* ---------- 2. FIND YOUR PEOPLE SECTION ---------- */}
+      <section id="about" className="py-16 sm:py-20 bg-[var(--cream)]">
         <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 sm:gap-14 items-center">
-            {/* Headline Copy */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-12 sm:gap-14 items-center">
+            {/* Left Copy */}
             <div>
-              <h1 className="font-['Fraunces',serif] font-semibold text-[42px] sm:text-[54px] lg:text-[62px] leading-[1.06] text-[var(--ink)] tracking-[-0.02em]">
-                Find Your{" "}
-                <span className="block italic font-medium text-[var(--coral-2)]">People.</span>
-              </h1>
+              <div className="text-[13px] font-bold uppercase tracking-widest text-[var(--coral-2)] mb-2.5">
+                Quality Over Quantity
+              </div>
+              <h2 className="font-['Fraunces',serif] font-semibold text-[36px] sm:text-[46px] lg:text-[52px] leading-[1.1] text-[var(--ink)] tracking-[-0.02em]">
+                Friendship isn&apos;t a{" "}
+                <span className="italic font-medium text-[var(--coral-2)]">numbers game.</span>
+              </h2>
 
-              <p className="mt-5 text-[18px] sm:text-[20px] text-[var(--ink-soft)] leading-relaxed font-normal max-w-[48ch]">
-                Making friends as an adult is broken.{" "}
-                <span className="text-[var(--ink)] font-semibold">We fix that.</span> One real match at a time.
+              <p className="mt-4 font-['Fraunces',serif] text-[20px] sm:text-[22px] text-[var(--ink)] font-normal">
+                That&apos;s why we focus on one meaningful match at a time.
               </p>
 
-              <div className="mt-8 flex items-center gap-4 flex-wrap">
-                <button
-                  onClick={() => handleStartSignup()}
-                  className="inline-flex items-center justify-center gap-2 px-[28px] py-[14px] rounded-full font-bold text-[15.5px] cursor-pointer transition-all duration-150 active:scale-[0.97] hover:opacity-90 shadow-sm"
-                  style={{
-                    background: "linear-gradient(135deg, var(--coral-1), var(--coral-2))",
-                    color: "var(--ink)",
-                  }}
-                >
-                  Find your matches
-                </button>
-                <a
-                  href="#how"
-                  className="inline-flex items-center gap-1.5 font-semibold text-[14.5px] text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors py-2 px-3"
-                >
-                  See how it works
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-              </div>
+              <p className="mt-4 text-[16px] sm:text-[17.5px] text-[var(--ink-soft)] leading-relaxed font-normal max-w-[48ch]">
+                Most other friendship apps overwhelm you with endless profiles. We slow things down and focus on quality connections that have a real chance of becoming lasting friendships.
+              </p>
 
-              {/* Two pillars requested by user */}
-              <div className="mt-10 pt-7 border-t border-[var(--line)] grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
+              {/* Supporting Pillars */}
+              <div className="mt-8 pt-6 border-t border-[var(--line)] grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="bg-white p-5 rounded-2xl border border-[var(--line)] shadow-2xs">
                   <h3 className="font-['Fraunces',serif] font-semibold text-[17px] text-[var(--ink)]">
-                    One match at a time.{" "}
-                    <span className="text-[var(--ink-soft)] font-normal block sm:inline">Not a thousand profiles.</span>
+                    Slow down the scroll
                   </h3>
                   <p className="mt-1.5 text-[13.5px] text-[var(--ink-soft)] leading-relaxed">
-                    No endless scrolling, no decision fatigue. We notify you whenever a highly compatible match is found so you can actually invest in a real connection.
+                    No infinite catalogs or decision fatigue. Receive intentional introductions so you can invest in someone with real potential.
                   </p>
                 </div>
-                <div>
+                <div className="bg-white p-5 rounded-2xl border border-[var(--line)] shadow-2xs">
                   <h3 className="font-['Fraunces',serif] font-semibold text-[17px] text-[var(--ink)]">
-                    Platonic only.{" "}
-                    <span className="text-[var(--ink-soft)] font-normal block sm:inline">Zero ambiguity.</span>
+                    Purely Platonic
                   </h3>
                   <p className="mt-1.5 text-[13.5px] text-[var(--ink-soft)] leading-relaxed">
-                    We&apos;re gender-blind and strictly platonic. No romantic tension, no mixed signals. Romantic solicitations are prohibited. Just friendship, the way it should be.
+                    Built specifically for friendship with zero romantic pressure, no mixed signals, and respectful community standards.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Phone Mockup with flanking lifestyle photo cards */}
+            {/* Right Mockup Showcase */}
             <div aria-hidden="true" className="w-full relative">
-              {/* Floating Lifestyle Card 1: Outdoor park walk */}
-              <div className="hidden sm:flex items-center gap-2.5 absolute -top-6 -right-4 lg:-right-6 bg-white p-2.5 pr-3.5 rounded-2xl shadow-[0_16px_36px_rgba(26,26,26,0.12)] border border-[var(--line)] rotate-[3deg] hover:rotate-0 transition-transform duration-300 z-20">
-                <img
-                  src={parkWalkImg}
-                  alt="Friends walking in a park"
-                  referrerPolicy="no-referrer"
-                  className="w-12 h-12 rounded-xl object-cover"
-                />
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--mint-2)] inline-block" />
-                    <span className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--ink-soft)]">
-                      Bruce Trail
-                    </span>
-                  </div>
-                  <div className="text-[12.5px] font-bold text-[var(--ink)]">Maya &amp; Sam</div>
-                  <div className="text-[11px] text-[var(--coral-2)] font-semibold">92% compatibility</div>
-                </div>
-              </div>
-
-              {/* Floating Lifestyle Card 2: Evening dinner & conversation */}
-              <div className="hidden sm:flex items-center gap-2.5 absolute -bottom-6 -left-4 lg:-left-6 bg-white p-2.5 pr-3.5 rounded-2xl shadow-[0_16px_36px_rgba(26,26,26,0.12)] border border-[var(--line)] -rotate-[2.5deg] hover:rotate-0 transition-transform duration-300 z-20">
-                <img
-                  src={dinnerChatImg}
-                  alt="Friends laughing around a dinner table"
-                  referrerPolicy="no-referrer"
-                  className="w-12 h-12 rounded-xl object-cover"
-                />
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--coral-2)] inline-block" />
-                    <span className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--ink-soft)]">
-                      Dundas West
-                    </span>
-                  </div>
-                  <div className="text-[12.5px] font-bold text-[var(--ink)]">Game Night Hangout</div>
-                  <div className="text-[11px] text-[var(--ink-soft)] font-medium">Matched 2 weeks ago</div>
-                </div>
-              </div>
-
               {/* Phone Device Frame */}
-              <div className="bg-white rounded-[34px] p-3.5 pb-5 shadow-[0_24px_50px_rgba(26,26,26,0.14)] max-w-[320px] mx-auto border border-[var(--line)] relative z-10">
-                {/* Phone Status */}
-                <div className="flex justify-between text-[12px] font-bold px-2.5 pt-1.5 pb-3.5 text-[var(--ink-soft)]">
-                  <span>Match Alert</span>
+              <div className="bg-white rounded-[34px] p-4 pb-5 shadow-[0_24px_50px_rgba(26,26,26,0.12)] max-w-[330px] mx-auto border border-[var(--line)] relative z-10">
+                <div className="flex justify-between text-[12px] font-bold px-2 pt-1 pb-3 text-[var(--ink-soft)]">
+                  <span>Intentional Intro</span>
                   <span>5G ▮▮▮</span>
                 </div>
 
-                {/* Card 1: Grey */}
-                <div className="rounded-[18px] p-4 mb-2.5 bg-[var(--cream-dim)]">
-                  <div className="text-[11px] font-bold tracking-[0.04em] uppercase text-[var(--ink-soft)]">
-                    New match alert
+                {/* Notification Card */}
+                <div className="rounded-[20px] p-4 mb-3 bg-[var(--cream-dim)]">
+                  <div className="text-[11px] font-bold tracking-[0.04em] uppercase text-[var(--coral-2)]">
+                    Curated Introduction
                   </div>
-                  <h3 className="font-['Fraunces',serif] font-semibold text-[19px] mt-1.5 text-[var(--ink)]">
+                  <h3 className="font-['Fraunces',serif] font-semibold text-[18px] mt-1 text-[var(--ink)]">
                     Someone new nearby (5 km)
                   </h3>
                   <div className="text-[12.5px] text-[var(--ink-soft)] mt-1.5 flex items-center gap-1.5 font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--coral-2)] inline-block" />
-                    88% lifestyle compatibility
+                    <span className="w-2 h-2 rounded-full bg-[var(--mint-2)] inline-block" />
+                    High lifestyle &amp; value compatibility
                   </div>
                 </div>
 
-                {/* Card 2: Mint */}
+                {/* Compatibility Highlights */}
                 <div
-                  className="rounded-[18px] p-4 mb-2.5"
+                  className="rounded-[20px] p-4 mb-3"
                   style={{
                     background: "linear-gradient(135deg, var(--mint-1), var(--mint-2))",
                   }}
                 >
-                  <div className="flex justify-between items-center text-[var(--ink)]">
-                    <strong className="text-[14.5px]">Why you matched</strong>
-                    <span className="text-[14px]">✦</span>
+                  <div className="flex justify-between items-center text-[#143024]">
+                    <strong className="text-[14px]">Why you matched</strong>
+                    <span className="text-[13px]">✦</span>
                   </div>
-                  <p className="text-[13.5px] mt-2 text-[var(--ink)] leading-snug">
-                    You both chose unhurried pour-overs, scenic weekend trail hikes, and dry conversational humor.
+                  <p className="text-[13px] mt-2 text-[#143024] leading-snug">
+                    You both chose third-wave coffee shops, scenic weekend trail hikes, and dry conversational humor.
                   </p>
                   <div className="mt-2.5 flex gap-1.5 flex-wrap">
-                    <span className="text-[11.5px] font-bold bg-white/60 px-2.5 py-1 rounded-full text-[var(--ink)]">
+                    <span className="text-[11px] font-bold bg-white/75 px-2.5 py-0.5 rounded-full text-[#143024]">
                       Trail hiking
                     </span>
-                    <span className="text-[11.5px] font-bold bg-white/60 px-2.5 py-1 rounded-full text-[var(--ink)]">
+                    <span className="text-[11px] font-bold bg-white/75 px-2.5 py-0.5 rounded-full text-[#143024]">
                       Specialty coffee
                     </span>
-                    <span className="text-[11.5px] font-bold bg-white/60 px-2.5 py-1 rounded-full text-[var(--ink)]">
+                    <span className="text-[11px] font-bold bg-white/75 px-2.5 py-0.5 rounded-full text-[#143024]">
                       Board games
                     </span>
                   </div>
                 </div>
 
-                {/* Card 3: White with Real Revealed Match Face */}
-                <div className="rounded-[18px] p-4 bg-white border border-[var(--line)]">
-                  <div className="flex items-center justify-between">
-                    <div className="text-[11px] font-bold tracking-[0.04em] uppercase text-[var(--ink-soft)]">
-                      Status
-                    </div>
-                    <span className="text-[11.5px] font-bold bg-[var(--mint-2)] text-[#12291f] px-2.5 py-0.5 rounded-full">
-                      Mutual Connect
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-2.5 pt-1">
+                {/* Status Card */}
+                <div className="rounded-[20px] p-3.5 bg-white border border-[var(--line)]">
+                  <div className="flex items-center gap-3">
                     <div className="relative shrink-0">
                       <img
                         src={parkWalkImg}
@@ -615,11 +558,11 @@ export default function Landing() {
                       <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[var(--mint-2)] border-2 border-white" />
                     </div>
                     <div>
-                      <h3 className="font-['Fraunces',serif] font-semibold text-[15px] text-[var(--ink)] leading-tight">
+                      <h3 className="font-['Fraunces',serif] font-semibold text-[14.5px] text-[var(--ink)] leading-tight">
                         Maya, 29
                       </h3>
-                      <p className="text-[12px] text-[var(--ink-soft)]">
-                        Photos unlocked • In-app chat open
+                      <p className="text-[11.5px] text-[var(--ink-soft)]">
+                        Mutual Connect • Chat open
                       </p>
                     </div>
                   </div>
@@ -630,29 +573,32 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ---------- 3-STEP RITUAL CARDS ---------- */}
-      <section id="how" className="py-20 sm:py-24">
+      {/* ---------- 3. HOW IT WORKS ---------- */}
+      <section id="how" className="py-20 sm:py-24 bg-white border-b border-[var(--line)]">
         <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
           <div className="max-w-[58ch] mx-auto text-center mb-14">
-            <h2 className="font-['Fraunces',serif] font-semibold text-[28px] sm:text-[36px] text-[var(--ink)] tracking-[-0.01em]">
-              The 3-step duogo ritual
+            <div className="text-[13px] font-bold uppercase tracking-widest text-[var(--coral-2)] mb-2.5">
+              Intentional Process
+            </div>
+            <h2 className="font-['Fraunces',serif] font-semibold text-[32px] sm:text-[40px] text-[var(--ink)] tracking-[-0.01em]">
+              How It Works
             </h2>
             <p className="mt-3 text-[var(--ink-soft)] text-[16.5px]">
-              No infinite catalogs. No ghost towns. Just intentional adult friendship built on rhythm and reciprocity.
+              Three thoughtful steps from discovering common ground to building lasting real-world friendships.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Card 1 */}
-            <div className="bg-white rounded-[26px] p-7 sm:p-8 min-h-[320px] flex flex-col border border-[var(--line)] shadow-sm">
+            {/* Step 1 */}
+            <div className="bg-[var(--cream)] rounded-[26px] p-7 sm:p-8 min-h-[320px] flex flex-col border border-[var(--line)] shadow-2xs">
               <div className="text-[12px] font-bold tracking-wider text-[var(--coral-2)] uppercase">
                 Step 01
               </div>
-              <h3 className="font-['Fraunces',serif] font-semibold text-[21px] text-[var(--ink)] mt-1.5">
-                Take the 5-min lifestyle quiz
+              <h3 className="font-['Fraunces',serif] font-semibold text-[21px] text-[var(--ink)] mt-2">
+                1. Tell us what matters to you
               </h3>
-              <p className="mt-2.5 text-[var(--ink-soft)] text-[14.5px] leading-relaxed">
-                10 thoughtful questions on how you actually spend your free hours, not another performative dating bio.
+              <p className="mt-3 text-[var(--ink-soft)] text-[15px] leading-relaxed">
+                Share your personality, interests, values, and what you&apos;re looking for in a friendship.
               </p>
               <div className="flex gap-2.5 my-4.5">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-[17px] bg-[#FFE3D9]" title="Conversation Depth">
@@ -661,36 +607,36 @@ export default function Landing() {
                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-[17px] bg-[#DDF3E6]" title="Energy & Outdoor Pace">
                   🥾
                 </div>
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-[17px] bg-[#FFF1C9]" title="Social Battery & Budget">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-[17px] bg-[#FFF1C9]" title="Social Battery & Values">
                   ☕
                 </div>
               </div>
-              <p className="text-[var(--ink-soft)] text-[13.5px] leading-relaxed mt-auto">
-                Calibrates social battery (introvert/extrovert), conversation depth, hangout budget, spontaneity vs. planning, and 20+ real weekend hobbies.
+              <p className="text-[var(--ink-soft)] text-[13px] leading-relaxed mt-auto pt-2 border-t border-[var(--line)]">
+                Calibrates social battery, conversational cadence, free-time hobbies, and core values.
               </p>
             </div>
 
-            {/* Card 2 */}
+            {/* Step 2 */}
             <div
-              className="rounded-[26px] p-7 sm:p-8 min-h-[320px] flex flex-col border border-[var(--line)] shadow-sm"
+              className="rounded-[26px] p-7 sm:p-8 min-h-[320px] flex flex-col border border-[var(--line)] shadow-2xs"
               style={{
                 background: "linear-gradient(160deg, var(--mint-1), var(--mint-2))",
               }}
             >
               <div className="text-[12px] font-bold tracking-wider text-[#143024] uppercase">
-                Step 02 · Real-Time Match Alerts
+                Step 02 · One Match At A Time
               </div>
-              <h3 className="font-['Fraunces',serif] font-semibold text-[21px] text-[#143024] mt-1.5">
-                Curated match notification
+              <h3 className="font-['Fraunces',serif] font-semibold text-[21px] text-[#143024] mt-2">
+                2. Meet someone you&apos;ll actually connect with
               </h3>
-              <p className="mt-2.5 text-[#143024] text-[14.5px] leading-relaxed">
-                One intentional match delivered straight to your dashboard. Double-blind by design: explore their 5-dimension radar, top shared vibe tags, local area, and travel radius. Photos and handles stay private until you both decide.
+              <p className="mt-3 text-[#143024] text-[15px] leading-relaxed">
+                Get thoughtfully matched with someone whose personality and lifestyle complement yours.
               </p>
               <div className="flex mt-auto pt-5">
-                <div className="w-16 h-[78px] bg-white/85 rounded-lg shadow-[0_6px_14px_rgba(20,48,36,0.18)] p-1.5 overflow-hidden relative">
+                <div className="w-16 h-[74px] bg-white/85 rounded-lg shadow-[0_6px_14px_rgba(20,48,36,0.18)] p-1.5 overflow-hidden relative">
                   <img
                     src={parkWalkImg}
-                    alt="Match photo blurred for double-blind privacy"
+                    alt="Blurred for privacy"
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover rounded filter blur-[4px] scale-110"
                   />
@@ -698,10 +644,10 @@ export default function Landing() {
                     <Lock className="w-3.5 h-3.5 text-white drop-shadow" />
                   </div>
                 </div>
-                <div className="w-16 h-[78px] bg-white/85 rounded-lg shadow-[0_6px_14px_rgba(20,48,36,0.18)] -ml-4 p-1.5 overflow-hidden relative">
+                <div className="w-16 h-[74px] bg-white/85 rounded-lg shadow-[0_6px_14px_rgba(20,48,36,0.18)] -ml-4 p-1.5 overflow-hidden relative">
                   <img
                     src={cafeLifestyleImg}
-                    alt="Match photo blurred for double-blind privacy"
+                    alt="Blurred for privacy"
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover rounded filter blur-[4px] scale-110"
                   />
@@ -709,10 +655,10 @@ export default function Landing() {
                     <Lock className="w-3.5 h-3.5 text-white drop-shadow" />
                   </div>
                 </div>
-                <div className="w-16 h-[78px] bg-white/85 rounded-lg shadow-[0_6px_14px_rgba(20,48,36,0.18)] -ml-4 p-1.5 overflow-hidden relative">
+                <div className="w-16 h-[74px] bg-white/85 rounded-lg shadow-[0_6px_14px_rgba(20,48,36,0.18)] -ml-4 p-1.5 overflow-hidden relative">
                   <img
                     src={dinnerChatImg}
-                    alt="Match photo blurred for double-blind privacy"
+                    alt="Blurred for privacy"
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover rounded filter blur-[4px] scale-110"
                   />
@@ -723,16 +669,16 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Card 3 */}
-            <div className="bg-white rounded-[26px] p-7 sm:p-8 min-h-[320px] flex flex-col border border-[var(--line)] shadow-sm">
+            {/* Step 3 */}
+            <div className="bg-[var(--cream)] rounded-[26px] p-7 sm:p-8 min-h-[320px] flex flex-col border border-[var(--line)] shadow-2xs">
               <div className="text-[12px] font-bold tracking-wider text-[var(--coral-2)] uppercase">
                 Step 03
               </div>
-              <h3 className="font-['Fraunces',serif] font-semibold text-[21px] text-[var(--ink)] mt-1.5">
-                Mutual reveal &amp; meet up
+              <h3 className="font-['Fraunces',serif] font-semibold text-[21px] text-[var(--ink)] mt-2">
+                3. Turn a match into a real friendship
               </h3>
-              <p className="mt-2.5 text-[var(--ink-soft)] text-[14.5px] leading-relaxed">
-                You have 48 hours to choose Connect or Pass. If you both tap Connect, photos and social links unlock and private in-app chat opens with conversational sparks. If either passes, it quietly expires with zero rejection sting.
+              <p className="mt-3 text-[var(--ink-soft)] text-[15px] leading-relaxed">
+                Start a conversation, meet up, and see where the friendship takes you.
               </p>
               <div className="flex items-center mt-auto pt-5 gap-2">
                 <div className="flex -space-x-2.5">
@@ -756,7 +702,7 @@ export default function Landing() {
                   />
                 </div>
                 <div className="text-[12px] font-bold text-[var(--ink)] pl-1.5">
-                  <span className="text-[var(--mint-2)] font-black text-sm">✓</span> Photos unlocked
+                  <span className="text-[var(--mint-2)] font-black text-sm">✓</span> Chat unlocked
                 </div>
               </div>
             </div>
@@ -766,79 +712,88 @@ export default function Landing() {
           <div className="text-center mt-12">
             <button
               onClick={() => handleStartSignup()}
-              className="inline-flex items-center justify-center gap-2 px-[28px] py-[14px] rounded-full font-bold text-[15px] cursor-pointer transition-all duration-150 active:scale-[0.97] hover:opacity-90"
+              className="inline-flex items-center justify-center gap-2 px-[28px] py-[14px] rounded-full font-bold text-[15px] cursor-pointer transition-all duration-150 active:scale-[0.97] hover:opacity-90 text-[var(--ink)] shadow-xs"
               style={{
                 background: "linear-gradient(135deg, var(--coral-1), var(--coral-2))",
-                color: "var(--ink)",
               }}
             >
-              Take the lifestyle quiz
+              <span>Take the friendship quiz</span>
+              <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </div>
       </section>
 
-      {/* ---------- MANIFESTO SECTION ---------- */}
-      <section className="py-20 sm:py-24 bg-[var(--cream-dim)]/50 border-y border-[var(--line)]">
+      {/* ---------- 4. DIFFERENTIATION (PLACED IMMEDIATELY AFTER HOW IT WORKS) ---------- */}
+      <section className="py-20 sm:py-24 bg-[var(--cream-dim)] border-b border-[var(--line)]">
         <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
-          <div className="max-w-[58ch] mx-auto text-center mb-14">
-            <h2 className="font-['Fraunces',serif] font-semibold text-[28px] sm:text-[36px] text-[var(--ink)] tracking-[-0.01em]">
+          <div className="max-w-[62ch] mx-auto text-center mb-14">
+            <div className="text-[13px] font-bold uppercase tracking-widest text-[var(--coral-2)] mb-2.5">
+              Built for Friendship
+            </div>
+            <h2 className="font-['Fraunces',serif] font-semibold text-[30px] sm:text-[38px] text-[var(--ink)] tracking-[-0.01em] leading-tight">
               This isn&apos;t a dating app wearing a friendship costume.
             </h2>
-            <p className="mt-3.5 text-[var(--ink-soft)] text-[16.5px]">
-              Dating apps thrive on keeping you swiping. duogo is engineered to get you off the screen and hanging out with real people.
+            <p className="mt-4 font-['Fraunces',serif] text-[19px] sm:text-[21px] text-[var(--ink)] font-normal">
+              duogo is built specifically for friendship—not dating, flirting, or collecting matches.
+            </p>
+            <p className="mt-3 text-[var(--ink-soft)] text-[16px] sm:text-[17px] leading-relaxed">
+              No swiping for attention. No pressure to perform. Just intentional introductions designed to help you find people you genuinely connect with.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-[22px] p-7 border border-[var(--line)] shadow-xs">
+            <div className="bg-white rounded-[22px] p-7 border border-[var(--line)] shadow-2xs">
               <div className="w-10 h-10 rounded-full bg-[var(--cream)] flex items-center justify-center text-[var(--coral-2)] font-bold mb-4">
                 01
               </div>
               <h3 className="font-['Fraunces',serif] font-semibold text-[19px] text-[var(--ink)]">
-                Platonic only. Zero ambiguity.
+                Platonic by Design
               </h3>
               <p className="mt-2 text-[var(--ink-soft)] text-[14.5px] leading-relaxed">
-                We&apos;re gender-blind and strictly platonic. No romantic tension, no mixed signals. Dating solicitations and harassment result in immediate removal.
+                We are gender-blind and strictly platonic. Zero romantic pressure and no mixed signals. Romantic solicitations are strictly prohibited.
               </p>
             </div>
 
-            <div className="bg-white rounded-[22px] p-7 border border-[var(--line)] shadow-xs">
+            <div className="bg-white rounded-[22px] p-7 border border-[var(--line)] shadow-2xs">
               <div className="w-10 h-10 rounded-full bg-[var(--cream)] flex items-center justify-center text-[var(--coral-2)] font-bold mb-4">
                 02
               </div>
               <h3 className="font-['Fraunces',serif] font-semibold text-[19px] text-[var(--ink)]">
-                One match at a time. Not a thousand profiles.
+                One Match at a Time
               </h3>
               <p className="mt-2 text-[var(--ink-soft)] text-[14.5px] leading-relaxed">
-                No endless scrolling, no decision fatigue. We deliver curated matches directly to your notifications as soon as they are found so you can actually invest in a real connection.
+                No infinite scrolling or superficial swipes. We alert you when a truly compatible match is found so you can invest in a real connection.
               </p>
             </div>
 
-            <div className="bg-white rounded-[22px] p-7 border border-[var(--line)] shadow-xs">
+            <div className="bg-white rounded-[22px] p-7 border border-[var(--line)] shadow-2xs">
               <div className="w-10 h-10 rounded-full bg-[var(--cream)] flex items-center justify-center text-[var(--coral-2)] font-bold mb-4">
                 03
               </div>
               <h3 className="font-['Fraunces',serif] font-semibold text-[19px] text-[var(--ink)]">
-                Zero rejection sting.
+                Zero Rejection Sting
               </h3>
               <p className="mt-2 text-[var(--ink-soft)] text-[14.5px] leading-relaxed">
-                Because all decisions are double-blind, unreciprocated passes are never announced. If it&apos;s not a mutual click, neither party ever knows who passed.
+                Decisions are double-blind. If both people don&apos;t connect, the introduction quietly expires without awkward notifications or hurt feelings.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ---------- MODES (SOLO & COUPLES) ---------- */}
-      <section id="modes" className="py-20 sm:py-24">
+      {/* ---------- 5. WAYS TO CONNECT (MODES: SOLO & COUPLES) ---------- */}
+      <section id="modes" className="py-20 sm:py-24 bg-white border-b border-[var(--line)]">
         <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
-          <div className="max-w-[56ch] mx-auto text-center mb-11">
-            <h2 className="font-['Fraunces',serif] font-semibold text-[28px] sm:text-[36px] text-[var(--ink)] tracking-[-0.01em]">
-              However you hang out
+          <div className="max-w-[62ch] mx-auto text-center mb-11">
+            <div className="text-[13px] font-bold uppercase tracking-widest text-[var(--coral-2)] mb-2.5">
+              Flexible Formats
+            </div>
+            <h2 className="font-['Fraunces',serif] font-semibold text-[30px] sm:text-[38px] text-[var(--ink)] tracking-[-0.01em]">
+              Connect in the way that feels natural
             </h2>
-            <p className="mt-3 text-[var(--ink-soft)] text-[16.5px]">
-              Explore one-on-one as an individual, or bring your partner along to meet couple friends.
+            <p className="mt-3.5 text-[var(--ink-soft)] text-[16px] sm:text-[17px] leading-relaxed">
+              Whether you prefer one-on-one coffee chats, outdoor adventures, group activities, or virtual conversations, duogo helps you connect in a way that fits your lifestyle.
             </p>
           </div>
 
@@ -993,32 +948,38 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ---------- RADAR SECTION ---------- */}
-      <section id="radar" className="py-20 sm:py-24">
+      {/* ---------- 6. COMPATIBILITY (RADAR & DIMENSIONS) ---------- */}
+      <section id="radar" className="py-20 sm:py-24 bg-[var(--cream)]">
         <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-11 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-12 items-center">
             <div>
               <div className="max-w-[56ch]">
-                <h2 className="font-['Fraunces',serif] font-semibold text-[28px] sm:text-[36px] text-[var(--ink)] tracking-[-0.01em]">
-                  See exactly why you were matched
+                <div className="text-[13px] font-bold uppercase tracking-widest text-[var(--coral-2)] mb-2.5">
+                  Shared Foundations
+                </div>
+                <h2 className="font-['Fraunces',serif] font-semibold text-[30px] sm:text-[38px] text-[var(--ink)] tracking-[-0.01em] leading-tight">
+                  A great friendship starts with something in common.
                 </h2>
                 <p className="mt-3.5 text-[var(--ink-soft)] text-[16.5px] leading-relaxed">
-                  Every match comes with an interactive compatibility radar covering five fundamental lifestyle dimensions scored directly from your quiz answers so you understand how you click before names or photos unlock.
+                  See what you already share—and where you complement each other—before you meet.
+                </p>
+                <p className="mt-2.5 text-[var(--ink-soft)] text-[15px] leading-relaxed">
+                  Every introduction comes with a compatibility radar mapping five core lifestyle dimensions scored directly from your quiz answers so conversations feel effortless from day one.
                 </p>
               </div>
-              <div className="flex gap-5 mt-5 text-[14px] font-bold">
+              <div className="flex gap-6 mt-6 text-[14px] font-bold">
                 <span className="flex items-center">
-                  <span className="inline-block w-2.5 h-2.5 rounded-full mr-2 bg-[var(--coral-2)]" />
-                  You
+                  <span className="inline-block w-3 h-3 rounded-full mr-2 bg-[var(--coral-2)]" />
+                  Your Profile
                 </span>
                 <span className="flex items-center">
-                  <span className="inline-block w-2.5 h-2.5 rounded-full mr-2 bg-[var(--mint-2)]" />
-                  Your match
+                  <span className="inline-block w-3 h-3 rounded-full mr-2 bg-[var(--mint-2)]" />
+                  Your Introduction
                 </span>
               </div>
             </div>
 
-            <div className="bg-white rounded-[28px] p-5 sm:p-6 shadow-[0_14px_32px_rgba(26,26,26,0.07)] border border-[var(--line)] max-w-md mx-auto w-full">
+            <div className="bg-white rounded-[28px] p-6 sm:p-7 shadow-[0_14px_32px_rgba(26,26,26,0.07)] border border-[var(--line)] max-w-md mx-auto w-full">
               <svg
                 viewBox="0 0 300 300"
                 width="100%"
@@ -1130,18 +1091,21 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ---------- PRIVACY & SAFETY SECTION ---------- */}
-      <div id="safety" className="px-5 sm:px-8">
+      {/* ---------- 7. PRIVACY & SAFETY SECTION ---------- */}
+      <div id="safety" className="px-5 sm:px-8 py-10 sm:py-14 bg-white">
         <section
-          className="rounded-[40px] py-16 sm:py-20 px-6 sm:px-12 max-w-[1130px] mx-auto text-[var(--cream)]"
+          className="rounded-[40px] py-16 sm:py-20 px-6 sm:px-12 max-w-[1130px] mx-auto text-[var(--cream)] shadow-xl"
           style={{ background: "var(--ink)" }}
         >
-          <div className="max-w-[58ch] mx-auto text-center mb-12">
-            <h2 className="font-['Fraunces',serif] font-semibold text-[28px] sm:text-[36px] text-[var(--cream)] tracking-[-0.01em]">
+          <div className="max-w-[60ch] mx-auto text-center mb-12">
+            <div className="text-[12.5px] font-bold uppercase tracking-widest text-[var(--coral-1)] mb-2.5">
+              Protected by Design
+            </div>
+            <h2 className="font-['Fraunces',serif] font-semibold text-[30px] sm:text-[38px] text-[var(--cream)] tracking-[-0.01em]">
               Privacy is the default, not a buried setting
             </h2>
-            <p className="mt-3.5 text-[var(--cream)]/75 text-[16.5px]">
-              duogo only works when people feel secure enough to answer the lifestyle quiz with complete honesty.
+            <p className="mt-3.5 text-[var(--cream)]/85 text-[17px] sm:text-[18px] font-medium">
+              You decide what to share, when to share it, and with whom.
             </p>
           </div>
 
@@ -1187,29 +1151,42 @@ export default function Landing() {
                 </h3>
               </div>
               <p className="text-[var(--cream)]/75 text-[15px] leading-relaxed">
-                After meeting up, members complete a brief in-app pulse feedback to verify safety, punctuality, and mutual vibe, continually rewarding reliable, respectful community members.
+                After meeting up, members complete a brief in-app pulse check to verify safety, punctuality, and mutual respect, continually rewarding reliable, high-trust community members.
               </p>
             </div>
           </div>
         </section>
       </div>
 
-      {/* ---------- FAQ SECTION ---------- */}
-      <section id="faq" className="py-20 sm:py-24">
+      {/* ---------- 8. FAQ SECTION ---------- */}
+      <section id="faq" className="py-20 sm:py-24 bg-[var(--cream)] border-t border-[var(--line)]">
         <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
           <div className="max-w-[56ch] mx-auto text-center mb-12">
+            <div className="text-[13px] font-bold uppercase tracking-widest text-[var(--coral-2)] mb-2.5">
+              Clear Answers
+            </div>
             <h2 className="font-['Fraunces',serif] font-semibold text-[28px] sm:text-[36px] text-[var(--ink)] tracking-[-0.01em]">
-              Frequently asked questions
+              Frequently Asked Questions
             </h2>
             <p className="mt-3 text-[var(--ink-soft)] text-[16.5px]">
-              Everything you need to know about the duogo experience.
+              Everything you need to know about intentional friendship matching on duogo.
             </p>
           </div>
 
           <div className="max-w-3xl mx-auto bg-white rounded-[26px] p-6 sm:p-8 border border-[var(--line)] shadow-sm">
             <Accordion type="single" collapsible className="w-full">
+              {/* Highlighted Question from User */}
+              <AccordionItem value="item-0" className="border-b border-[var(--line)] py-2">
+                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline text-left">
+                  How is duogo different from Bumble BFF or Meetup?
+                </AccordionTrigger>
+                <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
+                  duogo focuses on compatibility-first matching. Instead of endlessly browsing profiles or joining large groups, you get intentional introductions based on your personality, values, interests, and friendship preferences.
+                </AccordionContent>
+              </AccordionItem>
+
               <AccordionItem value="item-1" className="border-b border-[var(--line)] py-2">
-                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline">
+                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline text-left">
                   Is duogo strictly platonic?
                 </AccordionTrigger>
                 <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
@@ -1218,8 +1195,8 @@ export default function Landing() {
               </AccordionItem>
 
               <AccordionItem value="item-2" className="border-b border-[var(--line)] py-2">
-                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline">
-                  How do match notifications and drops work?
+                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline text-left">
+                  How do match notifications work?
                 </AccordionTrigger>
                 <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
                   Notifications aren&apos;t restricted to once a week. Our compatibility engine pairs you anytime a high-compatibility match is found based on your lifestyle quiz, local area, and travel radius. You receive an instant alert and have 48 hours to review their compatibility radar, shared interests, and vibe tags, and decide whether to Connect or Pass.
@@ -1227,16 +1204,16 @@ export default function Landing() {
               </AccordionItem>
 
               <AccordionItem value="item-3" className="border-b border-[var(--line)] py-2">
-                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline">
-                  What happens if I pass on a match, or they pass on me?
+                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline text-left">
+                  What happens if I pass on an introduction, or they pass on me?
                 </AccordionTrigger>
                 <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
-                  Nothing happens, and neither party is ever notified. Because duogo is completely double-blind, unreciprocated passes expire quietly. You&apos;ll never experience rejection sting, and you&apos;ll receive a fresh match as soon as another compatible connection is discovered.
+                  Nothing happens, and neither party is ever notified. Because duogo is completely double-blind, unreciprocated passes expire quietly. You&apos;ll never experience rejection sting, and you&apos;ll receive a fresh introduction as soon as another compatible connection is discovered.
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-4" className="border-b border-[var(--line)] py-2">
-                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline">
+                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline text-left">
                   How does Couples Mode work?
                 </AccordionTrigger>
                 <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
@@ -1245,7 +1222,7 @@ export default function Landing() {
               </AccordionItem>
 
               <AccordionItem value="item-5" className="border-b border-[var(--line)] py-2">
-                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline">
+                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline text-left">
                   Why are names and photos hidden at first?
                 </AccordionTrigger>
                 <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
@@ -1253,18 +1230,9 @@ export default function Landing() {
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="item-6" className="border-b border-[var(--line)] py-2">
-                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline">
-                  Who is duogo designed for?
-                </AccordionTrigger>
-                <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
-                  duogo is created for adults who value genuine, intentional friendships. Whether you recently moved, your friend group is evolving, or you simply want to meet someone who shares your pace and interests, duogo connects you 1-on-1 (or couple-to-couple) with compatible people nearby.
-                </AccordionContent>
-              </AccordionItem>
-
               <AccordionItem value="item-7" className="border-b border-[var(--line)] py-2">
-                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline">
-                  How does duogo guarantee matches are actually close to me?
+                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline text-left">
+                  How does duogo guarantee introductions are actually close to me?
                 </AccordionTrigger>
                 <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
                   During onboarding, you set your location using your postal code, GPS, or area name. You choose your preferred travel radius (from 5 km for neighborhood walks up to 50+ km for wider meetups) and our matching algorithm strictly honors your proximity bounds.
@@ -1272,8 +1240,8 @@ export default function Landing() {
               </AccordionItem>
 
               <AccordionItem value="item-8" className="border-none py-2">
-                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline">
-                  Can I pause matching if I get busy or want to hang out with a match?
+                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline text-left">
+                  Can I pause matching if I get busy?
                 </AccordionTrigger>
                 <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
                   Yes! You can pause matching with a single click from your dashboard or profile settings at any time. When you&apos;re ready for new friends, resume with one tap to begin receiving active match notifications again.
@@ -1284,77 +1252,38 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ---------- FINAL CTA BAND ---------- */}
-      <section className="text-center pt-10 pb-20 sm:pb-24" id="join">
+      {/* ---------- 9. FINAL CTA SECTION ---------- */}
+      <section className="text-center py-20 sm:py-24 bg-white border-t border-[var(--line)]" id="join">
         <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
-          <h2 className="font-['Fraunces',serif] font-semibold text-[29px] sm:text-[38px] lg:text-[40px] text-[var(--ink)] max-w-[22ch] mx-auto tracking-[-0.01em] leading-tight">
-            Your next great friend is{" "}
-            <em className="italic font-medium text-[var(--coral-2)]">one match away.</em>
-          </h2>
-          <p className="text-[var(--ink-soft)] text-[15.5px] max-w-md mx-auto mt-3">
-            Take the 5-minute quiz today to get notified as soon as a compatible friend is found.
-          </p>
+          <div className="max-w-2xl mx-auto">
+            <h2 className="font-['Fraunces',serif] font-semibold text-[32px] sm:text-[42px] lg:text-[46px] text-[var(--ink)] tracking-[-0.02em] leading-tight">
+              Your next great friendship could start today.
+            </h2>
+            <p className="text-[var(--ink-soft)] text-[16.5px] sm:text-[18px] max-w-lg mx-auto mt-4 leading-relaxed">
+              Take the friendship quiz and get matched with someone who genuinely fits your personality and lifestyle.
+            </p>
 
-          <form onSubmit={handleWaitlistSubmit} className="mt-7.5 flex gap-2.5 justify-center flex-wrap">
-            <input
-              type="email"
-              placeholder="you@email.com"
-              value={waitlistEmail}
-              onChange={(e) => setWaitlistEmail(e.target.value)}
-              aria-label="Email address"
-              className="font-['Inter',sans-serif] text-[15px] py-3.5 px-5 rounded-full border border-[var(--line)] bg-white min-w-[270px] font-medium text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-[var(--ink)] focus-visible:outline-offset-2"
-            />
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center gap-2 px-[26px] py-[13px] rounded-full font-bold text-[15px] cursor-pointer transition-all duration-150 active:scale-[0.97] hover:opacity-90 shadow-sm"
-              style={{
-                background: "linear-gradient(135deg, var(--coral-1), var(--coral-2))",
-                color: "var(--ink)",
-              }}
-            >
-              {waitlistSuccess ? "Added to waitlist ✓" : "Join the next drop"}
-            </button>
-          </form>
+            <div className="mt-8 flex items-center justify-center gap-4 flex-wrap">
+              <button
+                onClick={() => handleStartSignup()}
+                className="inline-flex items-center justify-center gap-2 px-[32px] py-[16px] rounded-full font-bold text-[16px] cursor-pointer transition-all duration-150 active:scale-[0.97] hover:opacity-90 shadow-md text-[var(--ink)]"
+                style={{
+                  background: "linear-gradient(135deg, var(--coral-1), var(--coral-2))",
+                }}
+              >
+                <span>Take the Friendship Quiz</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-3 text-[13px] text-[var(--ink-soft)] font-medium">
+              Free to take · 5 minutes · 100% Platonic &amp; Double-blind
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ---------- SECONDARY PHOTO BANNER ---------- */}
-      <div className="max-w-[1180px] mx-auto px-6 sm:px-8 mb-12">
-        <div
-          className="rounded-[32px] relative overflow-hidden min-h-[200px] p-8 sm:p-10 flex flex-col justify-end"
-          style={{
-            background: `
-              radial-gradient(circle at 15% 30%, rgba(255,183,158,0.55), transparent 55%),
-              radial-gradient(circle at 80% 70%, rgba(119,203,166,0.35), transparent 50%),
-              linear-gradient(135deg, #1A1A1A 0%, #2E2A26 55%, #3A2E28 100%)
-            `,
-          }}
-        >
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <div className="font-['Fraunces',serif] text-2xl text-white font-semibold">
-                Ready to find someone on your wavelength?
-              </div>
-              <div className="text-white/70 text-sm mt-1">
-                Five minutes to complete your quiz. Double-blind and completely pressure-free.
-              </div>
-            </div>
-            <button
-              onClick={() => handleStartSignup()}
-              className="inline-flex items-center justify-center gap-2 px-[26px] py-[13px] rounded-full font-bold text-[15px] cursor-pointer transition-all duration-150 active:scale-[0.97] hover:opacity-90"
-              style={{
-                background: "linear-gradient(135deg, var(--coral-1), var(--coral-2))",
-                color: "var(--ink)",
-              }}
-            >
-              Get started now
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* ---------- FOOTER ---------- */}
-      <footer className="py-14 sm:py-16">
+      <footer className="py-14 sm:py-16 bg-[var(--cream)] border-t border-[var(--line)]">
         <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
           <div className="flex justify-between items-center flex-wrap gap-5 mb-11">
             <div>
@@ -1366,7 +1295,7 @@ export default function Landing() {
               </div>
             </div>
             <div className="flex items-center gap-2 bg-white py-2 px-4 rounded-full text-[13.5px] font-semibold border border-[var(--line)]">
-              🌐 English ⌄
+              🌐 English
             </div>
           </div>
 
@@ -1387,7 +1316,7 @@ export default function Landing() {
                 onClick={() => setActiveTab("couples")}
                 className="block text-[14.5px] mb-3 text-[var(--ink)] hover:text-[var(--coral-2)] transition-colors"
               >
-                Couples Companion
+                Couples Mode
               </a>
               <a
                 href="#radar"
@@ -1402,7 +1331,7 @@ export default function Landing() {
                 Community &amp; Safety
               </h4>
               <a href="#how" className="block text-[14.5px] mb-3 text-[var(--ink)] hover:text-[var(--coral-2)] transition-colors">
-                How Matching Works
+                How It Works
               </a>
               <a href="#safety" className="block text-[14.5px] mb-3 text-[var(--ink)] hover:text-[var(--coral-2)] transition-colors">
                 Safety Guidelines
@@ -1419,8 +1348,8 @@ export default function Landing() {
               <h4 className="text-[12px] font-bold tracking-[0.05em] uppercase text-[var(--ink-soft)] mb-4">
                 Platform
               </h4>
-              <a href="#how" className="block text-[14.5px] mb-2.5 text-[var(--ink)] hover:text-[var(--coral-2)] transition-colors">
-                Curated Drops
+              <a href="#about" className="block text-[14.5px] mb-2.5 text-[var(--ink)] hover:text-[var(--coral-2)] transition-colors">
+                Find Your People
               </a>
               <a href="#radar" className="block text-[14.5px] mb-2.5 text-[var(--ink)] hover:text-[var(--coral-2)] transition-colors">
                 Lifestyle Dimensions

@@ -263,7 +263,9 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
 
   const getCategoryIcon = (name: string) => {
     switch (name) {
+      case "Lifestyle Foundations":
       case "Anchor Values":
+      case "Core Values":
         return <HeartHandshake className="h-3.5 w-3.5 text-primary" />;
       case "Social Battery":
         return <Zap className="h-3.5 w-3.5 text-amber-500" />;
@@ -394,11 +396,6 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
                 <span className="text-emerald-600 font-bold text-[10px]">
                   {syn.matchPct}%
                 </span>
-                {syn.isAnchor && (
-                  <span className="text-[9px] uppercase font-bold text-primary bg-[#FFF0EB] px-1 rounded">
-                    2x
-                  </span>
-                )}
               </span>
             ))}
           </div>
@@ -418,7 +415,7 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
                 <span>
                   {showBreakdown
                     ? "Hide 10-Dimension Quiz Comparison"
-                    : "Inspect Full 10-Dimension Quiz Responses & Weights"}
+                    : "Inspect Full 10-Dimension Quiz Responses"}
                 </span>
               </span>
               {showBreakdown ? (
@@ -431,7 +428,7 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
             {showBreakdown && (
               <div className="mt-2 space-y-2 rounded-2xl bg-[#FAF7F2] border border-[#EFE8DD] p-3 text-xs">
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground pb-1 border-b border-[#E8E1D5]">
-                  <span>Dimension & Priority</span>
+                  <span>Dimension</span>
                   <span>You vs. Match (1-5 Scale)</span>
                   <span>Calculated Alignment</span>
                 </div>
@@ -447,11 +444,6 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
                         <span className="truncate font-medium text-[#1A1816]">
                           {item.label}
                         </span>
-                        {item.isAnchor && (
-                          <span className="text-[9px] font-bold bg-[#FF5436]/10 text-primary px-1.5 py-0.5 rounded-full shrink-0">
-                            Anchor (2x)
-                          </span>
-                        )}
                       </div>
 
                       <div className="flex items-center gap-2 px-3 text-[#706A62] font-mono text-[11px]">
@@ -476,10 +468,6 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
                     </div>
                   ))}
                 </div>
-
-                <p className="text-[10px] text-muted-foreground pt-1 italic">
-                  * Anchor dimensions (Budget, Nightlife, Commitment, Home) carry double weight in the overall Euclidean distance calculation to prevent lifestyle friction.
-                </p>
               </div>
             )}
           </div>

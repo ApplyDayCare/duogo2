@@ -41,9 +41,9 @@ export function calculateQuizCompatibility(
       breakdown: [],
       categories: [
         {
-          name: "Anchor Values",
+          name: "Lifestyle Foundations",
           pct: Math.min(100, score + 2),
-          description: "Core lifestyle, home & commitment priorities (2x weight)",
+          description: "Core budget, home & social commitment preferences",
         },
         {
           name: "Social Battery",
@@ -126,9 +126,9 @@ export function calculateQuizCompatibility(
 
   const categories: CategoryScore[] = [
     {
-      name: "Anchor Values",
+      name: "Lifestyle Foundations",
       pct: anchorPct,
-      description: "Budget, nightlife, commitment & home habits (2x weight)",
+      description: "Budget, nightlife, commitment & home habits",
     },
     {
       name: "Social Battery",
