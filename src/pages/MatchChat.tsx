@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -382,16 +383,6 @@ const MatchChat = () => {
   const distanceKm = calculateDistanceKm(myProfile?.location_city, otherProfile?.location_city);
   const displayScore = matchData?.match?.compatibility_score || 91;
 
-  // Find the most recent sent message that has been read by the recipient
-  const lastReadMsgId = messages
-    .filter((m) => m.sender_id === user?.id)
-    .filter(
-      (m) =>
-        isOtherUserInChat ||
-        (otherLastReadAt && new Date(otherLastReadAt) >= new Date(m.created_at))
-    )
-    .pop()?.id;
-
   return (
     <div className="flex h-full w-full bg-[#FAF7F2] overflow-hidden">
       {/* Primary Chat Column */}
@@ -585,7 +576,18 @@ const MatchChat = () => {
                 const isMe = msg.sender_id === user?.id;
                 const time = format(new Date(msg.created_at), "h:mm a");
                 return (
-                  <div key={msg.id} className={cn("flex gap-2.5", isMe && "flex-row-reverse", msg.showName && "mt-4")}>
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 9, x: isMe ? 8 : -8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                    layout="position"
+                    className={cn(
+                      "flex gap-2.5",
+                      isMe ? "flex-row-reverse justify-start" : "justify-start",
+                      msg.showName && "mt-4"
+                    )}
+                  >
                     {!isMe && (
                       <div className="w-8 shrink-0 flex items-end">
                         {msg.showAvatar && (
@@ -598,20 +600,18 @@ const MatchChat = () => {
                         )}
                       </div>
                     )}
-                    <div className={cn("max-w-[78%] sm:max-w-[70%]", isMe && "items-end")}>
+                    <div className={cn("max-w-[78%] sm:max-w-[70%] flex flex-col", isMe ? "items-end" : "items-start")}>
                       {!isMe && msg.showName && (
-                        <p className="text-[11px] font-bold text-[#888177] mb-1 ml-1.5">
+                        <p className="text-[11px] font-bold text-[#888177] mb-1 ml-1.5 text-left">
                           {otherProfile?.first_name || "Match"}
                         </p>
                       )}
                       <div
                         className={cn(
-                          "px-4 py-2.5 text-sm leading-relaxed shadow-soft whitespace-pre-wrap break-words",
+                          "px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words transition-colors",
                           isMe
-                            ? "bg-gradient-to-r from-[#FF5436] to-[#FF6B53] text-white rounded-2xl"
-                            : "bg-white text-[#181513] border border-[#EBE3D5] rounded-2xl",
-                          isMe && msg.isLast && "rounded-br-xs",
-                          !isMe && msg.isLast && "rounded-bl-xs"
+                            ? "bg-gradient-to-br from-[#FF5436] via-[#FF5F45] to-[#EE3F20] text-white rounded-2xl rounded-br-xs shadow-sm shadow-[#FF5436]/20 font-normal"
+                            : "bg-white text-[#191512] border border-[#E7DFD4] rounded-2xl rounded-bl-xs shadow-xs font-normal"
                         )}
                       >
                         {msg.content}
@@ -623,7 +623,7 @@ const MatchChat = () => {
                             isMe ? "items-end mr-1" : "items-start ml-1.5"
                           )}
                         >
-                          <div className="flex items-center gap-1.5 text-[#888177]">
+                          <div className="flex items-center gap-1 text-[#888177]">
                             <span>{time}</span>
                             {isMe && (
                               (() => {
@@ -634,7 +634,7 @@ const MatchChat = () => {
                                 if (isRead) {
                                   return (
                                     <span
-                                      className="inline-flex items-center gap-1 text-[#FF5436] font-bold transition-all animate-in fade-in duration-300"
+                                      className="inline-flex items-center text-[#FF5436] transition-all animate-in fade-in duration-300 ml-0.5"
                                       title={`Seen by match ${
                                         otherLastReadAt
                                           ? "at " + format(new Date(otherLastReadAt), "h:mm a")
@@ -642,43 +642,25 @@ const MatchChat = () => {
                                       }`}
                                     >
                                       <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
-                                      <span className="text-[10px] tracking-tight">Seen</span>
                                     </span>
                                   );
                                 }
 
                                 return (
                                   <span
-                                    className="inline-flex items-center gap-1 text-[#9E978D] font-medium"
+                                    className="inline-flex items-center text-[#9E978D] ml-0.5"
                                     title="Delivered to match"
                                   >
                                     <CheckCheck className="h-3.5 w-3.5 stroke-[2]" />
-                                    <span className="text-[10px] tracking-tight">Delivered</span>
                                   </span>
                                 );
                               })()
                             )}
                           </div>
-
-                          {/* Seen Avatar Indicator below the most recent seen message */}
-                          {isMe && msg.id === lastReadMsgId && otherProfile && (
-                            <div className="flex items-center gap-1 mt-1 text-[9.5px] text-[#FF5436] font-medium bg-[#FFF5F2] px-2 py-0.5 rounded-full border border-[#FFD5CC] shadow-2xs">
-                              <Avatar className="h-3.5 w-3.5 border border-white shrink-0">
-                                {otherProfile.avatar_url && <AvatarImage src={otherProfile.avatar_url} />}
-                                <AvatarFallback className="bg-[#FF5436] text-white text-[7px] font-bold">
-                                  {otherProfile.first_name?.[0]?.toUpperCase() || "?"}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span>
-                                Seen by {otherProfile.first_name || "Match"}{" "}
-                                {otherLastReadAt ? `• ${format(new Date(otherLastReadAt), "h:mm a")}` : ""}
-                              </span>
-                            </div>
-                          )}
                         </div>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
