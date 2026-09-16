@@ -28,7 +28,6 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import MatchActions from "@/components/MatchActions";
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis,
   PolarRadiusAxis, ResponsiveContainer,
@@ -62,6 +61,9 @@ const Matches = () => {
     initialTab && ["discover", "received", "pending", "connected"].includes(initialTab) ? initialTab : "discover"
   );
   const hasAutoDefaultedTabRef = useRef(false);
+
+  // Optimistic queue removal state for instant, dynamic transitions
+  const [optimisticallyRemovedIds, setOptimisticallyRemovedIds] = useState<Set<string>>(new Set());
 
   // Keep activeTab in sync whenever the URL tab query param changes (e.g. clicking Review Requests from Dashboard)
   useEffect(() => {
@@ -129,13 +131,15 @@ const Matches = () => {
     // 1. From matchEngine's incoming_matches list
     (data?.incoming_matches || []).forEach((m) => {
       const key = m.pending_match_id || m.user_id;
-      map.set(key, m);
+      if (!optimisticallyRemovedIds.has(m.user_id) && !optimisticallyRemovedIds.has(key)) {
+        map.set(key, m);
+      }
     });
 
     // 2. From data?.matches where has_incoming_request flag is true
     (data?.matches || []).filter((m) => m.has_incoming_request).forEach((m) => {
       const key = m.pending_match_id || m.user_id;
-      if (!map.has(key)) {
+      if (!map.has(key) && !optimisticallyRemovedIds.has(m.user_id) && !optimisticallyRemovedIds.has(key)) {
         map.set(key, m);
       }
     });
@@ -143,7 +147,12 @@ const Matches = () => {
     // 3. From useChatSummary incomingRequests (guarantees parity with sidebar badge and dashboard alert banner)
     (incomingRequests || []).forEach((req) => {
       const key = req.matchId || req.otherUser.id;
-      if (!map.has(key) && !map.has(req.otherUser.id)) {
+      if (
+        !map.has(key) &&
+        !map.has(req.otherUser.id) &&
+        !optimisticallyRemovedIds.has(req.otherUser.id) &&
+        !optimisticallyRemovedIds.has(key)
+      ) {
         const myDims = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3];
         const matchObj: MatchData = {
           user_id: req.otherUser.id,
@@ -162,7 +171,7 @@ const Matches = () => {
     });
 
     return Array.from(map.values());
-  }, [data?.incoming_matches, data?.matches, incomingRequests, myProfile]);
+  }, [data?.incoming_matches, data?.matches, incomingRequests, myProfile, optimisticallyRemovedIds]);
 
   // Track the currently viewed request when viewing the Received tab (one at a time)
   const [receivedIndex, setReceivedIndex] = useState(0);
@@ -266,7 +275,14 @@ const Matches = () => {
 
   const handleAction = useCallback(async (match: MatchData, action: "accept" | "pass") => {
     if (!user) return;
-    setActing(true);
+
+    // 1. Immediately remove candidate from queue optimistically for instantaneous, fluid UX
+    setOptimisticallyRemovedIds((prev) => {
+      const next = new Set(prev);
+      next.add(match.user_id);
+      if (match.pending_match_id) next.add(match.pending_match_id);
+      return next;
+    });
 
     try {
       const isIncoming = Boolean(match.has_incoming_request || match.pending_match_id);
@@ -299,26 +315,20 @@ const Matches = () => {
         }
       }
 
-      if (action === "accept") {
-        toast({
-          title: "Blind Connection Request Sent! ✨",
-          description: "Names and profiles remain completely blind until they connect back too.",
-        });
-      } else if (action === "pass") {
-        toast({
-          title: "Candidate Passed",
-          description: "We've removed this candidate from your active queue.",
-        });
-      }
-
+      // Background query synchronization without waiting or blocking UI
       queryClient.invalidateQueries({ queryKey: ["matches"] });
       queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
       queryClient.invalidateQueries({ queryKey: ["mutual-matches-list"] });
       queryClient.invalidateQueries({ queryKey: ["chat-summary"] });
     } catch (err: any) {
+      // Revert optimistic removal on error
+      setOptimisticallyRemovedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(match.user_id);
+        if (match.pending_match_id) next.delete(match.pending_match_id);
+        return next;
+      });
       toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setActing(false);
     }
   }, [user, session, queryClient, navigate]);
 
@@ -393,6 +403,8 @@ const Matches = () => {
     if (data?.matches && data.matches.length > 0) {
       // Exclude any candidates with incoming requests, pending requests, or existing mutual connections
       const candidates = data.matches.filter((m) => {
+        if (optimisticallyRemovedIds.has(m.user_id)) return false;
+        if (m.pending_match_id && optimisticallyRemovedIds.has(m.pending_match_id)) return false;
         if (m.has_incoming_request || m.pending_match_id) return false;
         if (incomingUserIds.has(m.user_id)) return false;
         if (pendingUserIds.has(m.user_id)) return false;
@@ -437,7 +449,7 @@ const Matches = () => {
 
       return b.score - a.score;
     });
-  }, [incomingMatches, pendingMatches, mutualMatches, data?.matches, myProfile?.location_city, myProfile?.user_type]);
+  }, [incomingMatches, pendingMatches, mutualMatches, data?.matches, myProfile?.location_city, myProfile?.user_type, optimisticallyRemovedIds]);
 
   const currentMatch = matchesList[0];
 
@@ -701,14 +713,6 @@ const Matches = () => {
                 )}
               >
                 <span>Discover</span>
-                <span
-                  className={cn(
-                    "h-4 min-w-4 px-1 rounded-full text-[10px] font-bold inline-flex items-center justify-center",
-                    activeTab === "discover" ? "bg-primary text-white" : "bg-[#E0D6CA] text-[#555]"
-                  )}
-                >
-                  {matchesList.length}
-                </span>
               </button>
 
               <button
@@ -722,12 +726,10 @@ const Matches = () => {
                 )}
               >
                 <span>Received</span>
-                {incomingMatches.length > 0 ? (
+                {incomingMatches.length > 0 && (
                   <span className="h-4 min-w-4 px-1.5 rounded-full bg-primary text-white text-[10px] font-bold inline-flex items-center justify-center animate-pulse">
                     {incomingMatches.length}
                   </span>
-                ) : (
-                  <span className="text-[11px] text-muted-foreground font-normal">(0)</span>
                 )}
               </button>
 
@@ -742,12 +744,10 @@ const Matches = () => {
                 )}
               >
                 <span>Sent</span>
-                {pendingMatches.length > 0 ? (
+                {pendingMatches.length > 0 && (
                   <span className="h-4 min-w-4 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold inline-flex items-center justify-center">
                     {pendingMatches.length}
                   </span>
-                ) : (
-                  <span className="text-[11px] text-muted-foreground font-normal">(0)</span>
                 )}
               </button>
 
@@ -762,24 +762,13 @@ const Matches = () => {
                 )}
               >
                 <span>Connected</span>
-                {mutualMatches.length > 0 ? (
+                {mutualMatches.length > 0 && (
                   <span className="h-4 min-w-4 px-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold inline-flex items-center justify-center">
                     {mutualMatches.length}
                   </span>
-                ) : (
-                  <span className="text-[11px] text-muted-foreground font-normal">(0)</span>
                 )}
               </button>
             </div>
-
-            {activeTab === "discover" && currentMatch && (
-              <MatchActions
-                matchId=""
-                otherUserId={currentMatch.user_id}
-                otherName="this candidate"
-                onBlocked={() => queryClient.invalidateQueries({ queryKey: ["matches"] })}
-              />
-            )}
           </div>
         </div>
 
@@ -921,13 +910,17 @@ const Matches = () => {
                   {/* RIGHT COLUMN: Compatibility Breakdown for this Candidate */}
                   <div className="lg:col-span-7 flex flex-col gap-4">
                     <CompatibilityScoreMeter
+                      key={`received-score-meter-${currentReceivedMatch.pending_match_id || currentReceivedMatch.user_id}`}
                       myDimensions={currentReceivedMatch.my_dimensions}
                       candidateDimensions={currentReceivedMatch.dimensions}
                       fallbackScore={currentReceivedMatch.score}
                     />
 
                     {/* Compatibility Dimensions Radar Chart */}
-                    <div className="rounded-[28px] border border-[#EFE8DD] shadow-card bg-white p-4 sm:p-5">
+                    <div
+                      key={`received-radar-${currentReceivedMatch.pending_match_id || currentReceivedMatch.user_id}`}
+                      className="rounded-[28px] border border-[#EFE8DD] shadow-card bg-white p-4 sm:p-5"
+                    >
                       <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
                         <div>
                           <h3 className="font-serif font-bold text-base text-[#1A1816]">Compatibility Dimensions</h3>
@@ -1130,6 +1123,7 @@ const Matches = () => {
                         className="rounded-full h-11 w-full font-bold border-[#FF5436]/40 text-[#FF5436] hover:bg-[#FFF0EB]"
                         onClick={async () => {
                           if (user) {
+                            setOptimisticallyRemovedIds(new Set());
                             await resetSwipedMatches(user.id);
                             queryClient.invalidateQueries({ queryKey: ["matches"] });
                             toast({
@@ -1154,17 +1148,17 @@ const Matches = () => {
             ) : (
               /* Responsive Layout: 2-Column Split on Desktop, Stack on Mobile */
               <div className="space-y-3.5 flex-1 flex flex-col">
-                {/* Candidate counter bar */}
+                {/* Discovery status bar */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground px-1 shrink-0">
                   <div className="flex items-center gap-2.5">
                     <span className="font-semibold text-foreground flex items-center gap-1.5">
                       <Sparkles className="h-3.5 w-3.5 text-primary" />
-                      <span>Candidate 1 of {matchesList.length}</span>
+                      <span>Curated Match</span>
                     </span>
                     <span
                       id="live-sync-indicator"
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50"
-                      title="Background polling active: checking for new matches periodically"
+                      title="Compatibility queue updated dynamically"
                     >
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       <span>Live Sync</span>
@@ -1201,13 +1195,17 @@ const Matches = () => {
                   <div className="lg:col-span-7 flex flex-col gap-4">
                     {/* Primary Decision Element: Visual D3 Compatibility Score Meter */}
                     <CompatibilityScoreMeter
+                      key={`score-meter-${currentMatch.user_id}`}
                       myDimensions={currentMatch.my_dimensions}
                       candidateDimensions={currentMatch.dimensions}
                       fallbackScore={currentMatch.score}
                     />
 
                     {/* Compatibility Dimensions Radar Chart (Beneath Score Meter) */}
-                    <div className="rounded-[28px] border border-[#EFE8DD] shadow-card bg-white p-4 sm:p-5">
+                    <div
+                      key={`radar-${currentMatch.user_id}`}
+                      className="rounded-[28px] border border-[#EFE8DD] shadow-card bg-white p-4 sm:p-5"
+                    >
                       <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
                         <div>
                           <h3 className="font-serif font-bold text-base text-[#1A1816]">Compatibility Dimensions</h3>

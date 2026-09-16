@@ -90,9 +90,9 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
     const width = 280;
     const height = 180;
     const centerX = width / 2;
-    const centerY = 135;
-    const innerRadius = 76;
-    const outerRadius = 94;
+    const centerY = 138;
+    const innerRadius = 82;
+    const outerRadius = 98;
     const centerRadius = (innerRadius + outerRadius) / 2;
 
     // Arc angles: 240 degrees radial gauge (-120° to +120°)
@@ -217,7 +217,7 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
 
     // Animate the arc and number smoothly from 0 to overallScore
     const startTime = performance.now();
-    const duration = 1200;
+    const duration = 650;
 
     progressPath
       .transition()
@@ -317,7 +317,7 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
             />
 
             {/* Centered Score Badge */}
-            <div className="absolute top-[68px] flex flex-col items-center justify-center text-center pointer-events-none">
+            <div className="absolute inset-x-0 top-[46px] flex flex-col items-center justify-center text-center pointer-events-none px-4">
               <div className="flex items-baseline justify-center">
                 <span className="font-serif text-3xl sm:text-4xl font-extrabold text-[#1A1816] tracking-tight leading-none">
                   {displayNumber}
@@ -329,14 +329,14 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
               <span className="text-[10px] font-bold text-[#706A62] uppercase tracking-wider mt-1">
                 Authentic Synergy
               </span>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-[10px] text-muted-foreground max-w-[130px] leading-snug text-center mt-0.5 line-clamp-2">
                 {tier.subtext}
               </span>
             </div>
           </div>
 
           {/* Scale range labels */}
-          <div className="w-full max-w-[240px] flex items-center justify-between text-[11px] font-semibold text-[#8C847B] px-3 -mt-2">
+          <div className="w-full max-w-[240px] flex items-center justify-between text-[11px] font-semibold text-[#8C847B] px-3 -mt-3">
             <span>50%</span>
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
               Zero-Bias Quiz Score

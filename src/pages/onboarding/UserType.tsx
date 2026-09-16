@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import OnboardingProgress from "@/components/OnboardingProgress";
-import { User, Users, ArrowLeft, ArrowRight } from "lucide-react";
+import { User, Users, ArrowLeft, ArrowRight, LogIn } from "lucide-react";
 import { getSignupDraft, updateSignupDraft } from "@/lib/signupState";
+import { OnboardingInstallNudge } from "@/components/onboarding/OnboardingInstallNudge";
 
 const UserType = () => {
   const { user, profile, isProfileComplete } = useAuth();
@@ -49,12 +50,24 @@ const UserType = () => {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#FAF7F2] dark:bg-background px-4 py-4 sm:py-6">
       <div className="w-full max-w-md space-y-4 sm:space-y-5">
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#7A746C] hover:text-[#1A1816] transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Home
-        </button>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#7A746C] hover:text-[#1A1816] transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to Home
+          </button>
+          <button
+            onClick={() => navigate("/?login=true")}
+            className="flex items-center gap-1 text-xs sm:text-sm font-bold text-[#FF5436] hover:underline"
+          >
+            <LogIn className="h-3.5 w-3.5" />
+            Log In
+          </button>
+        </div>
+
+        {/* Mobile Install Nudge for New Users */}
+        <OnboardingInstallNudge />
 
         <OnboardingProgress currentStep={1} totalSteps={6} />
 
@@ -136,6 +149,18 @@ const UserType = () => {
             <div className="h-6 w-6 animate-spin rounded-full border-3 border-[#FF5436] border-t-transparent" />
           </div>
         )}
+
+        <div className="pt-2 text-center">
+          <p className="text-xs text-[#706A62]">
+            Already signed up previously?{" "}
+            <button
+              onClick={() => navigate("/?login=true")}
+              className="font-bold text-[#FF5436] hover:underline cursor-pointer"
+            >
+              Log in to your account
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );

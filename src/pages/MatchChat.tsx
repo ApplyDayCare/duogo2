@@ -10,8 +10,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
-import { AiIcebreakers } from "@/components/AiIcebreakers";
-import { ChatIcebreakerCard } from "@/components/ChatIcebreakerCard";
+import { ChatStartersPanel } from "@/components/ChatStartersPanel";
 import { MatchSidebarProfile } from "@/components/MatchSidebarProfile";
 import MatchActions from "@/components/MatchActions";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -403,57 +402,57 @@ const MatchChat = () => {
   return (
     <div className="flex h-full w-full bg-[#FAF7F2] overflow-hidden">
       {/* Primary Chat Column */}
-      <div className="flex flex-col flex-1 min-w-0 h-full bg-white relative">
-        {/* Chat Header */}
-        <header className="bg-white/95 backdrop-blur-md border-b border-[#EFE8DD] px-4 sm:px-6 py-3 flex items-center justify-between shadow-2xs z-10 shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 h-full bg-white relative overflow-hidden">
+        {/* Chat Header (Fixed at top) */}
+        <header className="bg-white border-b border-[#EFE8DD] px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between shadow-2xs z-20 shrink-0 h-13 sm:h-14">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
             <Button
               variant="ghost"
               size="icon"
-              className="shrink-0 h-9 w-9 rounded-full text-[#666059] hover:text-[#181513] hover:bg-[#FAF7F2]"
+              className="shrink-0 h-8 w-8 rounded-full text-[#666059] hover:text-[#181513] hover:bg-[#FAF7F2]"
               onClick={() => navigate("/chats")}
               aria-label="Back to chats"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4.5 w-4.5" />
             </Button>
 
             <button
               onClick={() => setMobileInfoOpen(true)}
-              className="flex items-center gap-3 min-w-0 text-left hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 sm:gap-2.5 min-w-0 text-left hover:opacity-90 transition-opacity"
             >
               {isCouple ? (
                 <div className="flex -space-x-2 shrink-0">
-                  <Avatar className="h-10 w-10 border-2 border-white shadow-2xs">
+                  <Avatar className="h-8 w-8 sm:h-8.5 sm:w-8.5 border-2 border-white shadow-2xs">
                     {otherProfile?.avatar_url && <AvatarImage src={otherProfile.avatar_url} />}
-                    <AvatarFallback className="bg-[#FFF0EB] text-primary text-xs font-bold font-serif">
+                    <AvatarFallback className="bg-[#FFF0EB] text-primary text-[10px] font-bold font-serif">
                       {otherProfile?.first_name?.[0]?.toUpperCase() || "?"}
                     </AvatarFallback>
                   </Avatar>
-                  <Avatar className="h-10 w-10 border-2 border-white shadow-2xs">
+                  <Avatar className="h-8 w-8 sm:h-8.5 sm:w-8.5 border-2 border-white shadow-2xs">
                     {partnerProfile?.avatar_url && <AvatarImage src={partnerProfile.avatar_url} />}
-                    <AvatarFallback className="bg-[#FFF0EB] text-primary text-xs font-bold font-serif">
+                    <AvatarFallback className="bg-[#FFF0EB] text-primary text-[10px] font-bold font-serif">
                       {partnerProfile?.first_name?.[0]?.toUpperCase() || "?"}
                     </AvatarFallback>
                   </Avatar>
                 </div>
               ) : (
-                <Avatar className="h-10 w-10 border-2 border-white shadow-2xs shrink-0">
+                <Avatar className="h-8 w-8 sm:h-8.5 sm:w-8.5 border-2 border-white shadow-2xs shrink-0">
                   {otherProfile?.avatar_url && <AvatarImage src={otherProfile.avatar_url} />}
-                  <AvatarFallback className="bg-[#FFF0EB] text-primary text-sm font-bold font-serif">
+                  <AvatarFallback className="bg-[#FFF0EB] text-primary text-xs font-bold font-serif">
                     {otherProfile?.first_name?.[0]?.toUpperCase() || "?"}
                   </AvatarFallback>
                 </Avatar>
               )}
 
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-[#181513] truncate font-serif">
+                <p className="text-[13px] sm:text-sm font-bold text-[#181513] truncate font-serif leading-tight">
                   {headerName}
                 </p>
-                <div className="flex items-center gap-2 text-xs text-[#666059]">
+                <div className="flex items-center gap-1.5 text-[10.5px] sm:text-[11px] text-[#666059] leading-tight mt-0.5">
                   {isOtherUserInChat ? (
-                    <span className="inline-flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    <span className="inline-flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.2 rounded-full border border-emerald-200 text-[9.5px]">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Active in chat
+                      Active
                     </span>
                   ) : (
                     <span className="flex items-center gap-1 text-emerald-600 font-semibold">
@@ -471,13 +470,13 @@ const MatchChat = () => {
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             <Button
               id="btn-header-icebreaker"
               variant="outline"
               size="sm"
               className={cn(
-                "rounded-full h-8 px-3 text-xs font-semibold border-[#FFD5CC] transition-all",
+                "hidden md:inline-flex rounded-full h-7 px-2.5 text-xs font-semibold border-[#FFD5CC] transition-all",
                 showIcebreakerCard
                   ? "bg-[#FF5436] text-white hover:bg-[#E03E22]"
                   : "bg-[#FFF5F2] hover:bg-[#FFEAE3] text-[#FF5436]"
@@ -485,30 +484,32 @@ const MatchChat = () => {
               onClick={() => setShowIcebreakerCard((prev) => !prev)}
               title="Suggest a random lighthearted icebreaker question"
             >
-              <Sparkles className="h-3.5 w-3.5 mr-1" />
-              <span className="hidden sm:inline">Icebreaker</span>
+              <Sparkles className="h-3 w-3 mr-1" />
+              <span>Icebreaker</span>
             </Button>
 
             <Button
               variant="outline"
               size="sm"
-              className="rounded-full h-8 px-3 text-xs font-semibold border-[#FFD5CC] bg-[#FFF5F2] hover:bg-[#FFEAE3] text-[#FF5436]"
+              className="rounded-full h-7 px-2 text-[11px] font-bold border-[#FFD5CC] bg-[#FFF5F2] hover:bg-[#FFEAE3] text-[#FF5436] shrink-0"
               onClick={() => navigate(`/match-reveal/${matchId}`)}
+              title={`Compatibility score: ${displayScore}%`}
             >
-              <Sparkles className="h-3.5 w-3.5 mr-1" />
-              <span className="hidden sm:inline">Reveal ({displayScore}%)</span>
-              <span className="sm:hidden">{displayScore}%</span>
+              <Sparkles className="h-3 w-3 mr-1 fill-[#FF5436]" />
+              <span className="hidden sm:inline">Score </span>
+              <span>{displayScore}%</span>
             </Button>
 
             {/* Mobile Info Trigger */}
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden h-8 w-8 rounded-full text-[#666059] hover:bg-[#FAF7F2]"
+              className="lg:hidden h-7 w-7 rounded-full text-[#666059] hover:bg-[#FAF7F2]"
               onClick={() => setMobileInfoOpen(true)}
               aria-label="View Profile Info"
+              title="View Profile Details"
             >
-              <Info className="h-4 w-4" />
+              <Info className="h-3.5 w-3.5" />
             </Button>
 
             {/* Block & Report Actions */}
@@ -523,112 +524,120 @@ const MatchChat = () => {
           </div>
         </header>
 
-        {/* Message Feed Area */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-3 bg-[#FAF7F2]/40">
+        {/* Message Feed Area (Scrolls independently taking all remaining height) */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-2.5 sm:px-4 py-2 sm:py-3 bg-[#FAF7F2]/40 overscroll-contain">
           {loading ? (
-            <div className="space-y-4 pt-4 max-w-xl mx-auto">
+            <div className="space-y-3 pt-3 max-w-xl mx-auto">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex gap-3 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }}>
-                  <div className="h-9 w-9 rounded-full bg-[#EFE8DD] shrink-0" />
-                  <div className="space-y-2 flex-1">
-                    <div className="h-3 w-20 rounded bg-[#EFE8DD]" />
-                    <div className="h-10 w-48 rounded-2xl bg-[#EFE8DD]" />
+                <div key={i} className="flex gap-2.5 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }}>
+                  <div className="h-7 w-7 rounded-full bg-[#EFE8DD] shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-2.5 w-16 rounded bg-[#EFE8DD]" />
+                    <div className="h-8 w-44 rounded-xl bg-[#EFE8DD]" />
                   </div>
                 </div>
               ))}
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-[360px] text-center px-4 max-w-md mx-auto my-auto space-y-4">
+            <div className="flex flex-col items-center justify-center py-6 px-3 text-center max-w-sm mx-auto my-auto space-y-3">
               <div className="relative">
-                <div className="flex -space-x-3 items-center justify-center">
-                  <Avatar className="h-14 w-14 border-3 border-white shadow-soft">
+                <div className="flex -space-x-2.5 items-center justify-center">
+                  <Avatar className="h-11 w-11 border-2 border-white shadow-soft">
                     {myProfile?.avatar_url && <AvatarImage src={myProfile.avatar_url} />}
-                    <AvatarFallback className="bg-[#FFF0EB] text-[#FF5436] font-serif font-bold text-base">
+                    <AvatarFallback className="bg-[#FFF0EB] text-[#FF5436] font-serif font-bold text-sm">
                       {myProfile?.first_name?.[0]?.toUpperCase() || "Y"}
                     </AvatarFallback>
                   </Avatar>
-                  <Avatar className="h-14 w-14 border-3 border-white shadow-soft">
+                  <Avatar className="h-11 w-11 border-2 border-white shadow-soft">
                     {otherProfile?.avatar_url && <AvatarImage src={otherProfile.avatar_url} />}
-                    <AvatarFallback className="bg-[#FAF7F2] text-[#181513] font-serif font-bold text-base border border-[#EBE3D5]">
+                    <AvatarFallback className="bg-[#FAF7F2] text-[#181513] font-serif font-bold text-sm border border-[#EBE3D5]">
                       {otherProfile?.first_name?.[0]?.toUpperCase() || "?"}
                     </AvatarFallback>
                   </Avatar>
                 </div>
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-[#FF5436] p-1 text-white shadow-xs">
-                  <Heart className="h-3.5 w-3.5 fill-white" />
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-[#FF5436] p-0.5 text-white shadow-xs">
+                  <Heart className="h-3 w-3 fill-white" />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <h3 className="font-serif text-xl font-bold text-[#181513]">You're both connected! 🎉</h3>
-                <p className="text-xs sm:text-sm text-[#666059] leading-relaxed">
-                  Start the conversation by sending a greeting or pick one of the suggestions below to break the ice!
+              <div className="space-y-1">
+                <h3 className="font-serif text-base sm:text-lg font-bold text-[#181513]">You're connected! 🎉</h3>
+                <p className="text-[11.5px] sm:text-xs text-[#666059] leading-relaxed max-w-xs mx-auto">
+                  Say hello or tap a conversation starter to break the ice!
                 </p>
               </div>
 
-              <div className="flex flex-wrap justify-center gap-2 pt-2">
+              <div className="flex flex-wrap justify-center gap-1.5 pt-1">
                 <Button
                   id="btn-empty-state-icebreaker"
                   onClick={() => setShowIcebreakerCard(true)}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#FF5436] hover:bg-[#E03E22] text-white font-bold text-xs px-4 py-2 shadow-soft transition-all active:scale-95"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#FF5436] hover:bg-[#E03E22] text-white font-bold text-xs h-7.5 px-3 shadow-2xs transition-all active:scale-95"
                 >
-                  <Sparkles className="h-4 w-4 fill-white" />
-                  <span>🎲 Roll an Icebreaker Question</span>
+                  <Sparkles className="h-3 w-3 fill-white" />
+                  <span>🎲 Roll Question</span>
                 </Button>
                 {QUICK_REPLIES.slice(0, 2).map(({ label, emoji }) => (
                   <button
                     key={label}
                     onClick={() => sendMessage(label)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-[#FFD5CC] bg-white px-3.5 py-2 text-xs font-semibold text-[#181513] shadow-2xs hover:bg-[#FFF5F2] hover:border-[#FF5436] transition-all active:scale-95"
+                    className="inline-flex items-center gap-1 rounded-full border border-[#FFD5CC] bg-white px-2.5 py-1 text-xs font-semibold text-[#181513] shadow-2xs hover:bg-[#FFF5F2] hover:border-[#FF5436] transition-all active:scale-95"
                   >
                     <span>{emoji}</span>
-                    <span>{label}</span>
+                    <span className="truncate max-w-[140px]">{label}</span>
                   </button>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="max-w-2xl mx-auto space-y-2">
+            <div className="max-w-2xl mx-auto space-y-1">
               {groupedMessages.map((msg) => {
                 const isMe = msg.sender_id === user?.id;
                 const time = format(new Date(msg.created_at), "h:mm a");
                 return (
                   <motion.div
                     key={msg.id}
-                    initial={{ opacity: 0, y: 9, x: isMe ? 8 : -8, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
-                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                    initial={{ opacity: 0, y: 6, x: isMe ? 6 : -6 }}
+                    animate={{ opacity: 1, y: 0, x: 0 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                     layout="position"
                     className={cn(
-                      "flex gap-2.5",
+                      "flex gap-1.5 sm:gap-2",
                       isMe ? "flex-row-reverse justify-start" : "justify-start",
-                      msg.showName && "mt-4"
+                      msg.showName && "mt-2.5"
                     )}
                   >
                     {!isMe && (
-                      <div className="w-8 shrink-0 flex items-end">
-                        {msg.showAvatar && (
-                          <Avatar className="h-8 w-8 border border-[#EBE3D5] shadow-2xs">
+                      <div className="w-7 shrink-0 flex items-end mb-0.5">
+                        {msg.showAvatar ? (
+                          <Avatar className="h-7 w-7 border border-[#EBE3D5] shadow-2xs">
                             {otherProfile?.avatar_url && <AvatarImage src={otherProfile.avatar_url} />}
-                            <AvatarFallback className="bg-[#FFF0EB] text-primary text-[11px] font-bold">
+                            <AvatarFallback className="bg-[#FFF0EB] text-primary text-[10px] font-bold">
                               {otherProfile?.first_name?.[0]?.toUpperCase() || "?"}
                             </AvatarFallback>
                           </Avatar>
+                        ) : (
+                          <div className="w-7" />
                         )}
                       </div>
                     )}
-                    <div className={cn("max-w-[78%] sm:max-w-[70%] flex flex-col", isMe ? "items-end" : "items-start")}>
+                    <div className={cn("max-w-[84%] sm:max-w-[74%] flex flex-col", isMe ? "items-end" : "items-start")}>
                       {!isMe && msg.showName && (
-                        <p className="text-[11px] font-bold text-[#888177] mb-1 ml-1.5 text-left">
+                        <p className="text-[10.5px] font-bold text-[#888177] mb-0.5 ml-1 text-left">
                           {otherProfile?.first_name || "Match"}
                         </p>
                       )}
                       <div
                         className={cn(
-                          "px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words transition-colors",
+                          "px-3 py-1.5 sm:px-3.5 sm:py-2 text-[13px] sm:text-[13.5px] leading-snug whitespace-pre-wrap break-words transition-colors rounded-2xl",
                           isMe
-                            ? "bg-gradient-to-br from-[#FF5436] via-[#FF5F45] to-[#EE3F20] text-white rounded-2xl rounded-br-xs shadow-sm shadow-[#FF5436]/20 font-normal"
-                            : "bg-white text-[#191512] border border-[#E7DFD4] rounded-2xl rounded-bl-xs shadow-xs font-normal"
+                            ? cn(
+                                "bg-gradient-to-br from-[#FF5436] via-[#FF5F45] to-[#EE3F20] text-white shadow-2xs font-normal",
+                                msg.isLast ? "rounded-br-xs" : "rounded-r-md"
+                              )
+                            : cn(
+                                "bg-white text-[#191512] border border-[#E7DFD4] shadow-2xs font-normal",
+                                msg.isLast ? "rounded-bl-xs" : "rounded-l-md"
+                              )
                         )}
                       >
                         {msg.content}
@@ -636,44 +645,42 @@ const MatchChat = () => {
                       {msg.isLast && (
                         <div
                           className={cn(
-                            "text-[10px] mt-1 font-medium flex flex-col",
-                            isMe ? "items-end mr-1" : "items-start ml-1.5"
+                            "text-[9.5px] mt-0.5 font-medium flex items-center gap-1",
+                            isMe ? "justify-end mr-0.5 text-[#888177]" : "justify-start ml-1 text-[#888177]"
                           )}
                         >
-                          <div className="flex items-center gap-1 text-[#888177]">
-                            <span>{time}</span>
-                            {isMe && (
-                              (() => {
-                                const isRead =
-                                  isOtherUserInChat ||
-                                  (otherLastReadAt && new Date(otherLastReadAt) >= new Date(msg.created_at));
+                          <span>{time}</span>
+                          {isMe && (
+                            (() => {
+                              const isRead =
+                                isOtherUserInChat ||
+                                (otherLastReadAt && new Date(otherLastReadAt) >= new Date(msg.created_at));
 
-                                if (isRead) {
-                                  return (
-                                    <span
-                                      className="inline-flex items-center text-[#FF5436] transition-all animate-in fade-in duration-300 ml-0.5"
-                                      title={`Seen by match ${
-                                        otherLastReadAt
-                                          ? "at " + format(new Date(otherLastReadAt), "h:mm a")
-                                          : ""
-                                      }`}
-                                    >
-                                      <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
-                                    </span>
-                                  );
-                                }
-
+                              if (isRead) {
                                 return (
                                   <span
-                                    className="inline-flex items-center text-[#9E978D] ml-0.5"
-                                    title="Delivered to match"
+                                    className="inline-flex items-center text-[#FF5436] transition-all animate-in fade-in duration-300 ml-0.5"
+                                    title={`Seen by match ${
+                                      otherLastReadAt
+                                        ? "at " + format(new Date(otherLastReadAt), "h:mm a")
+                                        : ""
+                                    }`}
                                   >
-                                    <CheckCheck className="h-3.5 w-3.5 stroke-[2]" />
+                                    <CheckCheck className="h-3 w-3 stroke-[2.5]" />
                                   </span>
                                 );
-                              })()
-                            )}
-                          </div>
+                              }
+
+                              return (
+                                <span
+                                  className="inline-flex items-center text-[#9E978D] ml-0.5"
+                                  title="Delivered to match"
+                                >
+                                  <CheckCheck className="h-3 w-3 stroke-[2]" />
+                                </span>
+                              );
+                            })()
+                          )}
                         </div>
                       )}
                     </div>
@@ -685,93 +692,67 @@ const MatchChat = () => {
           <div ref={scrollRef} />
         </div>
 
-        {/* Random Lighthearted Icebreaker Suggestion Card */}
-        {showIcebreakerCard && (
-          <div className="shrink-0 px-3 sm:px-4 pt-3 pb-1 bg-white border-t border-[#FFE5DD]/80">
-            <div className="max-w-3xl mx-auto">
-              <ChatIcebreakerCard
+        {/* Fixed Input Area (Fixed at bottom) */}
+        <div className="shrink-0 bg-white border-t border-[#EFE8DD] z-20">
+          {/* On-Demand Conversation Starters & Icebreaker Drawer */}
+          {showIcebreakerCard && (
+            <div className="max-w-3xl w-full mx-auto">
+              <ChatStartersPanel
                 matchName={headerName}
-                onInsert={(text) => {
-                  handleSelectIcebreaker(text, false);
-                }}
-                onSend={(text) => {
-                  sendMessage(text);
+                userName={myProfile?.first_name || "You"}
+                city={otherProfile?.location_city || undefined}
+                userType={otherProfile?.user_type || undefined}
+                onSelect={(text, sendImmediately) => {
+                  handleSelectIcebreaker(text, sendImmediately);
                   setShowIcebreakerCard(false);
                 }}
                 onClose={() => setShowIcebreakerCard(false)}
               />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* AI Icebreakers Suggestions */}
-        <div className="shrink-0 border-t border-[#EFE8DD] bg-[#FAF7F2]/80 backdrop-blur-xs">
-          <AiIcebreakers
-            userName={myProfile?.first_name || "You"}
-            matchName={headerName}
-            city={otherProfile?.location_city || undefined}
-            userType={otherProfile?.user_type || undefined}
-            onSelectIcebreaker={handleSelectIcebreaker}
-          />
-        </div>
-
-        {/* Quick Replies Bar */}
-        <div className="shrink-0 px-4 py-2 flex gap-2 overflow-x-auto bg-white border-t border-[#EFE8DD] no-scrollbar">
-          {QUICK_REPLIES.map(({ label, emoji }) => (
-            <button
-              key={label}
-              onClick={() => sendMessage(label)}
-              className="inline-flex items-center gap-1.5 shrink-0 rounded-full border border-[#EBE3D5] bg-[#FAF7F2] px-3.5 py-1.5 text-xs font-semibold text-[#181513] hover:bg-[#FFF5F2] hover:border-[#FFD5CC] hover:text-[#FF5436] transition-all active:scale-95"
-            >
-              <span>{emoji}</span>
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Bottom Input Field Bar */}
-        <div className="shrink-0 p-3 sm:p-4 bg-white border-t border-[#EFE8DD]">
-          <div className="max-w-3xl mx-auto flex items-end gap-2 sm:gap-2.5">
-            {/* Dedicated Icebreaker Button */}
+          {/* Bottom Input Field Bar */}
+          <div className="p-2 sm:p-2.5 max-w-3xl mx-auto flex items-end gap-1.5 sm:gap-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]">
+            {/* Sleek Starters & Icebreaker Toggle Icon Button */}
             <Button
               id="btn-chat-icebreaker"
               type="button"
               variant="outline"
+              size="icon"
               onClick={() => setShowIcebreakerCard((prev) => !prev)}
               className={cn(
-                "h-11 px-3 sm:px-3.5 rounded-2xl font-bold text-xs shrink-0 flex items-center gap-1.5 transition-all shadow-2xs active:scale-95",
+                "h-9.5 w-9.5 sm:h-10 sm:w-10 rounded-xl shrink-0 flex items-center justify-center transition-all shadow-2xs active:scale-95",
                 showIcebreakerCard
                   ? "bg-[#FF5436] text-white hover:bg-[#E03E22] border-transparent shadow-soft"
                   : "bg-[#FFF5F2] hover:bg-[#FFEAE3] text-[#FF5436] border-[#FFD5CC]"
               )}
-              title="Suggest a random lighthearted conversation starter question"
-              aria-label="Suggest an icebreaker question"
+              title="Conversation starters, questions & AI suggestions"
+              aria-label="Toggle conversation starters"
             >
-              <Sparkles className="h-4 w-4 fill-current shrink-0" />
-              <span className="font-sans">Icebreaker</span>
+              <Sparkles className="h-4 w-4 fill-current" />
             </Button>
 
-            <div className="flex-1 relative rounded-2xl bg-[#FAF7F2] border border-[#EBE3D5] focus-within:border-[#FF5436] focus-within:bg-white transition-all shadow-2xs">
+            <div className="flex-1 relative rounded-xl bg-[#FAF7F2] border border-[#EBE3D5] focus-within:border-[#FF5436] focus-within:bg-white transition-all shadow-2xs">
               <textarea
                 ref={inputRef}
                 value={input}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Type a friendly message… (Enter to send)"
+                placeholder="Type a message…"
                 rows={1}
-                className="w-full resize-none bg-transparent px-4 py-3 text-sm text-[#181513] placeholder:text-[#888177] focus:outline-none max-h-32"
+                className="w-full resize-none bg-transparent px-3 py-2 text-[13px] sm:text-sm text-[#181513] placeholder:text-[#888177] focus:outline-none min-h-[38px] max-h-28 leading-snug"
               />
             </div>
 
             <Button
               id="btn-chat-send"
               size="icon"
-              className="h-11 w-11 rounded-2xl bg-[#FF5436] hover:bg-[#E03E22] text-white shrink-0 shadow-[0_4px_12px_rgba(255,84,54,0.28)] transition-all active:scale-95 disabled:opacity-50"
+              className="h-9.5 w-9.5 sm:h-10 sm:w-10 rounded-xl bg-[#FF5436] hover:bg-[#E03E22] text-white shrink-0 shadow-[0_3px_10px_rgba(255,84,54,0.25)] transition-all active:scale-95 disabled:opacity-40"
               onClick={() => sendMessage(input)}
               disabled={!input.trim()}
               aria-label="Send message"
             >
-              <Send className="h-4 w-4" />
+              <Send className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>

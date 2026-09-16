@@ -11,11 +11,13 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useChatSummary } from "@/hooks/useChatSummary";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const DESKTOP_NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: Home },
   { label: "Matches", path: "/matches", icon: Heart },
   { label: "Chats", path: "/chats", icon: MessageCircle },
+  { label: "Notifications", path: "/notifications", icon: Bell },
   { label: "History", path: "/history", icon: Clock },
   { label: "Referral", path: "/referral", icon: Share2 },
   { label: "Profile", path: "/profile", icon: UserCircle },
@@ -116,19 +118,6 @@ const AppLayout = () => {
           <div className="flex items-center gap-2">
             <button
               className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white border border-[#EBE3D5] text-[#181513] transition-all active:scale-95 shadow-2xs hover:bg-[#FDFBF8]"
-              onClick={() => navigate("/chats")}
-              aria-label="Chats"
-            >
-              <MessageCircle className="h-4 w-4 text-[#666059]" />
-              {totalChatAlerts > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#FF5436] px-1 text-[10px] font-bold text-white shadow-xs animate-pulse">
-                  {totalChatAlerts}
-                </span>
-              )}
-            </button>
-
-            <button
-              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white border border-[#EBE3D5] text-[#181513] transition-all active:scale-95 shadow-2xs hover:bg-[#FDFBF8]"
               onClick={() => navigate("/notifications")}
               aria-label="Notifications"
             >
@@ -157,7 +146,9 @@ const AppLayout = () => {
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto min-h-0 pb-6">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
 
         {/* Bottom nav */}
@@ -285,6 +276,11 @@ const AppLayout = () => {
                     {totalChatAlerts}
                   </Badge>
                 )}
+                {item.label === "Notifications" && !!unreadCount && unreadCount > 0 && (
+                  <Badge className="ml-auto h-5 min-w-5 px-1.5 text-[10px] bg-[#FF5436] text-white font-bold border-0">
+                    {unreadCount}
+                  </Badge>
+                )}
               </button>
             );
           })}
@@ -329,7 +325,9 @@ const AppLayout = () => {
       </aside>
 
       <main className={cn("flex-1", isChatRoute ? "h-screen overflow-hidden" : "h-screen overflow-y-auto")}>
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </div>
   );

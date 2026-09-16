@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +35,7 @@ import {
   InputOTPSlot,
   InputOTPSeparator,
 } from "@/components/ui/input-otp";
+import { MobileLandingInstallNudge } from "@/components/MobileLandingInstallNudge";
 import cafeLifestyleImg from "@/assets/images/friends_cafe_lifestyle_1788440191022.jpg";
 import parkWalkImg from "@/assets/images/friends_park_walk_1788440206700.jpg";
 import dinnerChatImg from "@/assets/images/friends_dinner_chat_1788440227145.jpg";
@@ -54,6 +55,15 @@ export default function Landing() {
   const [verifyingLogin, setVerifyingLogin] = useState(false);
   const [loginCooldown, setLoginCooldown] = useState(0);
   const [loginError, setLoginError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("login") === "true") {
+        setShowLogin(true);
+      }
+    }
+  }, []);
 
   const startLoginCooldown = () => {
     setLoginCooldown(30);
@@ -1611,6 +1621,9 @@ export default function Landing() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Subtle Mobile Browser Install Nudge when users first land */}
+      <MobileLandingInstallNudge />
     </div>
   );
 }

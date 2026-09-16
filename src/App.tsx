@@ -3,11 +3,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import Notifications from "./pages/Notifications";
 
 // Lazy loaded page components
 const Landing = lazy(() => import("./pages/Landing"));
@@ -34,7 +36,6 @@ const Referral = lazy(() => import("./pages/Referral"));
 const JoinReferral = lazy(() => import("./pages/JoinReferral"));
 const Profile = lazy(() => import("./pages/Profile"));
 const History = lazy(() => import("./pages/History"));
-const Notifications = lazy(() => import("./pages/Notifications"));
 const ReportMatch = lazy(() => import("./pages/ReportMatch"));
 const Safety = lazy(() => import("./pages/Safety"));
 const AdminReports = lazy(() => import("./pages/AdminReports"));
@@ -60,10 +61,12 @@ const App = () => (
           <Toaster />
           <Sonner />
           <OfflineIndicator />
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
               {/* Public Entry Points */}
               <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Navigate to="/?login=true" replace />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/join/:referralCode" element={<JoinReferral />} />
 
@@ -110,7 +113,8 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-        </BrowserRouter>
+        </ErrorBoundary>
+      </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
