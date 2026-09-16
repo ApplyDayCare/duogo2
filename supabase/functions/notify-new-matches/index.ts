@@ -211,6 +211,25 @@ Deno.serve(async (req) => {
           ? "A new match is waiting for you 👀"
           : `${count} new matches are waiting for you 👀`;
 
+      // Check if user already received an identical match notification recently to avoid duplicates
+      const { data: existingNotifs } = await supabase
+        .from("notifications")
+        .select("id")
+        .eq("user_id", profile.id)
+        .eq("message", message)
+        .limit(1);
+
+      if (existingNotifs && existingNotifs.length > 0) {
+        // Record the ledger to ensure synchronization
+        await supabase
+          .from("match_candidate_notices")
+          .upsert(
+            fresh.map((candidateId) => ({ user_id: profile.id, candidate_user_id: candidateId })),
+            { onConflict: "user_id,candidate_user_id", ignoreDuplicates: true }
+          );
+        continue;
+      }
+
       const { error: notifErr } = await supabase.from("notifications").insert({
         user_id: profile.id,
         message,

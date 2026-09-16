@@ -61,7 +61,7 @@ const AppLayout = () => {
       const [notifRes, matchesRes] = await Promise.all([
         supabase
           .from("notifications")
-          .select("*", { count: "exact", head: true })
+          .select("id, message, link")
           .eq("user_id", user.id)
           .eq("read", false),
         supabase
@@ -71,13 +71,24 @@ const AppLayout = () => {
           .eq("status", "pending"),
       ]);
 
-      const notifCount = notifRes.count ?? 0;
-      const incomingCount = (matchesRes.data ?? []).filter((m) => {
+      const unreadNotifs = notifRes.data || [];
+      const uniqueNotifKeys = new Set(
+        unreadNotifs.map((n) => `${(n.message || "").trim().toLowerCase()}|${(n.link || "").trim().toLowerCase()}`)
+      );
+      const uniqueNotifCount = uniqueNotifKeys.size;
+
+      const incomingMatches = (matchesRes.data ?? []).filter((m) => {
         const isA = m.user_a_id === user.id;
         return isA ? m.user_b_action === "accept" && !m.user_a_action : m.user_a_action === "accept" && !m.user_b_action;
-      }).length;
+      });
 
-      return notifCount + incomingCount;
+      // Avoid double-counting if an in-app notification already exists for received requests
+      const hasRequestNotif = unreadNotifs.some(
+        (n) => n.link?.includes("received") || n.message?.toLowerCase().includes("wants to connect")
+      );
+      const additionalIncoming = hasRequestNotif ? 0 : incomingMatches.length;
+
+      return uniqueNotifCount + additionalIncoming;
     },
     enabled: !!user,
     refetchInterval: 30000,

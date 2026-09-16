@@ -1,32 +1,41 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Share, PlusSquare, Sparkles, X, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Download,
+  Share,
+  X,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  ArrowDown
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{
-    outcome: "accepted" | "dismissed";
-    platform: string;
-  }>;
-  prompt(): Promise<void>;
-}
+import {
+  isStandaloneMode,
+  isIOS,
+  isAndroid,
+  detectInAppBrowser,
+  openInAndroidChrome,
+  BeforeInstallPromptEvent
+} from "@/lib/pwaDetection";
 
 export const OnboardingInstallNudge = () => {
   const [isStandalone, setIsStandalone] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isAndroid, setIsAndroid] = useState(false);
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [isAndroidDevice, setIsAndroidDevice] = useState(false);
+  const [inAppInfo, setInAppInfo] = useState<{ isInApp: boolean; name: string }>({
+    isInApp: false,
+    name: ""
+  });
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
-  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
     // 1. Check if already running in standalone PWA mode
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true;
+    const standalone = isStandaloneMode();
     setIsStandalone(standalone);
 
     // 2. Check if dismissed this session
@@ -34,20 +43,15 @@ export const OnboardingInstallNudge = () => {
     setIsDismissed(dismissed);
 
     // 3. Platform detection
-    const ua = navigator.userAgent || "";
-    const iosDevice = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
-    const androidDevice = /Android/i.test(ua);
+    const iosDevice = isIOS();
+    const androidDevice = isAndroid();
     const mobileViewport = window.innerWidth <= 768;
     const isMobileDevice = iosDevice || androidDevice || mobileViewport;
 
-    setIsIOS(iosDevice);
-    setIsAndroid(androidDevice);
+    setIsIOSDevice(iosDevice);
+    setIsAndroidDevice(androidDevice);
     setIsMobile(isMobileDevice);
-
-    // Default open iOS instructions if on iOS so the user sees exactly what to do
-    if (iosDevice) {
-      setShowIOSInstructions(true);
-    }
+    setInAppInfo(detectInAppBrowser());
 
     // 4. Capture native install prompt
     if (typeof window !== "undefined") {
@@ -89,16 +93,20 @@ export const OnboardingInstallNudge = () => {
     };
   }, []);
 
-  // If already in installed app, already installed, dismissed, or on a wide desktop, do not show
+  // If already in installed app, already installed, dismissed, or on desktop, do not show
   if (isStandalone || installed || isDismissed || !isMobile) {
     return null;
   }
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
+    const activePrompt = deferredPrompt || (typeof window !== "undefined" ? (window as any).__pwaPrompt : null);
+
+    // 1. PRIORITIZE DIRECT 1-CLICK NATIVE INSTALL:
+    // If prompt is available, launch it directly! Zero menus or guides.
+    if (activePrompt) {
       try {
-        await deferredPrompt.prompt();
-        const choice = await deferredPrompt.userChoice;
+        await activePrompt.prompt();
+        const choice = await activePrompt.userChoice;
         if (choice.outcome === "accepted") {
           toast({
             title: "App Installing! 🚀",
@@ -107,15 +115,20 @@ export const OnboardingInstallNudge = () => {
           setInstalled(true);
           setDeferredPrompt(null);
         }
+        return;
       } catch (err) {
         console.warn("Prompt error:", err);
       }
-    } else if (isIOS) {
-      setShowIOSInstructions(true);
-    } else {
-      // Android / other browsers without deferred prompt: toggle instructions
-      setShowIOSInstructions((prev) => !prev);
     }
+
+    // 2. If in-app browser on Android
+    if (isAndroidDevice && inAppInfo.isInApp) {
+      openInAndroidChrome();
+      return;
+    }
+
+    // 3. Otherwise toggle device-specific instructions
+    setShowGuide((prev) => !prev);
   };
 
   const handleDismiss = () => {
@@ -128,7 +141,7 @@ export const OnboardingInstallNudge = () => {
       {/* Dismiss Button */}
       <button
         onClick={handleDismiss}
-        className="absolute top-2.5 right-2.5 rounded-full p-1 text-[#8C827A] hover:bg-black/5 hover:text-[#2C2825] transition-colors"
+        className="absolute top-2.5 right-2.5 rounded-full p-1 text-[#8C827A] hover:bg-black/5 hover:text-[#2C2825] transition-colors cursor-pointer"
         title="Continue in browser"
         aria-label="Close install prompt"
       >
@@ -154,86 +167,92 @@ export const OnboardingInstallNudge = () => {
               Add duogo to Your Home Screen
             </h3>
             <span className="text-[10px] font-extrabold uppercase tracking-wide bg-[#FF5436] text-white px-2 py-0.5 rounded-full">
-              Seamless Sync
+              Instant Access
             </span>
           </div>
           <p className="mt-1 text-xs text-[#666059] leading-relaxed">
-            Install anytime — your account, quiz answers, and matches stay fully synced whether you use the web or the mobile app.
+            Install for real-time match alerts and a native full-screen experience. Your progress syncs seamlessly.
           </p>
         </div>
       </div>
 
-      {/* iOS Instructions Guide */}
-      {isIOS ? (
-        <div className="mt-3 rounded-xl bg-white/90 p-3 border border-[#F3E5DC] text-xs text-[#4A453E] space-y-2">
-          <p className="font-bold text-[#1A1816] flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-[#FF5436]" />
-            How to install on your iPhone (10 seconds):
-          </p>
-          <ol className="space-y-1.5 pl-1 text-[11.5px] leading-snug">
-            <li className="flex items-start gap-2">
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#FF5436] text-white text-[10px] font-bold mt-0.5">
+      {/* Primary Action Button */}
+      <div className="mt-3.5 space-y-2">
+        {deferredPrompt ? (
+          // 1-Click native install on Android/Chrome
+          <Button
+            onClick={handleInstallClick}
+            className="w-full rounded-2xl bg-[#FF5436] hover:bg-[#E5482D] text-white font-bold text-xs h-10 shadow-soft cursor-pointer"
+          >
+            <Download className="h-4 w-4 mr-1.5" />
+            Install App Directly (1-Click)
+          </Button>
+        ) : isAndroidDevice && inAppInfo.isInApp ? (
+          // Android inside in-app browser (Instagram/WhatsApp/TikTok/Gmail)
+          <Button
+            onClick={() => openInAndroidChrome()}
+            className="w-full rounded-2xl bg-[#FF5436] hover:bg-[#E5482D] text-white font-bold text-xs h-10 shadow-soft gap-1.5 cursor-pointer"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Open in Google Chrome to Install
+          </Button>
+        ) : isIOSDevice ? (
+          // iOS Safari instructions toggle / guide
+          <button
+            type="button"
+            onClick={() => setShowGuide((v) => !v)}
+            className="flex items-center justify-between w-full text-xs font-bold text-[#FF5436] bg-white/80 px-3.5 py-2.5 rounded-2xl border border-[#F3E5DC] cursor-pointer"
+          >
+            <span>How to install on iPhone / iPad (2 steps)</span>
+            {showGuide ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+        ) : (
+          // Android Chrome fallback
+          <button
+            type="button"
+            onClick={() => setShowGuide((v) => !v)}
+            className="flex items-center justify-between w-full text-xs font-bold text-[#FF5436] bg-white/80 px-3.5 py-2.5 rounded-2xl border border-[#F3E5DC] cursor-pointer"
+          >
+            <span>How to install on Android</span>
+            {showGuide ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+        )}
+
+        {/* Zero-clutter iOS instructions */}
+        {isIOSDevice && showGuide && (
+          <div className="rounded-2xl bg-white/95 p-3.5 border border-[#F3E5DC] text-xs text-[#4A453E] space-y-2.5 animate-in fade-in duration-200">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FF5436] text-white text-[10px] font-bold">
                 1
               </span>
-              <span>
-                Tap the Safari <strong>Share</strong> button{" "}
-                <Share className="inline h-3.5 w-3.5 text-[#007AFF] align-text-bottom mx-0.5" />{" "}
-                at the bottom of your screen.
+              <span className="text-xs">
+                Tap Safari&apos;s <Share className="inline h-3.5 w-3.5 text-[#007AFF] align-sub mx-0.5" /> <strong>Share</strong> button at the bottom of your screen.
               </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#FF5436] text-white text-[10px] font-bold mt-0.5">
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FF5436] text-white text-[10px] font-bold">
                 2
               </span>
-              <span>
-                Scroll down and tap <strong>Add to Home Screen</strong>{" "}
-                <PlusSquare className="inline h-3.5 w-3.5 text-[#007AFF] align-text-bottom mx-0.5" />.
+              <span className="text-xs">
+                Scroll down and tap <strong>&quot;Add to Home Screen&quot;</strong>, then tap <strong>Add</strong>.
               </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#FF5436] text-white text-[10px] font-bold mt-0.5">
-                3
-              </span>
-              <span>
-                Tap <strong>Add</strong>, then open <strong>duogo</strong> directly from your Home Screen to finish onboarding!
-              </span>
-            </li>
-          </ol>
-        </div>
-      ) : (
-        /* Android / Supporting Mobile Browsers */
-        <div className="mt-3 flex flex-col gap-2">
-          {deferredPrompt ? (
-            <Button
-              onClick={handleInstallClick}
-              size="sm"
-              className="w-full rounded-xl bg-[#FF5436] hover:bg-[#E5482D] text-white font-bold text-xs h-9 shadow-sm"
-            >
-              <Download className="h-3.5 w-3.5 mr-1.5" />
-              Install duogo on Home Screen
-            </Button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => setShowIOSInstructions((v) => !v)}
-                className="flex items-center justify-between w-full text-xs font-bold text-[#FF5436] bg-white/70 px-3 py-2 rounded-xl border border-[#F3E5DC]"
-              >
-                <span>How to install on Android Chrome</span>
-                {showIOSInstructions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </button>
+            </div>
+            <div className="flex flex-col items-center justify-center pt-1 text-[#FF5436]">
+              <span className="text-[10px] font-bold uppercase tracking-wide">Look below in Safari</span>
+              <ArrowDown className="h-4 w-4 animate-bounce mt-0.5 stroke-[2.5]" />
+            </div>
+          </div>
+        )}
 
-              {showIOSInstructions && (
-                <div className="rounded-xl bg-white/90 p-3 border border-[#F3E5DC] text-[11.5px] text-[#4A453E] space-y-1 leading-snug">
-                  <p>1. Tap the menu <strong>(⋮)</strong> in Chrome’s top right corner.</p>
-                  <p>2. Tap <strong>&quot;Install app&quot;</strong> or <strong>&quot;Add to Home screen&quot;</strong>.</p>
-                  <p>3. Open duogo from your Home Screen to complete your signup.</p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+        {/* Android fallback instructions */}
+        {!isIOSDevice && !deferredPrompt && !(isAndroidDevice && inAppInfo.isInApp) && showGuide && (
+          <div className="rounded-2xl bg-white/95 p-3.5 border border-[#F3E5DC] text-xs text-[#4A453E] space-y-2 animate-in fade-in duration-200">
+            <p>1. Tap the menu <strong>(⋮)</strong> in Chrome’s top right corner.</p>
+            <p>2. Tap <strong>&quot;Install app&quot;</strong> or <strong>&quot;Add to Home screen&quot;</strong>.</p>
+            <p>3. Open duogo from your Home Screen anytime.</p>
+          </div>
+        )}
+      </div>
 
       {/* Dismiss / Continue in Browser Link */}
       <div className="mt-2.5 pt-2 border-t border-[#F2E4DA] flex items-center justify-between text-[11px]">

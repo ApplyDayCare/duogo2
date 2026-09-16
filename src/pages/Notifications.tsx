@@ -136,9 +136,20 @@ export const Notifications = () => {
       const [notifsRes, matchesRes] = await Promise.allSettled([notifsPromise, matchesPromise]);
 
       const notifs: NotificationItem[] = [];
+      const duplicateIdsToPrune: string[] = [];
+      const seenKeys = new Set<string>();
 
       if (notifsRes.status === "fulfilled" && notifsRes.value.data) {
         for (const item of notifsRes.value.data) {
+          const dedupeKey = `${(item.message || "").trim().toLowerCase()}|${(item.link || "").trim().toLowerCase()}`;
+          
+          // If we already have this exact notification from this user
+          if (seenKeys.has(dedupeKey)) {
+            duplicateIdsToPrune.push(item.id);
+            continue;
+          }
+          seenKeys.add(dedupeKey);
+
           let type: NotificationItem["type"] = "system";
           const msg = (item.message || "").toLowerCase();
           if (msg.includes("match") || msg.includes("connect")) {
@@ -155,6 +166,21 @@ export const Notifications = () => {
             type,
           });
         }
+      }
+
+      // Automatically clean up duplicate notification rows from the database in the background
+      if (duplicateIdsToPrune.length > 0) {
+        supabase
+          .from("notifications")
+          .delete()
+          .in("id", duplicateIdsToPrune)
+          .then(({ error }) => {
+            if (error) {
+              console.warn("Could not delete duplicate notifications:", error);
+            } else {
+              queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
+            }
+          });
       }
 
       // Synthesize incoming requests and mutual matches if not already present
@@ -218,7 +244,7 @@ export const Notifications = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user]);
+  }, [user, queryClient]);
 
   // Initial load with fail-safe timer
   useEffect(() => {

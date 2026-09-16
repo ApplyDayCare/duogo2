@@ -6,38 +6,44 @@ import {
   Sparkles,
   X,
   Share,
-  PlusSquare,
   ExternalLink,
   Copy,
   CheckCircle2,
   AlertCircle,
   Smartphone,
-  Check
+  Check,
+  ArrowDown,
+  Globe
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+import {
+  isStandaloneMode,
+  isInIframe,
+  isIOS,
+  isAndroid,
+  detectInAppBrowser,
+  openInAndroidChrome,
+  BeforeInstallPromptEvent
+} from "@/lib/pwaDetection";
 
 export const MobileLandingInstallNudge = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isAndroid, setIsAndroid] = useState(false);
-  const [isInIframe, setIsInIframe] = useState(false);
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [isAndroidDevice, setIsAndroidDevice] = useState(false);
+  const [isIframe, setIsIframe] = useState(false);
+  const [inAppInfo, setInAppInfo] = useState<{ isInApp: boolean; name: string }>({
+    isInApp: false,
+    name: ""
+  });
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [activeGuide, setActiveGuide] = useState<"ios" | "android" | "iframe" | null>(null);
+  const [activeGuide, setActiveGuide] = useState<"ios" | "in-app-android" | "android" | "iframe" | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     // 1. Check if running in standalone PWA mode (already installed & opened as app)
-    const standalone =
-      typeof window !== "undefined" &&
-      (window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as any).standalone === true);
+    const standalone = isStandaloneMode();
     setIsStandalone(standalone);
 
     if (standalone) return;
@@ -52,30 +58,22 @@ export const MobileLandingInstallNudge = () => {
     }
 
     // 3. Detect mobile device and platform
-    const ua = navigator.userAgent || "";
-    const iosDevice = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
-    const androidDevice = /Android/i.test(ua);
+    const iosDevice = isIOS();
+    const androidDevice = isAndroid();
     const hasTouch = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
     const isMobileWidth = typeof window !== "undefined" && window.innerWidth <= 768;
     const mobileUser = iosDevice || androidDevice || (hasTouch && isMobileWidth);
 
     setIsMobile(mobileUser);
-    setIsIOS(iosDevice);
-    setIsAndroid(androidDevice);
-
-    // 4. Detect iframe preview restriction
-    let inIframe = false;
-    try {
-      inIframe = window.self !== window.top;
-    } catch {
-      inIframe = true;
-    }
-    setIsInIframe(inIframe);
+    setIsIOSDevice(iosDevice);
+    setIsAndroidDevice(androidDevice);
+    setIsIframe(isInIframe());
+    setInAppInfo(detectInAppBrowser());
 
     // If not on mobile browser, don't show the mobile-specific landing nudge
     if (!mobileUser) return;
 
-    // 5. Retrieve or listen for native install prompt
+    // 4. Retrieve or listen for native install prompt
     if (typeof window !== "undefined") {
       if ((window as any).__pwaPrompt) {
         setDeferredPrompt((window as any).__pwaPrompt);
@@ -99,7 +97,7 @@ export const MobileLandingInstallNudge = () => {
     window.addEventListener("appinstalled", installedHandler);
     window.addEventListener("pwa-installed", installedHandler);
 
-    // 6. Subtle, non-intrusive delayed entrance (1.5 seconds after landing)
+    // 5. Subtle, non-intrusive delayed entrance (1.5 seconds after landing)
     const entranceTimer = setTimeout(() => {
       setIsVisible(true);
     }, 1500);
@@ -119,16 +117,22 @@ export const MobileLandingInstallNudge = () => {
   };
 
   const handleInstall = async () => {
-    // 1. If native prompt is available (Android / Chromium)
-    if (deferredPrompt) {
+    const activePrompt = deferredPrompt || (typeof window !== "undefined" ? (window as any).__pwaPrompt : null);
+
+    // 1. PRIORITIZE 1-CLICK DIRECT NATIVE INSTALL (Android / Desktop Chrome):
+    // If the browser provided beforeinstallprompt, trigger it directly without modal guides!
+    if (activePrompt) {
       try {
-        await deferredPrompt.prompt();
-        const choice = await deferredPrompt.userChoice;
+        await activePrompt.prompt();
+        const choice = await activePrompt.userChoice;
         if (choice.outcome === "accepted") {
           setIsVisible(false);
           localStorage.setItem("duogo_mobile_landing_nudge_dismissed", Date.now().toString());
         }
         setDeferredPrompt(null);
+        if (typeof window !== "undefined") {
+          (window as any).__pwaPrompt = null;
+        }
         return;
       } catch (err) {
         console.warn("PWA prompt trigger error:", err);
@@ -136,19 +140,25 @@ export const MobileLandingInstallNudge = () => {
     }
 
     // 2. If inside iframe (AI Studio preview environment)
-    if (isInIframe) {
+    if (isIframe) {
       setActiveGuide("iframe");
       return;
     }
 
-    // 3. If on iOS Safari
-    if (isIOS) {
+    // 3. Android inside in-app browser (Instagram, Facebook, TikTok, WhatsApp, etc.)
+    if (isAndroidDevice && inAppInfo.isInApp) {
+      setActiveGuide("in-app-android");
+      return;
+    }
+
+    // 4. If on iOS Safari (iPhone / iPad)
+    if (isIOSDevice) {
       setActiveGuide("ios");
       return;
     }
 
-    // 4. Fallback for Android Chrome without prompt event
-    if (isAndroid) {
+    // 5. Fallback for Android Chrome without prompt event
+    if (isAndroidDevice) {
       setActiveGuide("android");
       return;
     }
@@ -165,7 +175,7 @@ export const MobileLandingInstallNudge = () => {
       setCopied(true);
       toast({
         title: "Link Copied!",
-        description: "App URL copied. Paste it into your mobile Safari or Chrome browser.",
+        description: "App URL copied. Paste it into your browser.",
       });
       setTimeout(() => setCopied(false), 2500);
     } catch {
@@ -209,12 +219,12 @@ export const MobileLandingInstallNudge = () => {
                   Install duogo
                 </span>
                 <span className="rounded-full bg-[#FFF0EB] border border-[#FFD5CC] px-1.5 py-0.2 text-[9px] font-bold text-[#FF5436] tracking-wide uppercase">
-                  Better Experience
+                  1-Tap App
                 </span>
               </div>
 
               <p className="text-[11.5px] text-[#666059] leading-snug mt-1">
-                Install for a smoother, more integrated experience with instant match alerts and full-screen ease.
+                Install for instant match alerts and a full-screen experience right on your home screen.
               </p>
 
               {/* Action Buttons */}
@@ -223,7 +233,7 @@ export const MobileLandingInstallNudge = () => {
                   id="btn-nudge-install-app"
                   size="sm"
                   onClick={handleInstall}
-                  className="h-7.5 rounded-xl bg-[#FF5436] hover:bg-[#E03E22] text-white text-xs font-bold px-3 shadow-2xs transition-all active:scale-95 gap-1.5 cursor-pointer"
+                  className="h-8 rounded-xl bg-[#FF5436] hover:bg-[#E03E22] text-white text-xs font-bold px-3 shadow-2xs transition-all active:scale-95 gap-1.5 cursor-pointer"
                 >
                   <Download className="h-3.5 w-3.5" />
                   <span>Install App</span>
@@ -255,7 +265,7 @@ export const MobileLandingInstallNudge = () => {
         </div>
       </aside>
 
-      {/* Guide Dialog for iOS, Android fallback, or Preview iframe */}
+      {/* Guide Dialog for iOS, Android In-App, Android fallback, or Preview iframe */}
       {activeGuide &&
         typeof document !== "undefined" &&
         createPortal(
@@ -264,54 +274,73 @@ export const MobileLandingInstallNudge = () => {
             role="dialog"
             aria-modal="true"
           >
-            <div className="w-full max-w-sm rounded-3xl bg-white p-5 sm:p-6 shadow-2xl border border-[#EBE3D5] space-y-4 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-150">
+            <div className="w-full max-w-sm rounded-[2rem] bg-white p-5 sm:p-6 shadow-2xl border border-[#EBE3D5] space-y-4 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-150">
               {/* Modal Header */}
               <div className="flex items-center justify-between pb-3 border-b border-[#F5EDE3]">
                 <div className="flex items-center gap-2 font-serif text-base font-bold text-[#181513]">
                   {activeGuide === "ios" && <Smartphone className="h-5 w-5 text-[#FF5436]" />}
+                  {activeGuide === "in-app-android" && <Globe className="h-5 w-5 text-[#FF5436]" />}
                   {activeGuide === "android" && <Smartphone className="h-5 w-5 text-[#FF5436]" />}
                   {activeGuide === "iframe" && <ExternalLink className="h-5 w-5 text-[#FF5436]" />}
 
                   {activeGuide === "ios" && "Install on iPhone / iPad"}
+                  {activeGuide === "in-app-android" && "Open in Google Chrome"}
                   {activeGuide === "android" && "Install on Android"}
                   {activeGuide === "iframe" && "Install App (Preview Mode)"}
                 </div>
                 <button
                   onClick={() => setActiveGuide(null)}
-                  className="h-7 w-7 rounded-full flex items-center justify-center text-[#888177] hover:bg-[#FAF7F2] transition-colors"
+                  className="h-7 w-7 rounded-full flex items-center justify-center text-[#888177] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
                   aria-label="Close dialog"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              {/* iOS Safari Guide */}
+              {/* iOS Safari Guide: Clean, animated visual card pointing down with zero clutter */}
               {activeGuide === "ios" && (
-                <div className="space-y-3 text-xs text-[#5C5548] leading-relaxed">
-                  <p className="text-[#181513] font-medium">
-                    Add duogo to your iPhone home screen in two simple steps:
-                  </p>
-
-                  <div className="flex items-start gap-2.5 rounded-xl bg-[#FAF7F2] p-3 border border-[#EBE3D5]">
-                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FF5436] text-white text-[10px] font-bold">
-                      1
-                    </div>
-                    <p className="leading-snug">
-                      Tap the <Share className="inline h-3.5 w-3.5 text-[#FF5436] mx-0.5" /> <strong>Share</strong> button at the bottom of Safari.
+                <div className="space-y-4 text-xs text-[#5C5548] leading-relaxed">
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-bold text-[#181513]">
+                      Add duogo to your Home Screen
+                    </p>
+                    <p className="text-xs text-[#706A62]">
+                      Zero app-store download needed.
                     </p>
                   </div>
 
-                  <div className="flex items-start gap-2.5 rounded-xl bg-[#FAF7F2] p-3 border border-[#EBE3D5]">
-                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FF5436] text-white text-[10px] font-bold">
-                      2
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-3 rounded-2xl bg-[#FFF8F5] p-3.5 border border-[#FFD5CC]">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FF5436] text-white text-xs font-bold">
+                        1
+                      </div>
+                      <div className="flex-1 text-xs">
+                        Tap Safari&apos;s <Share className="inline h-4 w-4 text-[#007AFF] mx-1 align-sub" /> <strong>Share</strong> button in the bottom bar.
+                      </div>
                     </div>
-                    <p className="leading-snug">
-                      Scroll down and tap <PlusSquare className="inline h-3.5 w-3.5 text-[#FF5436] mx-0.5" /> <strong>"Add to Home Screen"</strong>, then tap <strong>Add</strong>.
-                    </p>
+
+                    <div className="flex items-center gap-3 rounded-2xl bg-[#FFF8F5] p-3.5 border border-[#FFD5CC]">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FF5436] text-white text-xs font-bold">
+                        2
+                      </div>
+                      <div className="flex-1 text-xs">
+                        Scroll down and tap <strong>&quot;Add to Home Screen&quot;</strong>, then tap <strong>Add</strong>.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Animated bouncing arrow pointing down towards Safari's bottom bar */}
+                  <div className="flex flex-col items-center justify-center pt-2 pb-1 text-[#FF5436]">
+                    <span className="text-[11px] font-bold tracking-wide uppercase mb-1">
+                      Look below in Safari
+                    </span>
+                    <div className="animate-bounce p-1.5 rounded-full bg-[#FFF0EB] border border-[#FFD5CC]">
+                      <ArrowDown className="h-5 w-5 stroke-[2.5]" />
+                    </div>
                   </div>
 
                   <Button
-                    className="w-full rounded-full h-10 font-bold bg-[#FF5436] hover:bg-[#E03E22] text-white text-xs mt-1"
+                    className="w-full rounded-2xl h-11 font-bold bg-[#FF5436] hover:bg-[#E03E22] text-white text-xs shadow-soft cursor-pointer"
                     onClick={() => {
                       setActiveGuide(null);
                       handleDismiss();
@@ -322,15 +351,63 @@ export const MobileLandingInstallNudge = () => {
                 </div>
               )}
 
-              {/* Android Guide */}
+              {/* Android In-App Browser Guide: 1-Click "Open in Chrome" */}
+              {activeGuide === "in-app-android" && (
+                <div className="space-y-3.5 text-xs text-[#5C5548] leading-relaxed">
+                  <div className="flex items-start gap-3 rounded-2xl bg-[#FFF8F5] p-3.5 border border-[#FFD5CC]">
+                    <AlertCircle className="h-5 w-5 text-[#FF5436] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-[#181513] text-xs mb-0.5">
+                        In-App Browser Detected {inAppInfo.name ? `(${inAppInfo.name})` : ""}
+                      </p>
+                      <p className="text-[#666059] text-[11.5px]">
+                        In-app browsers restrict direct app installs. Open in Google Chrome to install with a single click.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-1">
+                    <Button
+                      onClick={() => openInAndroidChrome(directUrl)}
+                      className="w-full rounded-2xl h-12 font-bold bg-[#FF5436] hover:bg-[#E03E22] text-white text-sm shadow-[0_6px_20px_rgba(255,84,54,0.28)] gap-2 cursor-pointer"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Open in Google Chrome
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-2xl h-10 text-xs font-semibold border-[#EBE3D5] text-[#5C5548] gap-1.5 hover:bg-[#FAF7F2] cursor-pointer"
+                      onClick={copyAppUrl}
+                    >
+                      {copied ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                          <span className="text-emerald-700 font-bold">Link Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5" />
+                          <span>Copy App Link</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Android Chrome Fallback (when native prompt was dismissed earlier) */}
               {activeGuide === "android" && (
                 <div className="space-y-3 text-xs text-[#5C5548] leading-relaxed">
+                  <p className="text-xs font-semibold text-[#181513]">
+                    Install directly via Chrome:
+                  </p>
                   <div className="flex items-start gap-2.5 rounded-xl bg-[#FAF7F2] p-3 border border-[#EBE3D5]">
                     <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FF5436] text-white text-[10px] font-bold">
                       1
                     </div>
                     <p className="leading-snug">
-                      Tap the <strong>three dots menu (⋮)</strong> in the top-right corner of Chrome.
+                      Tap the <strong>three dots menu (⋮)</strong> in Chrome’s top right corner.
                     </p>
                   </div>
 
@@ -339,12 +416,12 @@ export const MobileLandingInstallNudge = () => {
                       2
                     </div>
                     <p className="leading-snug">
-                      Select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.
+                      Tap <strong>&quot;Install app&quot;</strong> or <strong>&quot;Add to Home screen&quot;</strong>.
                     </p>
                   </div>
 
                   <Button
-                    className="w-full rounded-full h-10 font-bold bg-[#FF5436] hover:bg-[#E03E22] text-white text-xs mt-1"
+                    className="w-full rounded-2xl h-11 font-bold bg-[#FF5436] hover:bg-[#E03E22] text-white text-xs mt-1 cursor-pointer"
                     onClick={() => {
                       setActiveGuide(null);
                       handleDismiss();
@@ -365,7 +442,7 @@ export const MobileLandingInstallNudge = () => {
                         Preview Iframe Restriction
                       </p>
                       <p className="text-[#666059] text-[11px]">
-                        Browsers forbid PWA installation from inside an embedded preview iframe. Open directly in a browser tab to install duogo.
+                        Browsers forbid PWA installation from inside an embedded preview iframe. Open directly in a browser tab to install duogo with 1 click.
                       </p>
                     </div>
                   </div>
@@ -375,7 +452,7 @@ export const MobileLandingInstallNudge = () => {
                       href={directUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full inline-flex items-center justify-center rounded-full h-10 font-bold bg-[#FF5436] hover:bg-[#E03E22] text-white text-xs shadow-xs gap-1.5"
+                      className="w-full inline-flex items-center justify-center rounded-2xl h-10 font-bold bg-[#FF5436] hover:bg-[#E03E22] text-white text-xs shadow-xs gap-1.5 cursor-pointer"
                       onClick={() => setActiveGuide(null)}
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
@@ -384,7 +461,7 @@ export const MobileLandingInstallNudge = () => {
 
                     <Button
                       variant="outline"
-                      className="w-full rounded-full h-9 text-xs font-semibold border-[#EBE3D5] text-[#5C5548] gap-1.5 hover:bg-[#FAF7F2]"
+                      className="w-full rounded-2xl h-9 text-xs font-semibold border-[#EBE3D5] text-[#5C5548] gap-1.5 hover:bg-[#FAF7F2] cursor-pointer"
                       onClick={copyAppUrl}
                     >
                       {copied ? (
