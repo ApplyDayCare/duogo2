@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import webpush from "web-push";
+import { createClient } from "@supabase/supabase-js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -219,18 +220,19 @@ Rules for the icebreakers:
 
 /**
  * Endpoint 3: Web Push Dispatcher
- * Sends encrypted push notifications to a device subscription
+ * Sends encrypted push notifications to a device subscription or all subscriptions for a userId
  */
 app.post("/api/push/dispatch", async (req, res) => {
   try {
-    const { subscription, title, body, url, type = "general", tag } = req.body;
-
-    if (!subscription || !subscription.endpoint || !subscription.keys) {
-      return res.status(400).json({ error: "Invalid subscription object. Must contain endpoint and keys." });
-    }
+    const { subscription, userId, user_id, title, body, url, type = "general", tag } = req.body;
+    const targetUserId = userId || user_id;
 
     if (!title) {
       return res.status(400).json({ error: "Missing required notification title" });
+    }
+
+    if (!subscription && !targetUserId) {
+      return res.status(400).json({ error: "Must provide either subscription object or userId/user_id" });
     }
 
     const payload = JSON.stringify({
@@ -244,9 +246,67 @@ app.post("/api/push/dispatch", async (req, res) => {
       timestamp: Date.now(),
     });
 
-    await webpush.sendNotification(subscription, payload);
+    let sentCount = 0;
 
-    return res.json({ success: true, message: "Push notification dispatched successfully" });
+    // 1. Direct subscription object dispatch
+    if (subscription?.endpoint && subscription?.keys) {
+      try {
+        await webpush.sendNotification(subscription, payload);
+        sentCount++;
+      } catch (subErr: any) {
+        console.warn("Direct subscription send error:", subErr?.message);
+      }
+    }
+
+    // 2. Dispatch to all active subscriptions of target user
+    if (targetUserId) {
+      try {
+        const supabaseUrl =
+          process.env.SUPABASE_URL ||
+          process.env.VITE_SUPABASE_URL ||
+          "https://hdbobqzqsmmsnzbjtzbn.supabase.co";
+        const supabaseKey =
+          process.env.SUPABASE_SERVICE_ROLE_KEY ||
+          process.env.VITE_SUPABASE_ANON_KEY ||
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkYm9icXpxc21tc256Ymp0emJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTY3NDQsImV4cCI6MjA4NzY5Mjc0NH0.U_lS4-1zpd36SR4xxGDdXSBfM3408wv4pRbfDGUbQ4k";
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const { data: subs, error } = await supabase
+          .from("push_subscriptions")
+          .select("endpoint, p256dh, auth")
+          .eq("user_id", targetUserId);
+
+        if (!error && subs && subs.length > 0) {
+          for (const sub of subs) {
+            if (sub.endpoint && sub.p256dh && sub.auth) {
+              try {
+                await webpush.sendNotification(
+                  {
+                    endpoint: sub.endpoint,
+                    keys: {
+                      p256dh: sub.p256dh,
+                      auth: sub.auth,
+                    },
+                  },
+                  payload
+                );
+                sentCount++;
+              } catch (pushErr: any) {
+                console.warn(`Error sending push to endpoint for user ${targetUserId}:`, pushErr?.message);
+              }
+            }
+          }
+        }
+      } catch (dbErr) {
+        console.warn("Error querying push subscriptions for user:", targetUserId, dbErr);
+      }
+    }
+
+    return res.json({
+      success: true,
+      sentCount,
+      message: `Push notification dispatched (sent to ${sentCount} endpoint${sentCount === 1 ? "" : "s"})`,
+    });
   } catch (err: any) {
     console.error("Push notification dispatch error:", err);
     return res.status(err.statusCode || 500).json({

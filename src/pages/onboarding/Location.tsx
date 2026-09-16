@@ -392,11 +392,6 @@ const Location = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="text-xs sm:text-sm font-bold text-[#1A1816]">{opt.label}</p>
-                          {opt.value === "5" && (
-                            <span className="text-[10px] font-extrabold text-[#16A34A] bg-[#DCFCE7] px-2 py-0.2 rounded-full">
-                              Recommended
-                            </span>
-                          )}
                         </div>
                         <p className="text-[11px] text-[#706A62]">{opt.desc}</p>
                       </div>

@@ -1,6 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+const DEFAULT_VAPID_PUBLIC_KEY =
+  "BFenrfWblKrdVKBkKrxLgsEVJ51So2YQ4GomdjpusNrHKj3E5AVKWEKjnKXiR2cxzvdOQ49q7Qth8DfBPt0Ec7o";
+
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   if (!base64String) return new Uint8Array(0);

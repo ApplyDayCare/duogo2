@@ -318,13 +318,30 @@ const MatchChat = () => {
       const preview = trimmed.length > 50 ? trimmed.slice(0, 47) + "…" : trimmed;
 
       for (const recipientId of recipientIds) {
-        supabase.functions.invoke("send-push", {
-          body: {
-            user_id: recipientId,
+        supabase.functions
+          .invoke("send-push", {
+            body: {
+              userId: recipientId,
+              user_id: recipientId,
+              title: `${senderName} sent a message`,
+              body: preview,
+              url: `/match/${matchId}/chat`,
+              type: "chat_message",
+            },
+          })
+          .catch(() => {});
+
+        fetch("/api/push/dispatch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: recipientId,
             title: `${senderName} sent a message`,
             body: preview,
             url: `/match/${matchId}/chat`,
-          },
+            type: "chat_message",
+            tag: `chat-${matchId}`,
+          }),
         }).catch(() => {});
       }
     }

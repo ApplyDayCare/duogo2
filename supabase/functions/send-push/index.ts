@@ -27,10 +27,12 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, title, body, url, type, tag, matchId } = await req.json();
+    const bodyJson = await req.json();
+    const targetUserId = bodyJson.userId || bodyJson.user_id;
+    const { title, body, url, type, tag, matchId } = bodyJson;
 
-    if (!userId || !title) {
-      return new Response(JSON.stringify({ error: "Missing required fields: userId, title" }), {
+    if (!targetUserId || !title) {
+      return new Response(JSON.stringify({ error: "Missing required fields: userId/user_id, title" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
@@ -42,7 +44,7 @@ serve(async (req) => {
     const { data: subscriptions, error } = await supabase
       .from("push_subscriptions")
       .select("*")
-      .eq("user_id", userId);
+      .eq("user_id", targetUserId);
 
     if (error || !subscriptions || subscriptions.length === 0) {
       return new Response(

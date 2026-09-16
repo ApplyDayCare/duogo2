@@ -363,13 +363,19 @@ export function usePushNotifications(): PushNotificationState {
             link: string | null;
           };
 
-          const isTabHidden = document.visibilityState === "hidden";
+          const isTabHidden = typeof document !== "undefined" ? document.visibilityState === "hidden" : true;
+          const notifTitle = notif.message?.includes("Mutual Match")
+            ? "🎉 It's a Mutual Match!"
+            : notif.message?.includes("connect")
+            ? "✨ New Match Request!"
+            : "✨ duogo Update";
+
           if (isTabHidden) {
-            dispatchBackgroundNotification("✨ duogo Update", {
+            dispatchBackgroundNotification(notifTitle, {
               body: notif.message,
               url: notif.link || "/notifications",
               type: "match",
-              tag: `duogo-notif-${notif.id}`,
+              tag: `duogo-notif-${notif.id || Date.now()}`,
             });
           }
         }

@@ -809,32 +809,107 @@ export async function executeMatchAction(
   }
 
   if (res.status === "mutual") {
-    // Notify edge function for intro email
-    supabase.functions.invoke("send-match-intro", {
-      body: { match_id: res.match_id },
-      headers: { Authorization: `Bearer ${session?.access_token}` },
-    }).catch(console.warn);
+    // 1. Persist in-app notifications in Supabase so Realtime listeners and notification bells trigger
+    supabase
+      .from("notifications")
+      .insert([
+        {
+          user_id: otherUserId,
+          message: "🎉 It's a Mutual Match! You both accepted each other.",
+          link: `/match-reveal/${res.match_id}`,
+          read: false,
+        },
+        {
+          user_id: user.id,
+          message: "🎉 It's a Mutual Match! You both accepted each other.",
+          link: `/match-reveal/${res.match_id}`,
+          read: false,
+        },
+      ])
+      .then(({ error: notifErr }) => {
+        if (notifErr) console.warn("Error creating match notification:", notifErr);
+      });
 
-    // Send push notification to the partner
-    supabase.functions.invoke("send-push", {
-      body: {
-        user_id: otherUserId,
+    // 2. Notify edge function for intro email
+    supabase.functions
+      .invoke("send-match-intro", {
+        body: { match_id: res.match_id },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      })
+      .catch(console.warn);
+
+    // 3. Send push notification via Supabase Edge Function (supports both userId and user_id)
+    supabase.functions
+      .invoke("send-push", {
+        body: {
+          userId: otherUserId,
+          user_id: otherUserId,
+          title: "It's a Match! 🎉",
+          body: "You both accepted each other! Check your match reveal now.",
+          url: `/match-reveal/${res.match_id}`,
+          type: "mutual_match",
+          matchId: res.match_id,
+        },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      })
+      .catch(console.warn);
+
+    // 4. Also trigger backend web-push dispatcher fallback
+    fetch("/api/push/dispatch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: otherUserId,
         title: "It's a Match! 🎉",
         body: "You both accepted each other! Check your match reveal now.",
         url: `/match-reveal/${res.match_id}`,
-      },
-      headers: { Authorization: `Bearer ${session?.access_token}` },
+        type: "mutual_match",
+        tag: `match-${res.match_id}`,
+      }),
     }).catch(console.warn);
   } else if (res.status === "pending" && action === "accept") {
-    // Notify other user that they received a match request
-    supabase.functions.invoke("send-push", {
-      body: {
-        user_id: otherUserId,
+    // 1. Persist in-app notification for the recipient
+    supabase
+      .from("notifications")
+      .insert([
+        {
+          user_id: otherUserId,
+          message: "✨ Someone reviewed your profile and wants to connect with you!",
+          link: "/matches?tab=received",
+          read: false,
+        },
+      ])
+      .then(({ error: notifErr }) => {
+        if (notifErr) console.warn("Error creating request notification:", notifErr);
+      });
+
+    // 2. Notify other user that they received a match request via Edge Function
+    supabase.functions
+      .invoke("send-push", {
+        body: {
+          userId: otherUserId,
+          user_id: otherUserId,
+          title: "New Match Request! ✨",
+          body: "Someone wants to connect with you! Review and connect back on duogo.",
+          url: "/matches?tab=received",
+          type: "match_request",
+        },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      })
+      .catch(console.warn);
+
+    // 3. Also trigger backend web-push dispatcher fallback
+    fetch("/api/push/dispatch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: otherUserId,
         title: "New Match Request! ✨",
-        body: "Someone wants to connect with you! Review and connect back on DuoGo.",
-        url: "/matches",
-      },
-      headers: { Authorization: `Bearer ${session?.access_token}` },
+        body: "Someone wants to connect with you! Review and connect back on duogo.",
+        url: "/matches?tab=received",
+        type: "match_request",
+        tag: `match-req-${Date.now()}`,
+      }),
     }).catch(console.warn);
   }
 
