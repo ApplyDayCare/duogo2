@@ -58,37 +58,19 @@ const AppLayout = () => {
     queryKey: ["unread-notifications", user?.id],
     queryFn: async () => {
       if (!user) return 0;
-      const [notifRes, matchesRes] = await Promise.all([
-        supabase
-          .from("notifications")
-          .select("id, message, link")
-          .eq("user_id", user.id)
-          .eq("read", false),
-        supabase
-          .from("matches")
-          .select("id, user_a_id, user_b_id, user_a_action, user_b_action, status")
-          .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-          .eq("status", "pending"),
-      ]);
+      const { data, count, error } = await supabase
+        .from("notifications")
+        .select("id, message, link", { count: "exact" })
+        .eq("user_id", user.id)
+        .eq("read", false);
 
-      const unreadNotifs = notifRes.data || [];
+      if (error || !data) return count ?? 0;
+
+      // Count unique unread notification messages
       const uniqueNotifKeys = new Set(
-        unreadNotifs.map((n) => `${(n.message || "").trim().toLowerCase()}|${(n.link || "").trim().toLowerCase()}`)
+        data.map((n) => `${(n.message || "").trim().toLowerCase()}|${(n.link || "").trim().toLowerCase()}`)
       );
-      const uniqueNotifCount = uniqueNotifKeys.size;
-
-      const incomingMatches = (matchesRes.data ?? []).filter((m) => {
-        const isA = m.user_a_id === user.id;
-        return isA ? m.user_b_action === "accept" && !m.user_a_action : m.user_a_action === "accept" && !m.user_b_action;
-      });
-
-      // Avoid double-counting if an in-app notification already exists for received requests
-      const hasRequestNotif = unreadNotifs.some(
-        (n) => n.link?.includes("received") || n.message?.toLowerCase().includes("wants to connect")
-      );
-      const additionalIncoming = hasRequestNotif ? 0 : incomingMatches.length;
-
-      return uniqueNotifCount + additionalIncoming;
+      return uniqueNotifKeys.size;
     },
     enabled: !!user,
     refetchInterval: 30000,
@@ -133,7 +115,7 @@ const AppLayout = () => {
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4 text-[#666059]" />
-              {!!unreadCount && unreadCount > 0 && (
+              {pathname !== "/notifications" && !!unreadCount && unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#FF5436] px-1 text-[10px] font-bold text-white shadow-xs">
                   {unreadCount}
                 </span>

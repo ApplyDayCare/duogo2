@@ -185,6 +185,13 @@ export const Notifications = () => {
 
       // Synthesize incoming requests and mutual matches if not already present
       if (matchesRes.status === "fulfilled" && matchesRes.value.data) {
+        let readSynthesized: string[] = [];
+        try {
+          readSynthesized = JSON.parse(localStorage.getItem("duogo_read_synthesized_notifs") || "[]");
+        } catch {
+          // ignore
+        }
+
         for (const m of matchesRes.value.data) {
           const isA = m.user_a_id === user.id;
           const hasIncoming = isA
@@ -192,35 +199,37 @@ export const Notifications = () => {
             : m.user_a_action === "accept" && !m.user_b_action;
 
           if (m.status === "pending" && hasIncoming) {
+            const reqId = `match-req-${m.id}`;
             const exists = notifs.some(
               (n) =>
-                n.id === `match-req-${m.id}` ||
+                n.id === reqId ||
                 n.link?.includes(m.id) ||
                 (n.message.toLowerCase().includes("connect") && n.link?.includes("/matches"))
             );
             if (!exists) {
               notifs.unshift({
-                id: `match-req-${m.id}`,
+                id: reqId,
                 message: "✨ Someone reviewed your profile and wants to connect with you!",
-                read: false,
+                read: readSynthesized.includes(reqId),
                 created_at: m.created_at || new Date().toISOString(),
                 link: "/matches?tab=received",
                 type: "match",
               });
             }
           } else if (m.status === "mutual") {
+            const mutualId = `match-mutual-${m.id}`;
             const matchLink = `/match-reveal/${m.id}`;
             const exists = notifs.some(
               (n) =>
-                n.id === `match-mutual-${m.id}` ||
+                n.id === mutualId ||
                 n.link === matchLink ||
                 n.message.toLowerCase().includes("mutual match")
             );
             if (!exists) {
               notifs.unshift({
-                id: `match-mutual-${m.id}`,
+                id: mutualId,
                 message: "🎉 It's a Mutual Match! You both accepted each other.",
-                read: false,
+                read: readSynthesized.includes(mutualId),
                 created_at: m.updated_at || m.created_at || new Date().toISOString(),
                 link: matchLink,
                 type: "mutual",
@@ -263,10 +272,26 @@ export const Notifications = () => {
   }, [fetchNotifications]);
 
   // Mark single or all notifications as read
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
     if (!user) return;
+
+    // Immediately zero out the query cache unread count so the bell badge clears without latency
+    queryClient.setQueryData(["unread-notifications", user.id], 0);
+
+    // Persist synthesized notifications as read
+    try {
+      const synIds = notifications.filter((n) => n.id.startsWith("match-")).map((n) => n.id);
+      const existing = JSON.parse(localStorage.getItem("duogo_read_synthesized_notifs") || "[]");
+      localStorage.setItem(
+        "duogo_read_synthesized_notifs",
+        JSON.stringify(Array.from(new Set([...existing, ...synIds])))
+      );
+    } catch {
+      // ignore
+    }
+
     try {
       await supabase
         .from("notifications")
@@ -274,27 +299,64 @@ export const Notifications = () => {
         .eq("user_id", user.id)
         .eq("read", false);
 
-      queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
+      await queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
     } catch (err) {
       console.warn("Could not mark notifications as read:", err);
     }
-  };
+  }, [user, notifications, queryClient]);
+
+  // Automatically mark unread notifications as read after the user reviews them on the page
+  useEffect(() => {
+    if (!user || loading || notifications.length === 0) return;
+    const hasUnread = notifications.some((n) => !n.read);
+    if (!hasUnread) return;
+
+    const timer = setTimeout(() => {
+      markAllAsRead();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [user, loading, notifications, markAllAsRead]);
 
   const handleNotificationClick = async (notif: NotificationItem) => {
     if (!notif.read) {
+      // Optimistically update notifications state for this and any duplicate with identical message
       setNotifications((prev) =>
-        prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
+        prev.map((n) =>
+          n.id === notif.id || (n.message === notif.message && n.link === notif.link)
+            ? { ...n, read: true }
+            : n
+        )
       );
 
-      if (user && !notif.id.startsWith("match-")) {
-        try {
-          await supabase
-            .from("notifications")
-            .update({ read: true })
-            .eq("id", notif.id);
-          queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
-        } catch {
-          // ignore
+      if (user) {
+        // Optimistically decrement unread count
+        queryClient.setQueryData(["unread-notifications", user.id], (old: number | undefined) =>
+          Math.max(0, (old ?? 1) - 1)
+        );
+
+        if (!notif.id.startsWith("match-")) {
+          try {
+            await supabase
+              .from("notifications")
+              .update({ read: true })
+              .eq("user_id", user.id)
+              .or(`id.eq.${notif.id},message.eq.${notif.message}`);
+
+            queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
+          } catch (err) {
+            console.warn("Error updating notification read status:", err);
+          }
+        } else {
+          try {
+            const existing = JSON.parse(localStorage.getItem("duogo_read_synthesized_notifs") || "[]");
+            if (!existing.includes(notif.id)) {
+              existing.push(notif.id);
+              localStorage.setItem("duogo_read_synthesized_notifs", JSON.stringify(existing));
+            }
+          } catch {
+            // ignore
+          }
         }
       }
     }

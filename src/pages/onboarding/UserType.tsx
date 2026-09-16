@@ -8,7 +8,7 @@ import { User, Users, ArrowLeft, ArrowRight, LogIn } from "lucide-react";
 import { getSignupDraft, updateSignupDraft } from "@/lib/signupState";
 
 const UserType = () => {
-  const { user, profile, isProfileComplete } = useAuth();
+  const { user, profile, isProfileComplete, profileLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const draft = getSignupDraft();
@@ -16,7 +16,7 @@ const UserType = () => {
 
   // Pre-check: If user already has a complete profile in database, bypass signup steps
   useEffect(() => {
-    if (user && (profile?.onboarding_completed || isProfileComplete)) {
+    if (!profileLoading && user && (profile?.onboarding_completed || isProfileComplete)) {
       console.info("[AuthGuard:UserType] User already has a complete profile. Redirecting to dashboard.", {
         userId: user.id,
         onboardingCompleted: profile?.onboarding_completed,
@@ -24,7 +24,15 @@ const UserType = () => {
       });
       navigate("/dashboard", { replace: true });
     }
-  }, [user, profile?.onboarding_completed, isProfileComplete, navigate]);
+  }, [user, profile?.onboarding_completed, isProfileComplete, profileLoading, navigate]);
+
+  if (user && profileLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#FAF7F2]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#FF5436] border-t-transparent" />
+      </div>
+    );
+  }
 
   const handleSelect = async (type: "solo" | "couple") => {
     updateSignupDraft({ user_type: type });

@@ -40,7 +40,7 @@ import parkWalkImg from "@/assets/images/friends_park_walk_1788440206700.jpg";
 import dinnerChatImg from "@/assets/images/friends_dinner_chat_1788440227145.jpg";
 
 export default function Landing() {
-  const { session, profile, isProfileComplete, loading: authLoading, signOut } = useAuth();
+  const { session, user, profile, isProfileComplete, loading: authLoading, profileLoading, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"solo" | "couples">("solo");
   const [email, setEmail] = useState("");
@@ -91,11 +91,19 @@ export default function Landing() {
 
   // Seamless transition: If a user launches the PWA from Home Screen or visits "/" while authenticated,
   // automatically forward them to their dashboard or resume their current onboarding step.
+  // CRITICAL: We MUST wait until profileLoading is false so we do not prematurely redirect to step 1
+  // when an existing user's profile is still being fetched over the network.
+  // We also DO NOT redirect if the user explicitly opened the login modal (?login=true).
   useEffect(() => {
-    if (!authLoading && session) {
+    if (authLoading || profileLoading) return;
+
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const isLoginRequested = params?.get("login") === "true" || showLogin;
+
+    if (session && !isLoginRequested) {
       navigate(getLoggedInDestination(), { replace: true });
     }
-  }, [authLoading, session, getLoggedInDestination, navigate]);
+  }, [authLoading, profileLoading, session, showLogin, getLoggedInDestination, navigate]);
 
   const handleStartSignup = (type?: "solo" | "couple") => {
     if (session) {
@@ -191,43 +199,47 @@ export default function Landing() {
       });
     } else if (data.session?.user) {
       setShowLogin(false);
+      if (typeof window !== "undefined" && window.location.search.includes("login=true")) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
 
-      // Verify that the user has completed onboarding and the quiz
-      const { data: p } = await supabase
-        .from("profiles")
-        .select("first_name, user_type, quiz_completed, onboarding_completed")
-        .eq("id", data.session.user.id)
-        .maybeSingle();
+      // Fetch the updated profile via refreshProfile
+      const loadedProfile = await refreshProfile();
 
       const isComplete = Boolean(
-        p &&
-        p.onboarding_completed &&
-        p.quiz_completed &&
-        p.first_name &&
-        p.first_name.trim().length > 0 &&
-        (p.user_type === "solo" || p.user_type === "couple")
+        loadedProfile &&
+        (
+          Boolean(loadedProfile.onboarding_completed) ||
+          (
+            Boolean(loadedProfile.first_name && loadedProfile.first_name.trim().length > 0) &&
+            Boolean(loadedProfile.user_type) &&
+            Boolean(loadedProfile.location_city) &&
+            Boolean(loadedProfile.quiz_completed) &&
+            Boolean(loadedProfile.privacy_consented)
+          )
+        )
       );
 
-      if (!isComplete) {
-        toast({
-          title: "Finish setting up your profile ✦",
-          description: "Complete your onboarding steps and quiz to start matching.",
-        });
-        if (!p?.user_type) {
-          navigate("/onboarding/user-type", { replace: true });
-        } else if (!p?.first_name) {
-          navigate(p.user_type === "couple" ? "/onboarding/couple-setup" : "/onboarding/profile", { replace: true });
-        } else if (!p?.quiz_completed) {
-          navigate("/quiz", { replace: true });
-        } else {
-          navigate("/onboarding/privacy-consent", { replace: true });
-        }
-      } else {
+      if (isComplete) {
         toast({
           title: "Welcome back! ✦",
           description: "Signed in successfully.",
         });
         navigate("/dashboard", { replace: true });
+      } else {
+        toast({
+          title: "Welcome back! ✦",
+          description: "Let's complete your profile setup.",
+        });
+        if (!loadedProfile?.user_type) {
+          navigate("/onboarding/user-type", { replace: true });
+        } else if (!loadedProfile?.first_name) {
+          navigate(loadedProfile.user_type === "couple" ? "/onboarding/couple-setup" : "/onboarding/profile", { replace: true });
+        } else if (!loadedProfile?.quiz_completed) {
+          navigate("/quiz", { replace: true });
+        } else {
+          navigate("/onboarding/privacy-consent", { replace: true });
+        }
       }
     }
   };
@@ -1420,6 +1432,9 @@ export default function Landing() {
             setLoginStep("email");
             setLoginCode("");
             setLoginError(null);
+            if (typeof window !== "undefined" && window.location.search.includes("login=true")) {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
           }
         }}
       >
@@ -1440,6 +1455,38 @@ export default function Landing() {
               )}
             </DialogDescription>
           </DialogHeader>
+
+          {/* Session Banner if already active */}
+          {session?.user && loginStep === "email" && (
+            <div className="p-3.5 rounded-2xl bg-white border border-[var(--line)] text-xs text-[var(--ink)] space-y-2 my-1 shadow-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[var(--ink-soft)]">Signed in as:</span>
+                <span className="font-bold truncate max-w-[200px]">{session.user.email || "Active Member"}</span>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLogin(false);
+                    navigate(getLoggedInDestination());
+                  }}
+                  className="flex-1 py-1.5 px-3 rounded-full bg-[#FF5436] text-white font-bold text-xs hover:bg-[#e04427] transition-colors cursor-pointer text-center"
+                >
+                  {isProfileComplete ? "Go to Dashboard" : "Resume Setup"}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await signOut();
+                    toast({ title: "Signed out", description: "You can now log in with a different email." });
+                  }}
+                  className="py-1.5 px-3 rounded-full border border-[var(--line)] font-semibold text-xs text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors cursor-pointer text-center"
+                >
+                  Switch Account
+                </button>
+              </div>
+            </div>
+          )}
 
           {loginStep === "email" ? (
             <form onSubmit={handleLogin} className="space-y-4 pt-2">
