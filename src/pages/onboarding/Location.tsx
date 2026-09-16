@@ -201,8 +201,8 @@ const Location = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#FAF7F2] dark:bg-background px-4 py-8 sm:py-12">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen bg-[#FAF7F2] dark:bg-background flex flex-col justify-between px-4 sm:px-6 py-6 sm:py-10">
+      <div className="w-full max-w-lg mx-auto space-y-6 flex-1 flex flex-col justify-start">
         <button
           onClick={() => {
             if (draft.user_type === "couple") {
@@ -223,20 +223,20 @@ const Location = () => {
 
         <Card className="border border-[#EFE8DD] shadow-[0_12px_36px_-6px_rgba(26,24,22,0.06)] rounded-[2rem] bg-white dark:bg-card overflow-hidden">
           <CardHeader className="pt-8 pb-3 px-6 sm:px-8 text-center space-y-1.5">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0EB] border border-[#FFD9CE] text-[11px] font-bold text-[#FF5436] mb-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0EB] border border-[#FFD9CE] text-xs font-bold text-[#FF5436] mb-1 mx-auto">
               <span>Local Proximity Matching</span>
             </div>
             <CardTitle className="font-serif text-2xl sm:text-3xl font-bold text-[#1A1816]">
               Where are you based?
             </CardTitle>
-            <p className="text-xs text-[#706A62]">
+            <p className="text-sm text-[#706A62]">
               Enter your postal code or area to match with people near you
             </p>
           </CardHeader>
           <CardContent className="px-6 sm:px-8 pb-8 pt-2">
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Location Input Section */}
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-bold uppercase tracking-wider text-[#706A62]">
                     {manualCityMode ? "Your Area & Region" : "Postal Code"}
@@ -245,15 +245,15 @@ const Location = () => {
                     type="button"
                     onClick={handleGpsDetect}
                     disabled={detectingGps}
-                    className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#FF5436] hover:underline cursor-pointer disabled:opacity-50"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#FF5436] hover:underline cursor-pointer disabled:opacity-50"
                   >
                     {detectingGps ? (
                       <>
-                        <Loader2 className="h-3 w-3 animate-spin" /> Detecting GPS...
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Detecting GPS...
                       </>
                     ) : (
                       <>
-                        <Navigation className="h-3 w-3" /> Auto-detect via GPS
+                        <Navigation className="h-3.5 w-3.5" /> Auto-detect via GPS
                       </>
                     )}
                   </button>
@@ -268,7 +268,7 @@ const Location = () => {
                         placeholder="e.g. M5V 2T6 or postal code"
                         value={postalCode}
                         onChange={(e) => handlePostalChange(e.target.value)}
-                        className="h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-sm font-semibold tracking-wider uppercase focus-visible:ring-[#FF5436]"
+                        className="h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-base font-semibold tracking-wider uppercase focus-visible:ring-[#FF5436]"
                         autoFocus
                       />
                       {detectingPostal && (
@@ -278,13 +278,13 @@ const Location = () => {
                       )}
                     </div>
                     <div className="flex items-center justify-between px-1">
-                      <p className="text-[11px] text-[#706A62]">
+                      <p className="text-xs text-[#706A62]">
                         Instant lookup for postal codes
                       </p>
                       <button
                         type="button"
                         onClick={() => setManualCityMode(true)}
-                        className="text-[11px] font-semibold text-[#FF5436] hover:underline cursor-pointer"
+                        className="text-xs font-semibold text-[#FF5436] hover:underline cursor-pointer"
                       >
                         Enter area directly →
                       </button>
@@ -297,33 +297,33 @@ const Location = () => {
                       placeholder="e.g. Neighborhood or area name"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      className="h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-sm font-semibold focus-visible:ring-[#FF5436]"
+                      className="h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-base font-semibold focus-visible:ring-[#FF5436]"
                       autoFocus
                     />
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2.5">
                       <Input
                         type="text"
                         placeholder="Neighborhood (optional)"
                         value={neighborhood}
                         onChange={(e) => setNeighborhood(e.target.value)}
-                        className="h-11 rounded-xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-3 text-xs"
+                        className="h-12 rounded-xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-3.5 text-sm"
                       />
                       <Input
                         type="text"
                         placeholder="Postal/ZIP (optional)"
                         value={postalCode}
                         onChange={(e) => setPostalCode(e.target.value.toUpperCase())}
-                        className="h-11 rounded-xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-3 text-xs font-mono uppercase"
+                        className="h-12 rounded-xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-3.5 text-sm font-mono uppercase"
                       />
                     </div>
                     <div className="flex items-center justify-between px-1">
-                      <p className="text-[11px] text-[#706A62]">
+                      <p className="text-xs text-[#706A62]">
                         Matches strictly stay within your selected radius
                       </p>
                       <button
                         type="button"
                         onClick={() => setManualCityMode(false)}
-                        className="text-[11px] font-semibold text-[#FF5436] hover:underline cursor-pointer"
+                        className="text-xs font-semibold text-[#FF5436] hover:underline cursor-pointer"
                       >
                         ← Use postal code
                       </button>
@@ -333,7 +333,7 @@ const Location = () => {
 
                 {/* Validation Note */}
                 {validationNote && (
-                  <p className="text-[11.5px] text-amber-700 font-medium px-1">
+                  <p className="text-xs text-amber-700 font-medium px-1">
                     {validationNote}
                   </p>
                 )}
@@ -358,13 +358,13 @@ const Location = () => {
                         </p>
                       )}
                     </div>
-                    <div className="text-[11px] text-[#15803D]/80 border-t border-[#DCFCE7] pt-2 flex items-center justify-between">
+                    <div className="text-xs text-[#15803D]/80 border-t border-[#DCFCE7] pt-2 flex items-center justify-between">
                       <span>{postalCode ? `Code: ${postalCode}` : "Active location saved"}</span>
-                      <span className="text-[10.5px]">Radius matching active</span>
+                      <span>Radius matching active</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 rounded-2xl bg-[#FAF7F2] border border-[#EFE8DD] text-xs text-[#706A62] text-center">
+                  <div className="p-3.5 rounded-2xl bg-[#FAF7F2] border border-[#EFE8DD] text-xs text-[#706A62] text-center">
                     Enter your postal code or area to set your location
                   </div>
                 )}
@@ -376,24 +376,24 @@ const Location = () => {
                   <Label className="text-xs font-bold uppercase tracking-wider text-[#706A62]">
                     How far will you travel for hangouts?
                   </Label>
-                  <span className="text-[11px] text-[#16A34A] font-semibold">5 km default</span>
+                  <span className="text-xs text-[#16A34A] font-semibold">5 km default</span>
                 </div>
                 <RadioGroup value={radius} onValueChange={setRadius} className="space-y-2.5">
                   {RADIUS_OPTIONS.map((opt) => (
                     <label
                       key={opt.value}
-                      className={`flex cursor-pointer items-center gap-3.5 rounded-2xl border-2 p-3.5 transition-all ${
+                      className={`flex cursor-pointer items-center gap-3.5 rounded-2xl border-2 p-3.5 sm:p-4 transition-all ${
                         radius === opt.value
-                          ? "border-[#FF5436] bg-[#FFF8F5] shadow-2xs"
+                          ? "border-[#FF5436] bg-[#FFF8F5] ring-2 ring-[#FF5436]/20 shadow-2xs"
                           : "border-[#EFE8DD] bg-[#FAF7F2]/60 hover:border-[#DECBBF] hover:bg-white"
                       }`}
                     >
                       <RadioGroupItem value={opt.value} className="text-[#FF5436]" />
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-xs sm:text-sm font-bold text-[#1A1816]">{opt.label}</p>
+                          <p className="text-sm font-bold text-[#1A1816]">{opt.label}</p>
                         </div>
-                        <p className="text-[11px] text-[#706A62]">{opt.desc}</p>
+                        <p className="text-xs text-[#706A62]">{opt.desc}</p>
                       </div>
                     </label>
                   ))}
@@ -402,7 +402,7 @@ const Location = () => {
 
               <Button
                 type="submit"
-                className="h-13 w-full text-base font-bold rounded-full bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] transition-all cursor-pointer"
+                className="h-13 sm:h-14 w-full text-base font-bold rounded-2xl bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] transition-all cursor-pointer"
                 disabled={loading || (!postalCode.trim() && !city.trim())}
               >
                 {loading ? "Saving..." : "Continue to Lifestyle Quiz →"}

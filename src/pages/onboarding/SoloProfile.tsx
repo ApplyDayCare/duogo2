@@ -71,11 +71,11 @@ const SoloProfile = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#FAF7F2] dark:bg-background px-4 py-8 sm:py-12">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen bg-[#FAF7F2] dark:bg-background flex flex-col justify-between px-4 sm:px-6 py-6 sm:py-10">
+      <div className="w-full max-w-lg mx-auto space-y-6 flex-1 flex flex-col justify-start">
         <button
           onClick={() => navigate("/onboarding/looking-for")}
-          className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#7A746C] hover:text-[#1A1816] transition-colors"
+          className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#7A746C] hover:text-[#1A1816] transition-colors cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4" /> Back to Preferences
         </button>
@@ -83,17 +83,17 @@ const SoloProfile = () => {
         <OnboardingProgress currentStep={5} totalSteps={6} />
 
         <Card className="border border-[#EFE8DD] shadow-[0_12px_36px_-6px_rgba(26,24,22,0.06)] rounded-[2rem] bg-white dark:bg-card overflow-hidden">
-          <CardHeader className="pt-8 pb-3 px-6 sm:px-8 text-center space-y-1">
+          <CardHeader className="pt-8 pb-3 px-6 sm:px-8 text-center space-y-1.5">
             <CardTitle className="font-serif text-2xl sm:text-3xl font-bold text-[#1A1816]">
               Tell us about yourself
             </CardTitle>
-            <p className="text-xs text-[#706A62]">
+            <p className="text-sm text-[#706A62]">
               Your photo and name make your profile feel authentic
             </p>
           </CardHeader>
           <CardContent className="space-y-5 px-6 sm:px-8 pb-8 pt-2">
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="flex justify-center pb-1">
+              <div className="flex justify-center pb-2">
                 <AvatarUpload
                   userId={user?.id}
                   currentUrl={avatarUrl}
@@ -120,7 +120,7 @@ const SoloProfile = () => {
                   onChange={(e) => setFirstName(e.target.value)}
                   required
                   maxLength={50}
-                  className="h-12 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-sm font-semibold focus-visible:ring-[#FF5436]"
+                  className="h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-base font-semibold focus-visible:ring-[#FF5436]"
                 />
               </div>
 
@@ -138,17 +138,17 @@ const SoloProfile = () => {
                   }}
                   required
                   maxLength={200}
-                  className="h-12 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-sm font-semibold focus-visible:ring-[#FF5436]"
+                  className="h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-base font-semibold focus-visible:ring-[#FF5436]"
                 />
                 {socialError && <p className="text-xs text-destructive font-bold">{socialError}</p>}
                 
                 {/* Security explainer badge */}
-                <div className="rounded-2xl bg-[#FAF7F2] p-3.5 border border-[#EFE8DD] space-y-1 text-xs">
+                <div className="rounded-2xl bg-[#FAF7F2] p-4 border border-[#EFE8DD] space-y-1 text-xs">
                   <div className="flex items-center gap-1.5 font-bold text-[#1A1816]">
                     <ShieldCheck className="h-4 w-4 text-[#3EB489]" />
                     <span>100% Private Social Links</span>
                   </div>
-                  <p className="text-[11px] text-[#706A62] leading-relaxed">
+                  <p className="text-xs text-[#706A62] leading-relaxed">
                     Social media profile links remain hidden at all times until you accept the match and get connected.
                   </p>
                 </div>
@@ -156,7 +156,7 @@ const SoloProfile = () => {
 
               <Button
                 type="submit"
-                className="h-13 w-full text-base font-bold rounded-full bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] transition-all"
+                className="h-13 sm:h-14 w-full text-base font-bold rounded-2xl bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] transition-all cursor-pointer"
                 disabled={loading}
               >
                 {loading ? "Saving..." : "Continue to Location →"}

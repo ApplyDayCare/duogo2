@@ -166,8 +166,8 @@ const EmailVerification = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] dark:bg-background text-[#1A1816] flex flex-col justify-between px-4 py-8 sm:py-12">
-      <div className="w-full max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-[#FAF7F2] dark:bg-background text-[#1A1816] flex flex-col justify-between px-4 sm:px-6 py-6 sm:py-10">
+      <div className="w-full max-w-lg mx-auto space-y-6 flex-1 flex flex-col justify-start">
         {/* Top back button */}
         {step === "email" ? (
           <button
@@ -198,7 +198,7 @@ const EmailVerification = () => {
                 <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-[#1A1816]">
                   Save your profile
                 </h1>
-                <p className="text-xs sm:text-sm text-[#706A62]">
+                <p className="text-sm text-[#706A62]">
                   Enter your email to receive a 6-digit one-time code and unlock your friendship matches.
                 </p>
               </div>
@@ -232,7 +232,7 @@ const EmailVerification = () => {
 
               <form onSubmit={handleSendCode} className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="email-input" className="text-xs font-semibold text-[#706A62] block">
+                  <label htmlFor="email-input" className="text-xs font-bold uppercase tracking-wider text-[#706A62] block">
                     Email Address
                   </label>
                   <Input
@@ -242,14 +242,14 @@ const EmailVerification = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="h-13 text-sm rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 font-semibold focus-visible:ring-[#FF5436]"
+                    className="h-13 text-base rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 font-semibold focus-visible:ring-[#FF5436]"
                   />
                 </div>
 
                 <Button
                   type="submit"
                   disabled={sending || !email.trim()}
-                  className="w-full h-13 rounded-full text-base font-bold bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] gap-2 cursor-pointer"
+                  className="w-full h-13 sm:h-14 rounded-2xl text-base font-bold bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] gap-2 cursor-pointer"
                 >
                   {sending ? (
                     <>
@@ -282,11 +282,11 @@ const EmailVerification = () => {
                 <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#1A1816]">
                   Enter verification code
                 </h2>
-                <p className="text-xs sm:text-sm text-[#706A62]">
+                <p className="text-sm text-[#706A62]">
                   We sent a 6-digit one-time code to:
                 </p>
                 <div className="inline-flex items-center gap-2 bg-[#FAF7F2] py-1.5 px-3.5 rounded-full border border-[#EFE8DD]">
-                  <span className="font-bold text-[#1A1816] text-xs sm:text-sm">{email}</span>
+                  <span className="font-bold text-[#1A1816] text-sm">{email}</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -304,7 +304,7 @@ const EmailVerification = () => {
 
               {/* 6-Digit OTP Input */}
               <div className="space-y-3 py-2">
-                <label className="text-xs font-semibold text-[#706A62] block">
+                <label className="text-xs font-bold uppercase tracking-wider text-[#706A62] block">
                   6-Digit Verification Code
                 </label>
                 <div className="flex justify-center">
@@ -322,35 +322,35 @@ const EmailVerification = () => {
                     <InputOTPGroup className="gap-1.5 sm:gap-2">
                       <InputOTPSlot
                         index={0}
-                        className="w-11 h-14 sm:w-12 sm:h-16 text-xl sm:text-2xl font-mono font-bold rounded-xl border border-[#EFE8DD] bg-[#FAF7F2]/70 focus:border-[#FF5436] focus:ring-2 focus:ring-[#FF5436]/20"
+                        className="w-11 h-14 sm:w-13 sm:h-16 text-xl sm:text-2xl font-mono font-bold rounded-xl border border-[#EFE8DD] bg-[#FAF7F2]/70 focus:border-[#FF5436] focus:ring-2 focus:ring-[#FF5436]/20"
                       />
                       <InputOTPSlot
                         index={1}
-                        className="w-11 h-14 sm:w-12 sm:h-16 text-xl sm:text-2xl font-mono font-bold rounded-xl border border-[#EFE8DD] bg-[#FAF7F2]/70 focus:border-[#FF5436] focus:ring-2 focus:ring-[#FF5436]/20"
+                        className="w-11 h-14 sm:w-13 sm:h-16 text-xl sm:text-2xl font-mono font-bold rounded-xl border border-[#EFE8DD] bg-[#FAF7F2]/70 focus:border-[#FF5436] focus:ring-2 focus:ring-[#FF5436]/20"
                       />
                       <InputOTPSlot
                         index={2}
-                        className="w-11 h-14 sm:w-12 sm:h-16 text-xl sm:text-2xl font-mono font-bold rounded-xl border border-[#EFE8DD] bg-[#FAF7F2]/70 focus:border-[#FF5436] focus:ring-2 focus:ring-[#FF5436]/20"
+                        className="w-11 h-14 sm:w-13 sm:h-16 text-xl sm:text-2xl font-mono font-bold rounded-xl border border-[#EFE8DD] bg-[#FAF7F2]/70 focus:border-[#FF5436] focus:ring-2 focus:ring-[#FF5436]/20"
                       />
                     </InputOTPGroup>
                     <InputOTPSeparator />
                     <InputOTPGroup className="gap-1.5 sm:gap-2">
                       <InputOTPSlot
                         index={3}
-                        className="w-11 h-14 sm:w-12 sm:h-16 text-xl sm:text-2xl font-mono font-bold rounded-xl border border-[#EFE8DD] bg-[#FAF7F2]/70 focus:border-[#FF5436] focus:ring-2 focus:ring-[#FF5436]/20"
+                        className="w-11 h-14 sm:w-13 sm:h-16 text-xl sm:text-2xl font-mono font-bold rounded-xl border border-[#EFE8DD] bg-[#FAF7F2]/70 focus:border-[#FF5436] focus:ring-2 focus:ring-[#FF5436]/20"
                       />
                       <InputOTPSlot
                         index={4}
-                        className="w-11 h-14 sm:w-12 sm:h-16 text-xl sm:text-2xl font-mono font-bold rounded-xl border border-[#EFE8DD] bg-[#FAF7F2]/70 focus:border-[#FF5436] focus:ring-2 focus:ring-[#FF5436]/20"
+                        className="w-11 h-14 sm:w-13 sm:h-16 text-xl sm:text-2xl font-mono font-bold rounded-xl border border-[#EFE8DD] bg-[#FAF7F2]/70 focus:border-[#FF5436] focus:ring-2 focus:ring-[#FF5436]/20"
                       />
                       <InputOTPSlot
                         index={5}
-                        className="w-11 h-14 sm:w-12 sm:h-16 text-xl sm:text-2xl font-mono font-bold rounded-xl border border-[#EFE8DD] bg-[#FAF7F2]/70 focus:border-[#FF5436] focus:ring-2 focus:ring-[#FF5436]/20"
+                        className="w-11 h-14 sm:w-13 sm:h-16 text-xl sm:text-2xl font-mono font-bold rounded-xl border border-[#EFE8DD] bg-[#FAF7F2]/70 focus:border-[#FF5436] focus:ring-2 focus:ring-[#FF5436]/20"
                       />
                     </InputOTPGroup>
                   </InputOTP>
                 </div>
-                <p className="text-[11px] text-[#706A62]">
+                <p className="text-xs text-[#706A62]">
                   Enter or paste your 6-digit code, or tap the confirmation link in your email.
                 </p>
               </div>
@@ -360,7 +360,7 @@ const EmailVerification = () => {
                 type="button"
                 onClick={() => handleVerifyCode()}
                 disabled={verifying || code.length < 6}
-                className="w-full h-13 rounded-full text-base font-bold bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full h-13 sm:h-14 rounded-2xl text-base font-bold bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] gap-2 cursor-pointer disabled:opacity-50"
               >
                 {verifying ? (
                   <>
@@ -390,7 +390,7 @@ const EmailVerification = () => {
                   </Button>
                 </div>
 
-                <div className="rounded-2xl bg-[#FAF7F2] border border-[#EFE8DD] p-3 text-left text-xs text-[#706A62] space-y-1.5">
+                <div className="rounded-2xl bg-[#FAF7F2] border border-[#EFE8DD] p-3.5 text-left text-xs text-[#706A62] space-y-1.5">
                   <div className="flex items-start gap-1.5">
                     <CheckCircle2 className="h-3.5 w-3.5 text-[#3EB489] shrink-0 mt-0.5" />
                     <span>Check your spam or junk folder if the code doesn&apos;t arrive in 1 minute.</span>
@@ -407,7 +407,7 @@ const EmailVerification = () => {
       </div>
 
       {/* Footer disclaimer */}
-      <div className="w-full max-w-md mx-auto pt-8 pb-4 text-center">
+      <div className="w-full max-w-lg mx-auto pt-8 pb-4 text-center">
         <p className="text-xs text-[#8C847B]">
           &copy; {new Date().getFullYear()} duogo · 100% Platonic &amp; gender-blind friendships
         </p>

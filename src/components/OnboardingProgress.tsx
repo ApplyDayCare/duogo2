@@ -8,13 +8,13 @@ const OnboardingProgress = ({ currentStep, totalSteps }: OnboardingProgressProps
 
   return (
     <div className="w-full space-y-2">
-      <div className="flex items-center justify-between text-xs font-bold text-[#7A746C] px-0.5">
+      <div className="flex items-center justify-between text-xs sm:text-sm font-bold text-[#7A746C] px-0.5">
         <span className="uppercase tracking-wider">Step {currentStep} of {totalSteps}</span>
         <span className="text-[#FF5436] font-extrabold">{percentage}%</span>
       </div>
-      <div className="h-2 w-full bg-[#EFE8DD] rounded-full overflow-hidden">
+      <div className="h-2.5 w-full bg-[#EFE8DD] rounded-full overflow-hidden shadow-inner">
         <div
-          className="h-full bg-[#FF5436] rounded-full transition-all duration-300 ease-out"
+          className="h-full bg-gradient-to-r from-[#FF7A60] to-[#FF5436] rounded-full transition-all duration-300 ease-out"
           style={{ width: `${percentage}%` }}
         />
       </div>

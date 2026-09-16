@@ -102,12 +102,12 @@ const PrivacyConsent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f4ee] dark:bg-background text-foreground flex flex-col justify-between px-4 py-6 md:py-10">
-      <div className="w-full max-w-md mx-auto space-y-7">
+    <div className="min-h-screen bg-[#FAF7F2] dark:bg-background text-foreground flex flex-col justify-between px-4 sm:px-6 py-6 sm:py-10">
+      <div className="w-full max-w-lg mx-auto space-y-7 flex-1 flex flex-col justify-start">
         {/* Top Back Navigation */}
         <button
           onClick={handleBack}
-          className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#7A746C] hover:text-[#1A1816] transition-colors cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4" /> Back to Quiz
         </button>
@@ -115,11 +115,11 @@ const PrivacyConsent = () => {
         {/* Main Content Area */}
         <div className="space-y-6 pt-2">
           {/* Header */}
-          <div className="space-y-3 text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          <div className="space-y-2 text-left">
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-[#1A1816] dark:text-foreground">
               Let's Talk About Your Data
             </h1>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            <p className="text-sm sm:text-base text-[#706A62] dark:text-muted-foreground leading-relaxed">
               DuoGo is constantly seeking to improve your online and offline experiences. To help us accomplish this, we must collect data from our users, including:
             </p>
           </div>
@@ -129,16 +129,16 @@ const PrivacyConsent = () => {
             {DATA_ITEMS.map((item) => (
               <div
                 key={item.id}
-                className="flex items-start gap-3.5 group"
+                className="flex items-start gap-3.5 group bg-white dark:bg-card p-4 rounded-2xl border border-[#EFE8DD] shadow-soft"
               >
-                <div className="h-6 w-6 rounded-full border border-foreground/40 dark:border-primary/50 flex items-center justify-center shrink-0 mt-0.5 bg-white/60 dark:bg-card">
-                  <Check className="h-3.5 w-3.5 text-foreground dark:text-primary stroke-[2.5]" />
+                <div className="h-7 w-7 rounded-full bg-[#FFF0EB] border border-[#FFD9CE] flex items-center justify-center shrink-0 mt-0.5">
+                  <Check className="h-4 w-4 text-[#FF5436] stroke-[3]" />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-semibold text-foreground leading-snug">
+                  <h3 className="text-base sm:text-lg font-bold text-[#1A1816] dark:text-foreground leading-snug">
                     {item.title}
                   </h3>
-                  <p className="text-xs text-muted-foreground leading-normal mt-0.5">
+                  <p className="text-xs sm:text-sm text-[#706A62] dark:text-muted-foreground leading-relaxed mt-0.5">
                     {item.detail}
                   </p>
                 </div>
@@ -147,11 +147,11 @@ const PrivacyConsent = () => {
           </div>
 
           {/* Privacy Callout Banner */}
-          <div className="rounded-2xl bg-[#ebe6dc] dark:bg-card/70 border border-border/40 p-4 sm:p-5 flex items-start gap-3.5 shadow-2xs">
-            <div className="shrink-0 mt-0.5 text-foreground/80 dark:text-primary">
-              <Info className="h-5 w-5 fill-foreground/15 stroke-foreground dark:stroke-primary" />
+          <div className="rounded-2xl bg-[#FFF8F5] border border-[#FFD9CE] p-4 sm:p-5 flex items-start gap-3.5 shadow-2xs">
+            <div className="shrink-0 mt-0.5 text-[#FF5436]">
+              <Info className="h-5 w-5" />
             </div>
-            <p className="text-xs sm:text-sm font-medium text-foreground/90 leading-relaxed">
+            <p className="text-xs sm:text-sm font-semibold text-[#1A1816] leading-relaxed">
               Your privacy is important to us. We do not sell your profile data or contact information to any third-parties.
             </p>
           </div>
@@ -159,7 +159,7 @@ const PrivacyConsent = () => {
           {/* Action Button */}
           <div className="space-y-3 pt-2">
             <Button
-              className="h-13 w-full text-base font-semibold rounded-full bg-foreground text-background hover:bg-foreground/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90 shadow-md transition-all active:scale-[0.99] cursor-pointer"
+              className="h-13 sm:h-14 w-full text-base font-bold rounded-2xl bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] transition-all cursor-pointer"
               onClick={handleContinue}
               disabled={submitting}
             >
@@ -169,19 +169,17 @@ const PrivacyConsent = () => {
                   <span>Saving...</span>
                 </span>
               ) : (
-                "Continue"
+                "Continue to Account Verification →"
               )}
             </Button>
-            {/* Sheet Handle Accent */}
-            <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto" />
           </div>
         </div>
       </div>
 
       {/* Footer link to full policy */}
-      <div className="text-center py-4 text-xs text-muted-foreground">
+      <div className="text-center py-4 text-xs text-[#706A62]">
         <span>Read our complete </span>
-        <a href="/privacy" target="_blank" rel="noreferrer" className="underline hover:text-foreground font-medium">
+        <a href="/privacy" target="_blank" rel="noreferrer" className="underline hover:text-[#1A1816] font-semibold">
           Privacy Policy
         </a>
       </div>

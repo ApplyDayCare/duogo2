@@ -192,23 +192,27 @@ const CoupleSetup = () => {
   // Success screen after creating code
   if (createdCode) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbf9f4] dark:bg-background px-4 py-8">
-        <div className="w-full max-w-md space-y-6">
-          <OnboardingProgress currentStep={2} totalSteps={4} />
-          <Card className="border-0 shadow-lg rounded-3xl bg-white dark:bg-card text-center">
-            <CardContent className="space-y-6 pt-8 pb-8 px-6">
+      <div className="min-h-screen bg-[#FAF7F2] dark:bg-background flex flex-col justify-between px-4 sm:px-6 py-6 sm:py-10">
+        <div className="w-full max-w-lg mx-auto space-y-6 flex-1 flex flex-col justify-start">
+          <OnboardingProgress currentStep={6} totalSteps={7} />
+          <Card className="border border-[#EFE8DD] shadow-[0_12px_36px_-6px_rgba(26,24,22,0.06)] rounded-[2rem] bg-white dark:bg-card text-center">
+            <CardContent className="space-y-6 pt-8 pb-8 px-6 sm:px-8">
               <div className="space-y-2">
-                <h2 className="text-xl font-bold text-foreground">Share this code with your partner</h2>
-                <p className="text-sm text-muted-foreground">They'll need it to link their account with yours</p>
+                <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#1A1816] dark:text-foreground">
+                  Share this code with your partner
+                </h2>
+                <p className="text-sm text-[#706A62] dark:text-muted-foreground">
+                  They'll need it to link their account with yours
+                </p>
               </div>
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-4xl font-mono font-bold tracking-[0.3em] text-primary">{createdCode}</span>
-                <button onClick={copyCode} className="rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground">
-                  {copied ? <Check className="h-5 w-5 text-primary" /> : <Copy className="h-5 w-5" />}
+              <div className="flex items-center justify-center gap-3 p-4 bg-[#FFF8F5] rounded-2xl border border-[#FFD9CE]">
+                <span className="text-3xl sm:text-4xl font-mono font-bold tracking-[0.25em] text-[#FF5436] pl-2">{createdCode}</span>
+                <button onClick={copyCode} className="rounded-xl p-2.5 text-[#706A62] hover:bg-white hover:text-[#1A1816] transition-colors cursor-pointer">
+                  {copied ? <Check className="h-5 w-5 text-[#FF5436]" /> : <Copy className="h-5 w-5" />}
                 </button>
               </div>
-              <Button className="h-12 w-full text-base font-semibold rounded-full shadow-sm" onClick={() => navigate("/onboarding/location")}>
-                Continue to Location
+              <Button className="h-13 sm:h-14 w-full text-base font-bold rounded-2xl bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] transition-all cursor-pointer" onClick={() => navigate("/onboarding/location")}>
+                Continue to Location →
               </Button>
             </CardContent>
           </Card>
@@ -220,20 +224,24 @@ const CoupleSetup = () => {
   // Success screen after joining
   if (partnerName) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbf9f4] dark:bg-background px-4 py-8">
-        <div className="w-full max-w-md space-y-6">
-          <OnboardingProgress currentStep={2} totalSteps={4} />
-          <Card className="border-0 shadow-lg rounded-3xl bg-white dark:bg-card text-center">
-            <CardContent className="space-y-6 pt-8 pb-8 px-6">
-              <div className="flex h-16 w-16 mx-auto items-center justify-center rounded-full bg-primary/10">
-                <Check className="h-8 w-8 text-primary" />
+      <div className="min-h-screen bg-[#FAF7F2] dark:bg-background flex flex-col justify-between px-4 sm:px-6 py-6 sm:py-10">
+        <div className="w-full max-w-lg mx-auto space-y-6 flex-1 flex flex-col justify-start">
+          <OnboardingProgress currentStep={6} totalSteps={7} />
+          <Card className="border border-[#EFE8DD] shadow-[0_12px_36px_-6px_rgba(26,24,22,0.06)] rounded-[2rem] bg-white dark:bg-card text-center">
+            <CardContent className="space-y-6 pt-8 pb-8 px-6 sm:px-8">
+              <div className="flex h-16 w-16 mx-auto items-center justify-center rounded-full bg-[#F0FDF4] border border-[#BBF7D0]">
+                <Check className="h-8 w-8 text-[#16A34A]" />
               </div>
               <div className="space-y-2">
-                <h2 className="text-xl font-bold text-foreground">You're linked with {partnerName}!</h2>
-                <p className="text-sm text-muted-foreground">Your couple account is ready for location setup</p>
+                <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#1A1816] dark:text-foreground">
+                  You're linked with {partnerName}!
+                </h2>
+                <p className="text-sm text-[#706A62] dark:text-muted-foreground">
+                  Your couple account is ready for location setup
+                </p>
               </div>
-              <Button className="h-12 w-full text-base font-semibold rounded-full shadow-sm" onClick={() => navigate("/onboarding/location")}>
-                Continue to Location
+              <Button className="h-13 sm:h-14 w-full text-base font-bold rounded-2xl bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] transition-all cursor-pointer" onClick={() => navigate("/onboarding/location")}>
+                Continue to Location →
               </Button>
             </CardContent>
           </Card>
@@ -245,36 +253,36 @@ const CoupleSetup = () => {
   // Choose mode
   if (mode === "choose") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbf9f4] dark:bg-background px-4 py-8">
-        <div className="w-full max-w-md space-y-6">
-          <button onClick={() => navigate("/onboarding/looking-for")} className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+      <div className="min-h-screen bg-[#FAF7F2] dark:bg-background flex flex-col justify-between px-4 sm:px-6 py-6 sm:py-10">
+        <div className="w-full max-w-lg mx-auto space-y-6 flex-1 flex flex-col justify-start">
+          <button onClick={() => navigate("/onboarding/looking-for")} className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#7A746C] hover:text-[#1A1816] transition-colors cursor-pointer">
             <ArrowLeft className="h-4 w-4" /> Back to Preferences
           </button>
           <OnboardingProgress currentStep={6} totalSteps={7} />
-          <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-bold text-foreground">Couple Setup</h1>
-            <p className="text-muted-foreground">Link your accounts together</p>
+          <div className="space-y-1.5 text-center">
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#1A1816] dark:text-foreground">Couple Setup</h1>
+            <p className="text-sm text-[#706A62] dark:text-muted-foreground">Link your accounts together</p>
           </div>
           <div className="grid gap-4">
-            <Card className="cursor-pointer border-2 border-transparent transition-all hover:border-primary hover:shadow-md" onClick={() => setMode("create")}>
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                  <UserPlus className="h-7 w-7 text-primary" />
+            <Card className="cursor-pointer border-2 border-[#EFE8DD] hover:border-[#FF5436] hover:bg-[#FFF8F5] transition-all rounded-[2rem] shadow-soft" onClick={() => setMode("create")}>
+              <CardContent className="flex items-center gap-5 p-6">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#FFF0EB] text-[#FF5436]">
+                  <UserPlus className="h-7 w-7" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground">I'm starting the account</h2>
-                  <p className="text-sm text-muted-foreground">Create an invite code for your partner</p>
+                  <h2 className="text-base sm:text-lg font-bold text-[#1A1816]">I'm starting the account</h2>
+                  <p className="text-xs sm:text-sm text-[#706A62]">Create an invite code for your partner</p>
                 </div>
               </CardContent>
             </Card>
-            <Card className="cursor-pointer border-2 border-transparent transition-all hover:border-primary hover:shadow-md" onClick={() => setMode("join")}>
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                  <Link2 className="h-7 w-7 text-primary" />
+            <Card className="cursor-pointer border-2 border-[#EFE8DD] hover:border-[#FF5436] hover:bg-[#FFF8F5] transition-all rounded-[2rem] shadow-soft" onClick={() => setMode("join")}>
+              <CardContent className="flex items-center gap-5 p-6">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#FFF0EB] text-[#FF5436]">
+                  <Link2 className="h-7 w-7" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground">My partner sent me a code</h2>
-                  <p className="text-sm text-muted-foreground">Enter the code to link your accounts</p>
+                  <h2 className="text-base sm:text-lg font-bold text-[#1A1816]">My partner sent me a code</h2>
+                  <p className="text-xs sm:text-sm text-[#706A62]">Enter the code to link your accounts</p>
                 </div>
               </CardContent>
             </Card>
@@ -287,19 +295,19 @@ const CoupleSetup = () => {
   // Create form
   if (mode === "create") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbf9f4] dark:bg-background px-4 py-8">
-        <div className="w-full max-w-md space-y-6">
-          <button onClick={() => setMode("choose")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <div className="min-h-screen bg-[#FAF7F2] dark:bg-background flex flex-col justify-between px-4 sm:px-6 py-6 sm:py-10">
+        <div className="w-full max-w-lg mx-auto space-y-6 flex-1 flex flex-col justify-start">
+          <button onClick={() => setMode("choose")} className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#7A746C] hover:text-[#1A1816] transition-colors cursor-pointer">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
           <OnboardingProgress currentStep={6} totalSteps={7} />
-          <Card className="border-0 shadow-lg rounded-3xl bg-white dark:bg-card">
-            <CardHeader>
-              <CardTitle className="text-xl">Your Details</CardTitle>
-              <CardDescription>We'll create an invite code for your partner</CardDescription>
+          <Card className="border border-[#EFE8DD] shadow-[0_12px_36px_-6px_rgba(26,24,22,0.06)] rounded-[2rem] bg-white dark:bg-card">
+            <CardHeader className="pt-8 pb-3 px-6 sm:px-8 text-center space-y-1.5">
+              <CardTitle className="font-serif text-2xl sm:text-3xl font-bold text-[#1A1816]">Your Details</CardTitle>
+              <CardDescription className="text-sm text-[#706A62]">We'll create an invite code for your partner</CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreate} className="space-y-4">
+            <CardContent className="space-y-5 px-6 sm:px-8 pb-8 pt-2">
+              <form onSubmit={handleCreate} className="space-y-5">
                 <AvatarUpload
                   userId={user?.id}
                   currentUrl={createAvatarUrl}
@@ -307,17 +315,17 @@ const CoupleSetup = () => {
                   onRemoved={() => setCreateAvatarUrl(null)}
                   fallbackInitials={createName ? createName[0].toUpperCase() : "?"}
                 />
-                <div className="space-y-2">
-                  <Label htmlFor="createName">First Name</Label>
-                  <Input id="createName" placeholder="Your first name" value={createName} onChange={(e) => setCreateName(e.target.value)} required maxLength={50} className="h-12 rounded-xl" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="createName" className="text-xs font-bold uppercase tracking-wider text-[#706A62]">First Name</Label>
+                  <Input id="createName" placeholder="Your first name" value={createName} onChange={(e) => setCreateName(e.target.value)} required maxLength={50} className="h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-base font-semibold focus-visible:ring-[#FF5436]" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="createSocial">Instagram or LinkedIn Profile URL</Label>
-                  <Input id="createSocial" placeholder="https://instagram.com/yourhandle" value={createSocial} onChange={(e) => setCreateSocial(e.target.value)} required maxLength={200} className="h-12 rounded-xl" />
-                  <p className="text-xs text-muted-foreground">🔒 Social media profile links remain hidden at all times until you accept the match and get connected. No account? Email <a href="mailto:hello@duogo.space" className="text-primary hover:underline font-medium">hello@duogo.space</a>.</p>
+                  <Label htmlFor="createSocial" className="text-xs font-bold uppercase tracking-wider text-[#706A62]">Instagram or LinkedIn Profile URL</Label>
+                  <Input id="createSocial" placeholder="https://instagram.com/yourhandle" value={createSocial} onChange={(e) => setCreateSocial(e.target.value)} required maxLength={200} className="h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-base font-semibold focus-visible:ring-[#FF5436]" />
+                  <p className="text-xs text-[#706A62]">🔒 Social media profile links remain hidden at all times until you accept the match and get connected. No account? Email <a href="mailto:hello@duogo.space" className="text-[#FF5436] hover:underline font-medium">hello@duogo.space</a>.</p>
                 </div>
-                <Button type="submit" className="h-12 w-full text-base font-semibold rounded-full shadow-sm" disabled={createLoading}>
-                  {createLoading ? "Creating..." : "Create Invite Code"}
+                <Button type="submit" className="h-13 sm:h-14 w-full text-base font-bold rounded-2xl bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] transition-all cursor-pointer" disabled={createLoading}>
+                  {createLoading ? "Creating..." : "Create Invite Code →"}
                 </Button>
               </form>
             </CardContent>
@@ -329,19 +337,19 @@ const CoupleSetup = () => {
 
   // Join form
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#fbf9f4] dark:bg-background px-4 py-8">
-      <div className="w-full max-w-md space-y-6">
-        <button onClick={() => setMode("choose")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+    <div className="min-h-screen bg-[#FAF7F2] dark:bg-background flex flex-col justify-between px-4 sm:px-6 py-6 sm:py-10">
+      <div className="w-full max-w-lg mx-auto space-y-6 flex-1 flex flex-col justify-start">
+        <button onClick={() => setMode("choose")} className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#7A746C] hover:text-[#1A1816] transition-colors cursor-pointer">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <OnboardingProgress currentStep={6} totalSteps={7} />
-        <Card className="border-0 shadow-lg rounded-3xl bg-white dark:bg-card">
-          <CardHeader>
-            <CardTitle className="text-xl">Join Your Partner</CardTitle>
-            <CardDescription>Enter the code they shared with you</CardDescription>
+        <Card className="border border-[#EFE8DD] shadow-[0_12px_36px_-6px_rgba(26,24,22,0.06)] rounded-[2rem] bg-white dark:bg-card">
+          <CardHeader className="pt-8 pb-3 px-6 sm:px-8 text-center space-y-1.5">
+            <CardTitle className="font-serif text-2xl sm:text-3xl font-bold text-[#1A1816]">Join Your Partner</CardTitle>
+            <CardDescription className="text-sm text-[#706A62]">Enter the code they shared with you</CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleJoin} className="space-y-4">
+          <CardContent className="space-y-5 px-6 sm:px-8 pb-8 pt-2">
+            <form onSubmit={handleJoin} className="space-y-5">
               <AvatarUpload
                 userId={user?.id}
                 currentUrl={joinAvatarUrl}
@@ -349,21 +357,21 @@ const CoupleSetup = () => {
                 onRemoved={() => setJoinAvatarUrl(null)}
                 fallbackInitials={joinName ? joinName[0].toUpperCase() : "?"}
               />
-              <div className="space-y-2">
-                <Label htmlFor="joinCode">Invite Code</Label>
-                <Input id="joinCode" placeholder="ABC123" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} required maxLength={6} className="text-center text-lg font-mono tracking-widest h-12 rounded-xl" />
+              <div className="space-y-1.5">
+                <Label htmlFor="joinCode" className="text-xs font-bold uppercase tracking-wider text-[#706A62]">Invite Code</Label>
+                <Input id="joinCode" placeholder="ABC123" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} required maxLength={6} className="text-center text-xl font-mono tracking-widest h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 font-bold focus-visible:ring-[#FF5436]" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="joinName" className="text-xs font-bold uppercase tracking-wider text-[#706A62]">First Name</Label>
+                <Input id="joinName" placeholder="Your first name" value={joinName} onChange={(e) => setJoinName(e.target.value)} required maxLength={50} className="h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-base font-semibold focus-visible:ring-[#FF5436]" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="joinName">First Name</Label>
-                <Input id="joinName" placeholder="Your first name" value={joinName} onChange={(e) => setJoinName(e.target.value)} required maxLength={50} className="h-12 rounded-xl" />
+                <Label htmlFor="joinSocial" className="text-xs font-bold uppercase tracking-wider text-[#706A62]">Instagram or LinkedIn Profile URL</Label>
+                <Input id="joinSocial" placeholder="https://instagram.com/yourhandle" value={joinSocial} onChange={(e) => setJoinSocial(e.target.value)} required maxLength={200} className="h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-base font-semibold focus-visible:ring-[#FF5436]" />
+                <p className="text-xs text-[#706A62]">🔒 Social media profile links remain hidden at all times until you accept the match and get connected. No account? Email <a href="mailto:hello@duogo.space" className="text-[#FF5436] hover:underline font-medium">hello@duogo.space</a>.</p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="joinSocial">Instagram or LinkedIn Profile URL</Label>
-                <Input id="joinSocial" placeholder="https://instagram.com/yourhandle" value={joinSocial} onChange={(e) => setJoinSocial(e.target.value)} required maxLength={200} className="h-12 rounded-xl" />
-                <p className="text-xs text-muted-foreground">🔒 Social media profile links remain hidden at all times until you accept the match and get connected. No account? Email <a href="mailto:hello@duogo.space" className="text-primary hover:underline font-medium">hello@duogo.space</a>.</p>
-              </div>
-              <Button type="submit" className="h-12 w-full text-base font-semibold rounded-full shadow-sm" disabled={joinLoading}>
-                {joinLoading ? "Joining..." : "Join Partner"}
+              <Button type="submit" className="h-13 sm:h-14 w-full text-base font-bold rounded-2xl bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] transition-all cursor-pointer" disabled={joinLoading}>
+                {joinLoading ? "Joining..." : "Join Partner →"}
               </Button>
             </form>
           </CardContent>

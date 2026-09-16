@@ -104,8 +104,8 @@ const LookingFor = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#FAF7F2] dark:bg-background px-4 py-4 sm:py-6">
-      <div className="w-full max-w-md space-y-4 sm:space-y-5">
+    <div className="min-h-screen bg-[#FAF7F2] dark:bg-background flex flex-col justify-between px-4 sm:px-6 py-6 sm:py-10">
+      <div className="w-full max-w-lg mx-auto space-y-6 flex-1 flex flex-col justify-start">
         {/* Top bar */}
         <div className="flex items-center justify-between">
           <button
@@ -122,17 +122,17 @@ const LookingFor = () => {
 
         <OnboardingProgress currentStep={currentStep} totalSteps={totalSteps} />
 
-        <div className="space-y-1 text-center">
+        <div className="space-y-1.5 text-center pt-2">
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#1A1816] dark:text-foreground tracking-tight">
             What are you looking for?
           </h1>
-          <p className="text-xs sm:text-sm text-[#706A62] dark:text-muted-foreground font-medium">
-            Select up to {MAX_SELECTION}
+          <p className="text-sm text-[#706A62] dark:text-muted-foreground font-medium">
+            Select up to {MAX_SELECTION} preferences
           </p>
         </div>
 
-        {/* Compact Grid of Options matching Duogo design system */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {/* Generous Grid of Options */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           {options.map((option) => {
             const isSelected = selected.includes(option.id);
 
@@ -141,21 +141,21 @@ const LookingFor = () => {
                 key={option.id}
                 type="button"
                 onClick={() => toggleOption(option.id)}
-                className={`w-full text-left flex items-center justify-between px-3.5 py-2.5 rounded-2xl border-2 transition-all duration-200 select-none cursor-pointer shadow-soft hover:shadow-card hover:-translate-y-0.5 ${
+                className={`w-full text-left flex items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl border-2 transition-all duration-200 select-none cursor-pointer shadow-soft hover:shadow-card hover:-translate-y-0.5 min-h-[58px] sm:min-h-[64px] ${
                   isSelected
-                    ? "border-[#FF5436] bg-[#FFF9F7] dark:bg-card ring-2 ring-[#FF5436]/20"
+                    ? "border-[#FF5436] bg-[#FFF9F7] dark:bg-card ring-4 ring-[#FF5436]/15"
                     : "border-[#EFE8DD] hover:border-[#DECBBF] bg-white dark:bg-card"
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0 pr-1">
-                  <span className="text-base shrink-0" role="img" aria-label={option.label}>
+                <div className="flex items-center gap-3 min-w-0 pr-1">
+                  <span className="text-xl sm:text-2xl shrink-0" role="img" aria-label={option.label}>
                     {option.emoji}
                   </span>
                   <span
-                    className={`text-xs sm:text-sm font-semibold truncate ${
+                    className={`text-sm sm:text-base font-semibold leading-snug ${
                       isSelected
                         ? "text-[#1A1816] dark:text-foreground"
-                        : "text-[#1A1816]/85 dark:text-foreground/85"
+                        : "text-[#1A1816]/90 dark:text-foreground/90"
                     }`}
                   >
                     {option.label}
@@ -163,13 +163,13 @@ const LookingFor = () => {
                 </div>
 
                 {/* Selection Indicator Circle */}
-                <div className="shrink-0 ml-1">
+                <div className="shrink-0 ml-2">
                   {isSelected ? (
-                    <div className="h-5 w-5 rounded-full bg-[#FF5436] flex items-center justify-center text-white transition-transform scale-100 shadow-xs">
-                      <Check className="h-3 w-3 stroke-[3]" />
+                    <div className="h-6 w-6 rounded-full bg-[#FF5436] flex items-center justify-center text-white transition-transform scale-100 shadow-xs">
+                      <Check className="h-3.5 w-3.5 stroke-[3]" />
                     </div>
                   ) : (
-                    <div className="h-5 w-5 rounded-full border-2 border-[#EFE8DD] dark:border-border transition-colors" />
+                    <div className="h-6 w-6 rounded-full border-2 border-[#EFE8DD] dark:border-border transition-colors" />
                   )}
                 </div>
               </button>
@@ -178,26 +178,28 @@ const LookingFor = () => {
         </div>
 
         {/* Continue Button */}
-        <Button
-          onClick={handleContinue}
-          disabled={selected.length === 0 || loading}
-          className="h-12 w-full text-base font-bold rounded-full bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_6px_20px_rgba(255,84,54,0.30)] transition-all cursor-pointer disabled:opacity-50 disabled:shadow-none"
-        >
-          {loading ? "Saving..." : "Continue →"}
-        </Button>
+        <div className="pt-2 space-y-3">
+          <Button
+            onClick={handleContinue}
+            disabled={selected.length === 0 || loading}
+            className="h-13 sm:h-14 w-full text-base font-bold rounded-2xl bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] transition-all cursor-pointer disabled:opacity-50 disabled:shadow-none"
+          >
+            {loading ? "Saving..." : "Continue →"}
+          </Button>
 
-        {/* Footer disclaimer */}
-        <p className="text-center text-[11px] text-[#706A62]/90 dark:text-muted-foreground/80 pt-0.5">
-          By continuing, you agree to our{" "}
-          <Link to="/terms" className="underline hover:text-[#1A1816] dark:hover:text-foreground transition-colors">
-            Terms of Service
-          </Link>{" "}
-          and{" "}
-          <Link to="/privacy" className="underline hover:text-[#1A1816] dark:hover:text-foreground transition-colors">
-            Privacy Policy
-          </Link>
-          .
-        </p>
+          {/* Footer disclaimer */}
+          <p className="text-center text-xs text-[#706A62]/90 dark:text-muted-foreground/80 pt-1">
+            By continuing, you agree to our{" "}
+            <Link to="/terms" className="underline hover:text-[#1A1816] dark:hover:text-foreground transition-colors">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="underline hover:text-[#1A1816] dark:hover:text-foreground transition-colors">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </div>
       </div>
     </div>
   );

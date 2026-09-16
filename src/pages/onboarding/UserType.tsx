@@ -47,18 +47,18 @@ const UserType = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#FAF7F2] dark:bg-background px-4 py-4 sm:py-6">
-      <div className="w-full max-w-md space-y-4 sm:space-y-5">
+    <div className="min-h-screen bg-[#FAF7F2] dark:bg-background flex flex-col justify-between px-4 sm:px-6 py-6 sm:py-10">
+      <div className="w-full max-w-lg mx-auto space-y-6 flex-1 flex flex-col justify-start">
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#7A746C] hover:text-[#1A1816] transition-colors"
+            className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#7A746C] hover:text-[#1A1816] transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" /> Back to Home
           </button>
           <button
             onClick={() => navigate("/?login=true")}
-            className="flex items-center gap-1 text-xs sm:text-sm font-bold text-[#FF5436] hover:underline"
+            className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#FF5436] hover:underline cursor-pointer"
           >
             <LogIn className="h-3.5 w-3.5" />
             Log In
@@ -67,42 +67,42 @@ const UserType = () => {
 
         <OnboardingProgress currentStep={1} totalSteps={6} />
 
-        <div className="space-y-1 text-center">
+        <div className="space-y-1.5 text-center pt-2">
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#1A1816] tracking-tight">
             How are you looking for friends?
           </h1>
-          <p className="text-xs sm:text-sm text-[#706A62]">
+          <p className="text-sm text-[#706A62]">
             Choose whether you're joining solo or as a couple
           </p>
         </div>
 
-        <div className="grid gap-3">
+        <div className="grid gap-4 pt-1">
           {/* Solo Card */}
           <div
-            className={`group cursor-pointer rounded-2xl border-2 bg-white p-4 sm:p-5 transition-all duration-200 shadow-soft hover:shadow-card hover:-translate-y-0.5 ${
+            className={`group cursor-pointer rounded-3xl border-2 bg-white p-5 sm:p-6 transition-all duration-200 shadow-soft hover:shadow-card hover:-translate-y-0.5 active:scale-[0.99] ${
               activeUserType === "solo"
-                ? "border-[#FF5436] ring-2 ring-[#FF5436]/20 bg-[#FFF9F7]"
+                ? "border-[#FF5436] ring-4 ring-[#FF5436]/15 bg-[#FFF9F7]"
                 : "border-[#EFE8DD] hover:border-[#DECBBF]"
             }`}
             onClick={() => !loading && handleSelect("solo")}
           >
-            <div className="flex items-start gap-3.5">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#FFF0EB] text-[#FF5436] font-bold group-hover:scale-105 transition-transform">
-                <User className="h-6 w-6 stroke-[2.2]" />
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#FFF0EB] text-[#FF5436] font-bold group-hover:scale-105 transition-transform shadow-xs">
+                <User className="h-7 w-7 stroke-[2.2]" />
               </div>
-              <div className="flex-1 space-y-0.5 text-left">
+              <div className="flex-1 space-y-1 text-left">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-serif text-lg font-bold text-[#1A1816]">Solo</h2>
-                  <span className="text-[10px] font-bold text-[#3EB489] bg-[#E8F8F1] px-2.5 py-0.5 rounded-full border border-[#BDEBD7]">
+                  <h2 className="font-serif text-xl font-bold text-[#1A1816]">Solo</h2>
+                  <span className="text-xs font-bold text-[#3EB489] bg-[#E8F8F1] px-3 py-1 rounded-full border border-[#BDEBD7]">
                     Most Popular
                   </span>
                 </div>
-                <p className="text-xs text-[#66615B] leading-relaxed">
+                <p className="text-xs sm:text-sm text-[#66615B] leading-relaxed">
                   Just me: I want 1-on-1 platonic friends for coffee, hikes, hobbies, and weekend hangs.
                 </p>
               </div>
             </div>
-            <div className="mt-3 pt-2.5 border-t border-[#F5EFE8] flex items-center justify-between text-xs font-bold text-[#FF5436]">
+            <div className="mt-4 pt-3 border-t border-[#F5EFE8] flex items-center justify-between text-xs sm:text-sm font-bold text-[#FF5436]">
               <span>Continue as Solo</span>
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </div>
@@ -110,30 +110,30 @@ const UserType = () => {
 
           {/* Couple Card */}
           <div
-            className={`group cursor-pointer rounded-2xl border-2 bg-white p-4 sm:p-5 transition-all duration-200 shadow-soft hover:shadow-card hover:-translate-y-0.5 ${
+            className={`group cursor-pointer rounded-3xl border-2 bg-white p-5 sm:p-6 transition-all duration-200 shadow-soft hover:shadow-card hover:-translate-y-0.5 active:scale-[0.99] ${
               activeUserType === "couple"
-                ? "border-[#FF5436] ring-2 ring-[#FF5436]/20 bg-[#FFF9F7]"
+                ? "border-[#FF5436] ring-4 ring-[#FF5436]/15 bg-[#FFF9F7]"
                 : "border-[#EFE8DD] hover:border-[#DECBBF]"
             }`}
             onClick={() => !loading && handleSelect("couple")}
           >
-            <div className="flex items-start gap-3.5">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#FFF0EB] text-[#FF5436] font-bold group-hover:scale-105 transition-transform">
-                <Users className="h-6 w-6 stroke-[2.2]" />
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#FFF0EB] text-[#FF5436] font-bold group-hover:scale-105 transition-transform shadow-xs">
+                <Users className="h-7 w-7 stroke-[2.2]" />
               </div>
-              <div className="flex-1 space-y-0.5 text-left">
+              <div className="flex-1 space-y-1 text-left">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-serif text-lg font-bold text-[#1A1816]">Couple</h2>
-                  <span className="text-[10px] font-bold text-[#FF5436] bg-[#FFF0EB] px-2.5 py-0.5 rounded-full border border-[#FFD9CE]">
+                  <h2 className="font-serif text-xl font-bold text-[#1A1816]">Couple</h2>
+                  <span className="text-xs font-bold text-[#FF5436] bg-[#FFF0EB] px-3 py-1 rounded-full border border-[#FFD9CE]">
                     Double Dates
                   </span>
                 </div>
-                <p className="text-xs text-[#66615B] leading-relaxed">
+                <p className="text-xs sm:text-sm text-[#66615B] leading-relaxed">
                   Me & my partner: we want another compatible couple for game nights, dinners, and trips.
                 </p>
               </div>
             </div>
-            <div className="mt-3 pt-2.5 border-t border-[#F5EFE8] flex items-center justify-between text-xs font-bold text-[#FF5436]">
+            <div className="mt-4 pt-3 border-t border-[#F5EFE8] flex items-center justify-between text-xs sm:text-sm font-bold text-[#FF5436]">
               <span>Continue as Couple</span>
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </div>
@@ -146,8 +146,8 @@ const UserType = () => {
           </div>
         )}
 
-        <div className="pt-2 text-center">
-          <p className="text-xs text-[#706A62]">
+        <div className="pt-4 text-center">
+          <p className="text-xs sm:text-sm text-[#706A62]">
             Already signed up previously?{" "}
             <button
               onClick={() => navigate("/?login=true")}
