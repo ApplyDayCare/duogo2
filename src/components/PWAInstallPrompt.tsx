@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
   Download,
@@ -28,6 +29,7 @@ interface PWAInstallPromptProps {
 type GuideType = "ios" | "android" | "desktop" | "mac-safari" | "iframe" | null;
 
 export const PWAInstallPrompt = ({ variant = "banner", className = "" }: PWAInstallPromptProps) => {
+  const { user } = useAuth();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -123,7 +125,7 @@ export const PWAInstallPrompt = ({ variant = "banner", className = "" }: PWAInst
     return "/";
   }, []);
 
-  if (isStandalone || installed) {
+  if (!user || isStandalone || installed) {
     return null;
   }
 

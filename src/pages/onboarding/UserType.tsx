@@ -6,7 +6,6 @@ import { toast } from "@/hooks/use-toast";
 import OnboardingProgress from "@/components/OnboardingProgress";
 import { User, Users, ArrowLeft, ArrowRight, LogIn } from "lucide-react";
 import { getSignupDraft, updateSignupDraft } from "@/lib/signupState";
-import { OnboardingInstallNudge } from "@/components/onboarding/OnboardingInstallNudge";
 
 const UserType = () => {
   const { user, profile, isProfileComplete } = useAuth();
@@ -65,9 +64,6 @@ const UserType = () => {
             Log In
           </button>
         </div>
-
-        {/* Mobile Install Nudge for New Users */}
-        <OnboardingInstallNudge />
 
         <OnboardingProgress currentStep={1} totalSteps={6} />
 
