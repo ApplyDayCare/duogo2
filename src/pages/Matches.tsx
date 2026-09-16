@@ -815,7 +815,7 @@ const Matches = () => {
                   <Badge className="bg-emerald-600 text-white font-bold">{mutualMatches.length} Connected</Badge>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
                   {mutualMatches.map((m) => (
                     <MatchCard
                       key={m.match_id || m.user_id}

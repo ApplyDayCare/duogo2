@@ -204,12 +204,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         boxShadow: isSwipeable ? borderHighlight : undefined,
         touchAction: isSwipeable ? "pan-y" : "auto",
       }}
-      className={`relative select-none rounded-[28px] border transition-all flex flex-col justify-between overflow-hidden h-full min-h-[520px] ${
+      className={`relative select-none border transition-all flex flex-col justify-between overflow-hidden ${
         isSwipeable ? "cursor-grab active:cursor-grabbing" : ""
       } ${
         isMutual
-          ? "border-emerald-200 bg-gradient-to-b from-white to-[#F9FDFB] shadow-card p-5 sm:p-6"
-          : "border-[#EFE8DD] bg-white shadow-card p-5 sm:p-6"
+          ? "rounded-2xl border-emerald-200/80 bg-gradient-to-b from-white to-[#F9FDFB] shadow-sm hover:shadow-md p-4 sm:p-5"
+          : "rounded-[28px] border-[#EFE8DD] bg-white shadow-card p-5 sm:p-6 h-full min-h-[520px]"
       } ${className}`}
     >
       {/* Visual Swipe Stamp: CONNECT */}
@@ -235,7 +235,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
       )}
 
       {/* Main Content Area - Clean flow without internal scrollbar */}
-      <div className="flex-1 flex flex-col justify-between space-y-3.5 sm:space-y-4 pb-2">
+      <div className={`flex-1 flex flex-col ${isMutual ? "space-y-3 pb-1 justify-start" : "justify-between space-y-3.5 sm:space-y-4 pb-2"}`}>
         {/* Header Badges: Minimal & Clean */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
@@ -280,23 +280,23 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         </div>
 
         {/* Identity & Visual Avatar */}
-        <div className="flex flex-col items-center text-center pt-2 pb-1">
+        <div className={`flex flex-col items-center text-center ${isMutual ? "pt-1 pb-1" : "pt-2 pb-1"}`}>
           {isMutual ? (
             /* Connected Mode: Reveal Real Avatar & Name */
-            <div className="space-y-3 flex flex-col items-center">
+            <div className="space-y-2 flex flex-col items-center">
               <div className="relative">
-                <Avatar className="h-20 w-20 border-3 border-emerald-400 shadow-md">
+                <Avatar className="h-16 w-16 border-2 border-emerald-400 shadow-sm">
                   {match.avatar_url && <AvatarImage src={match.avatar_url} />}
-                  <AvatarFallback className="bg-emerald-100 text-emerald-800 font-serif font-bold text-2xl">
+                  <AvatarFallback className="bg-emerald-100 text-emerald-800 font-serif font-bold text-xl">
                     {match.first_name?.[0]?.toUpperCase() || "?"}
                   </AvatarFallback>
                 </Avatar>
-                <span className="absolute bottom-0 right-0 bg-emerald-500 text-white rounded-full p-1 border-2 border-white shadow-xs">
-                  <Check className="h-3 w-3 stroke-[3]" />
+                <span className="absolute bottom-0 right-0 bg-emerald-500 text-white rounded-full p-0.5 border-2 border-white shadow-xs">
+                  <Check className="h-2.5 w-2.5 stroke-[3]" />
                 </span>
               </div>
               <div>
-                <h2 className="text-2xl font-serif font-bold text-[#1A1816]">
+                <h2 className="text-xl font-serif font-bold text-[#1A1816]">
                   {revealedName}
                 </h2>
                 <p className="text-xs text-emerald-700 font-medium mt-0.5 flex items-center justify-center gap-1">
@@ -359,13 +359,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
       </div>
 
       {/* Action Controls & Gestures (Sticky Footer) */}
-      <div className="shrink-0 pt-3 sm:pt-4 border-t border-[#F2ECE3] mt-2 bg-white z-10 space-y-2">
+      <div className={`shrink-0 border-t ${isMutual ? "pt-3 mt-1.5 border-emerald-100 bg-transparent space-y-0" : "pt-3 sm:pt-4 border-[#F2ECE3] mt-2 bg-white z-10 space-y-2"}`}>
         {isMutual ? (
           <Button
-            className="h-12 w-full font-bold rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-soft transition-all active:scale-98 flex items-center justify-center gap-2"
+            className="h-10 w-full font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-98 flex items-center justify-center gap-2 text-xs"
             onClick={() => onOpenChat && match.match_id && onOpenChat(match.match_id)}
           >
-            <MessageCircle className="h-5 w-5" />
+            <MessageCircle className="h-4 w-4" />
             <span>Open Direct Chat</span>
           </Button>
         ) : (
