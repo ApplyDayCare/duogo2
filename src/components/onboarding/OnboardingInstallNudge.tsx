@@ -151,14 +151,14 @@ export const OnboardingInstallNudge = () => {
         <div className="flex-1 pr-4">
           <div className="flex items-center gap-1.5 flex-wrap">
             <h3 className="text-sm font-bold text-[#1A1816]">
-              Install App Before Signing Up
+              Add duogo to Your Home Screen
             </h3>
             <span className="text-[10px] font-extrabold uppercase tracking-wide bg-[#FF5436] text-white px-2 py-0.5 rounded-full">
-              Recommended
+              Seamless Sync
             </span>
           </div>
           <p className="mt-1 text-xs text-[#666059] leading-relaxed">
-            Save duogo to your phone first so your quiz responses, login session, and instant match alerts stay permanently connected.
+            Install anytime — your account, quiz answers, and matches stay fully synced whether you use the web or the mobile app.
           </p>
         </div>
       </div>

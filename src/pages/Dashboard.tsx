@@ -17,6 +17,7 @@ import { getCouplePartnerId } from "@/lib/coupleUtils";
 import { getSavedQuizAnswers, ensureUserQuizResponse } from "@/lib/quizSync";
 import { triggerInstantMatchCheck } from "@/lib/matchEngine";
 import { useChatSummary } from "@/hooks/useChatSummary";
+import { getOfflineProfile, getOfflineMatches } from "@/lib/queryPersister";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { motion, type Variants } from "framer-motion";
@@ -425,12 +426,39 @@ const Dashboard = () => {
         });
       }
     } catch (err) {
-      console.error("Failed to load dashboard data:", err);
+      console.error("Failed to load dashboard data, checking offline cache:", err);
+      // Attempt to populate profile and stats from IndexedDB cache if offline
+      try {
+        const cachedProfile = await getOfflineProfile(user.id);
+        if (cachedProfile) {
+          setProfile({
+            first_name: cachedProfile.first_name ?? null,
+            user_type: cachedProfile.user_type ?? "solo",
+            location_city: cachedProfile.location_city ?? null,
+            quality_score: cachedProfile.quality_score ?? 100,
+            quiz_completed: Boolean(cachedProfile.quiz_completed),
+            onboarding_completed: Boolean(cachedProfile.onboarding_completed),
+            matching_paused: Boolean(cachedProfile.matching_paused),
+            is_suspended: Boolean(cachedProfile.is_suspended),
+          });
+        }
+        const cachedMatches = await getOfflineMatches(user.id);
+        if (cachedMatches) {
+          setStats((prev) => ({
+            ...prev,
+            activeMatches: cachedMatches.matches?.length ?? 0,
+            pendingMatches: cachedMatches.pending_matches?.length ?? 0,
+            incomingRequests: cachedMatches.incoming_matches?.length ?? 0,
+          }));
+        }
+      } catch (cacheErr) {
+        console.warn("Offline cache load error:", cacheErr);
+      }
+
       if (isManualRefresh) {
         toast({
-          title: "Refresh Error",
-          description: "Could not update matches right now. Please try again.",
-          variant: "destructive",
+          title: "Offline Mode",
+          description: "Displaying your cached profile and matches.",
         });
       }
     } finally {

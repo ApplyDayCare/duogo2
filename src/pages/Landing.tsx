@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,7 +41,7 @@ import parkWalkImg from "@/assets/images/friends_park_walk_1788440206700.jpg";
 import dinnerChatImg from "@/assets/images/friends_dinner_chat_1788440227145.jpg";
 
 export default function Landing() {
-  const { session, profile, isProfileComplete, signOut } = useAuth();
+  const { session, profile, isProfileComplete, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"solo" | "couples">("solo");
   const [email, setEmail] = useState("");
@@ -78,7 +78,7 @@ export default function Landing() {
     }, 1000);
   };
 
-  const getLoggedInDestination = () => {
+  const getLoggedInDestination = useCallback(() => {
     if (!isProfileComplete) {
       if (!profile?.user_type) return "/onboarding/user-type";
       if (!profile?.first_name) {
@@ -88,7 +88,15 @@ export default function Landing() {
       return "/onboarding/privacy-consent";
     }
     return "/dashboard";
-  };
+  }, [isProfileComplete, profile]);
+
+  // Seamless transition: If a user launches the PWA from Home Screen or visits "/" while authenticated,
+  // automatically forward them to their dashboard or resume their current onboarding step.
+  useEffect(() => {
+    if (!authLoading && session) {
+      navigate(getLoggedInDestination(), { replace: true });
+    }
+  }, [authLoading, session, getLoggedInDestination, navigate]);
 
   const handleStartSignup = (type?: "solo" | "couple") => {
     if (session) {

@@ -22,9 +22,12 @@ export const OfflineIndicator = () => {
   if (isOnline) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-2xl bg-[#181513] text-white px-4 py-2 text-xs font-semibold shadow-elevated border border-white/10 animate-in fade-in slide-in-from-bottom-2">
-      <WifiOff className="h-4 w-4 text-[#FF5436]" />
-      <span>Offline Mode — using cached app data</span>
+    <div className="fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-2xl bg-[#181513] text-white px-4 py-2.5 text-xs font-semibold shadow-elevated border border-white/10 animate-in fade-in slide-in-from-bottom-2">
+      <WifiOff className="h-4 w-4 text-[#FF5436] shrink-0" />
+      <div className="flex flex-col">
+        <span>Offline Mode</span>
+        <span className="text-[10px] text-white/70 font-normal">Profile & matches loaded from offline cache</span>
+      </div>
     </div>
   );
 };

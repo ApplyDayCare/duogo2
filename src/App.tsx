@@ -2,7 +2,9 @@ import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { idbPersister } from "@/lib/queryPersister";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -45,7 +47,22 @@ const Terms = lazy(() => import("./pages/Terms"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days cache retention in IndexedDB
+      staleTime: 1000 * 60 * 5, // 5 minutes before considering data stale
+      networkMode: "offlineFirst", // Serve cache immediately if offline without throwing hard errors
+      retry: (failureCount, error: any) => {
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+          return false;
+        }
+        return failureCount < 2;
+      },
+      refetchOnWindowFocus: () => (typeof navigator !== "undefined" ? navigator.onLine : true),
+    },
+  },
+});
 
 const PageLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-[#FAF7F2]">
@@ -54,7 +71,14 @@ const PageLoader = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <PersistQueryClientProvider
+    client={queryClient}
+    persistOptions={{
+      persister: idbPersister,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days persistence
+      buster: "duogo_cache_v1",
+    }}
+  >
     <AuthProvider>
       <TooltipProvider>
         <BrowserRouter>
@@ -117,7 +141,7 @@ const App = () => (
       </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
-  </QueryClientProvider>
+  </PersistQueryClientProvider>
 );
 
 export default App;

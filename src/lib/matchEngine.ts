@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ALL_DIMS, getDim, soloScore, QuizRow } from "@/lib/scoring";
 import { ensureUserQuizResponse, getSavedQuizAnswers } from "@/lib/quizSync";
 import { fetchBlockedUserIds } from "@/lib/blockService";
+import { saveOfflineMatches, getOfflineMatches } from "@/lib/queryPersister";
 
 export interface MatchData {
   user_id: string;
@@ -33,6 +34,31 @@ export interface MatchesResult {
 }
 
 export async function fetchMatchesWithFallback(
+  userId: string,
+  session: any
+): Promise<MatchesResult> {
+  // If device is offline, immediately return cached matches from IndexedDB
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    const cachedMatches = await getOfflineMatches(userId);
+    if (cachedMatches) {
+      console.info("[MatchEngine] Offline mode: served matches from IndexedDB cache");
+      return cachedMatches;
+    }
+  }
+
+  try {
+    return await executeFetchMatches(userId, session);
+  } catch (err) {
+    console.warn("[MatchEngine] Fetch error, attempting IndexedDB fallback:", err);
+    const cachedMatches = await getOfflineMatches(userId);
+    if (cachedMatches) {
+      return cachedMatches;
+    }
+    throw err;
+  }
+}
+
+async function executeFetchMatches(
   userId: string,
   session: any
 ): Promise<MatchesResult> {
@@ -618,7 +644,7 @@ export async function fetchMatchesWithFallback(
     return b.score - a.score;
   });
 
-  return {
+  const result: MatchesResult = {
     matches: matchesList,
     pending_matches: pendingMatchesList,
     incoming_matches: incomingMatchesList,
@@ -627,6 +653,11 @@ export async function fetchMatchesWithFallback(
     user_type: userType,
     waiting_for_partner: false,
   };
+
+  // Cache to IndexedDB for offline resilience
+  saveOfflineMatches(userId, result);
+
+  return result;
 }
 
 export async function resetSwipedMatches(userId: string): Promise<void> {

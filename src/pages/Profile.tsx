@@ -48,6 +48,7 @@ import { validateSocialUrl } from "@/lib/socialValidation";
 import AvatarUpload from "@/components/AvatarUpload";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { QuizResponseSummary } from "@/components/QuizResponseSummary";
+import { getOfflineProfile } from "@/lib/queryPersister";
 import {
   formatCanadianPostalCode,
   detectCityFromPostalCode,
@@ -185,35 +186,51 @@ const Profile = () => {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data: p } = await supabase
-        .from("profiles")
-        .select("first_name, social_link, location_city, travel_radius_km, matching_paused, user_type, avatar_url")
-        .eq("id", user.id)
-        .single();
-
-      if (p) {
-        setFirstName(p.first_name || "");
-        setSocialLink(p.social_link || "");
-        setAvatarUrl(p.avatar_url || null);
-        const parsedPostal = extractPostalCode(p.location_city) || "";
-        const parsedCity = extractCityName(p.location_city) || "";
-        setPostalCode(parsedPostal);
-        setCity(parsedCity);
-        if (parsedPostal) {
-          detectCityFromPostalCode(parsedPostal).then((res) => {
-            if (res) {
-              setDetectedBadge(res.neighborhood ? `${res.city} · ${res.neighborhood}` : res.city);
-            }
-          });
+      try {
+        let p: any = null;
+        try {
+          const { data } = await supabase
+            .from("profiles")
+            .select("first_name, social_link, location_city, travel_radius_km, matching_paused, user_type, avatar_url")
+            .eq("id", user.id)
+            .single();
+          p = data;
+        } catch (fetchErr) {
+          console.warn("[Profile] Online fetch failed, checking offline cache:", fetchErr);
         }
-        setRadius(String(p.travel_radius_km ?? "5"));
-        setPaused(p.matching_paused ?? false);
-        const effectiveType = p.user_type || "solo";
-        setUserType(effectiveType);
 
-        await loadCoupleAndPartner(user.id, effectiveType);
+        if (!p) {
+          // Fall back to IndexedDB cached profile
+          p = await getOfflineProfile(user.id);
+        }
+
+        if (p) {
+          setFirstName(p.first_name || "");
+          setSocialLink(p.social_link || "");
+          setAvatarUrl(p.avatar_url || null);
+          const parsedPostal = extractPostalCode(p.location_city) || "";
+          const parsedCity = extractCityName(p.location_city) || "";
+          setPostalCode(parsedPostal);
+          setCity(parsedCity);
+          if (parsedPostal) {
+            detectCityFromPostalCode(parsedPostal).then((res) => {
+              if (res) {
+                setDetectedBadge(res.neighborhood ? `${res.city} · ${res.neighborhood}` : res.city);
+              }
+            });
+          }
+          setRadius(String(p.travel_radius_km ?? "5"));
+          setPaused(p.matching_paused ?? false);
+          const effectiveType = p.user_type || "solo";
+          setUserType(effectiveType);
+
+          await loadCoupleAndPartner(user.id, effectiveType);
+        }
+      } catch (err) {
+        console.error("Profile initialization error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, [user]);
 
@@ -859,8 +876,21 @@ const Profile = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-5 space-y-3.5">
-              <PWAInstallPrompt variant="button" className="w-full justify-center py-2 h-10" />
+            <CardContent className="p-5 space-y-4">
+              <div className="rounded-2xl border border-[#FFE0D6] bg-gradient-to-br from-[#FFF9F6] to-white p-3.5 space-y-2.5">
+                <div className="flex items-start gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#FFF0EB] text-[#FF5436] font-bold text-sm">
+                    📱
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-[#1A1816]">Use duogo as a Mobile App</p>
+                    <p className="text-[11px] text-[#706A62] leading-relaxed mt-0.5">
+                      Install duogo directly onto your home screen. Your existing profile, matches, and chats stay instantly logged in.
+                    </p>
+                  </div>
+                </div>
+                <PWAInstallPrompt variant="button" className="w-full justify-center h-9 font-bold text-xs" />
+              </div>
 
               <div className="pt-2 border-t border-[#F5EDE3] space-y-2">
                 <AlertDialog>

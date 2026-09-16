@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, ReactNode 
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { getSavedQuizAnswers, ensureUserQuizResponse } from "@/lib/quizSync";
+import { saveOfflineProfile, getOfflineProfile } from "@/lib/queryPersister";
 
 export interface UserProfile {
   id: string;
@@ -131,10 +132,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         privacyConsented: data?.privacy_consented,
       });
 
+      if (data) {
+        saveOfflineProfile(userId, data);
+      }
+
       setProfile(data as UserProfile);
       return data as UserProfile;
     } catch (err) {
-      console.warn("Exception fetching profile in AuthContext:", err);
+      console.warn("Exception fetching profile in AuthContext, checking offline cache:", err);
+      // Seamless offline recovery: check IndexedDB for stored profile
+      const cached = await getOfflineProfile(userId);
+      if (cached) {
+        console.info("[AuthGuard:OfflineProfileLoaded]", cached);
+        setProfile(cached as UserProfile);
+        return cached as UserProfile;
+      }
       setProfile(null);
       return null;
     } finally {

@@ -27,6 +27,7 @@ import {
   MessageCircle,
   ChevronLeft,
   ChevronRight,
+  WifiOff,
 } from "lucide-react";
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis,
@@ -567,14 +568,24 @@ const Matches = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentMatch, acting, handleAction]);
 
+  const isOffline = typeof navigator !== "undefined" ? !navigator.onLine : false;
+
   if (isLoading) {
     return <MatchesSkeleton />;
   }
 
-  if (error) {
+  if (error && !data) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-        <p className="text-destructive mb-4">Failed to load matches</p>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center bg-background px-4 text-center">
+        <div className="h-12 w-12 rounded-2xl bg-[#FFEFEA] flex items-center justify-center text-[#FF5436] mb-3">
+          <WifiOff className="h-6 w-6" />
+        </div>
+        <h3 className="font-serif text-lg font-bold text-[#1A1816]">Unable to reach matchmaking</h3>
+        <p className="text-xs text-[#706A62] mt-1 max-w-sm mb-4">
+          {isOffline
+            ? "Your device appears to be offline. Reconnect to sync fresh community members or view your cached profile."
+            : "We encountered a temporary connection issue. Please check your connection and retry."}
+        </p>
         <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["matches"] })}>
           Retry
         </Button>
@@ -1155,14 +1166,25 @@ const Matches = () => {
                       <Sparkles className="h-3.5 w-3.5 text-primary" />
                       <span>Curated Match</span>
                     </span>
-                    <span
-                      id="live-sync-indicator"
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50"
-                      title="Compatibility queue updated dynamically"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>Live Sync</span>
-                    </span>
+                    {isOffline ? (
+                      <span
+                        id="offline-sync-indicator"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50"
+                        title="Displaying cached compatibility queue"
+                      >
+                        <WifiOff className="h-2.5 w-2.5 text-amber-600" />
+                        <span>Offline Cache</span>
+                      </span>
+                    ) : (
+                      <span
+                        id="live-sync-indicator"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50"
+                        title="Compatibility queue updated dynamically"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>Live Sync</span>
+                      </span>
+                    )}
                   </div>
                   <span className="text-[11px] hidden sm:inline">Swipe card or press C (Connect) / P (Pass)</span>
                 </div>
