@@ -908,7 +908,7 @@ export async function executeMatchAction(
         {
           user_id: otherUserId,
           message: "✨ Someone reviewed your profile and wants to connect with you!",
-          link: "/matches?tab=received",
+          link: `/matches?tab=received&match_id=${res.match_id || activeUserId}`,
           read: false,
         },
       ])
@@ -942,6 +942,16 @@ export async function executeMatchAction(
         url: "/matches?tab=received",
         type: "match_request",
         tag: `match-req-${Date.now()}`,
+      }),
+    }).catch(console.warn);
+
+    // 4. Trigger email notification to recipient
+    fetch("/api/email/request-notification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        targetUserId: otherUserId,
+        senderUserId: activeUserId,
       }),
     }).catch(console.warn);
   }

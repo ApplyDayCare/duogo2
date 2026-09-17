@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,8 @@ export const Notifications = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
+  const { requestPermission, permission: pushPermissionHook } = usePushNotifications();
+
   // Push notification state (safely accessed without throwing)
   const [pushSupported, setPushSupported] = useState(false);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>("default");
@@ -55,23 +58,15 @@ export const Notifications = () => {
     } else {
       setPushSupported(false);
     }
-  }, []);
+  }, [pushPermissionHook]);
 
   const requestPushPermission = async () => {
     if (!pushSupported || typeof window === "undefined" || !("Notification" in window)) return;
     setEnablingPush(true);
     try {
-      const perm = await Notification.requestPermission();
-      setPushPermission(perm);
-      if (perm === "granted" && "serviceWorker" in navigator) {
-        const reg = await navigator.serviceWorker.ready;
-        if (reg && "showNotification" in reg) {
-          reg.showNotification("✨ duogo Notifications Enabled", {
-            body: "You'll now receive updates when couples match or message you!",
-            icon: "/icon-192.png",
-            badge: "/icon-192.png",
-          });
-        }
+      await requestPermission();
+      if (typeof Notification !== "undefined") {
+        setPushPermission(Notification.permission);
       }
     } catch (err) {
       console.warn("Could not request notification permission:", err);
@@ -136,19 +131,12 @@ export const Notifications = () => {
       const [notifsRes, matchesRes] = await Promise.allSettled([notifsPromise, matchesPromise]);
 
       const notifs: NotificationItem[] = [];
-      const duplicateIdsToPrune: string[] = [];
-      const seenKeys = new Set<string>();
+      const seenIds = new Set<string>();
 
       if (notifsRes.status === "fulfilled" && notifsRes.value.data) {
         for (const item of notifsRes.value.data) {
-          const dedupeKey = `${(item.message || "").trim().toLowerCase()}|${(item.link || "").trim().toLowerCase()}`;
-          
-          // If we already have this exact notification from this user
-          if (seenKeys.has(dedupeKey)) {
-            duplicateIdsToPrune.push(item.id);
-            continue;
-          }
-          seenKeys.add(dedupeKey);
+          if (seenIds.has(item.id)) continue;
+          seenIds.add(item.id);
 
           let type: NotificationItem["type"] = "system";
           const msg = (item.message || "").toLowerCase();
@@ -166,21 +154,6 @@ export const Notifications = () => {
             type,
           });
         }
-      }
-
-      // Automatically clean up duplicate notification rows from the database in the background
-      if (duplicateIdsToPrune.length > 0) {
-        supabase
-          .from("notifications")
-          .delete()
-          .in("id", duplicateIdsToPrune)
-          .then(({ error }) => {
-            if (error) {
-              console.warn("Could not delete duplicate notifications:", error);
-            } else {
-              queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
-            }
-          });
       }
 
       // Synthesize incoming requests and mutual matches if not already present
@@ -201,10 +174,7 @@ export const Notifications = () => {
           if (m.status === "pending" && hasIncoming) {
             const reqId = `match-req-${m.id}`;
             const exists = notifs.some(
-              (n) =>
-                n.id === reqId ||
-                n.link?.includes(m.id) ||
-                (n.message.toLowerCase().includes("connect") && n.link?.includes("/matches"))
+              (n) => n.id === reqId || (n.link && n.link.includes(m.id))
             );
             if (!exists) {
               notifs.unshift({
@@ -212,7 +182,7 @@ export const Notifications = () => {
                 message: "✨ Someone reviewed your profile and wants to connect with you!",
                 read: readSynthesized.includes(reqId),
                 created_at: m.created_at || new Date().toISOString(),
-                link: "/matches?tab=received",
+                link: `/matches?tab=received&match_id=${m.id}`,
                 type: "match",
               });
             }
@@ -220,10 +190,7 @@ export const Notifications = () => {
             const mutualId = `match-mutual-${m.id}`;
             const matchLink = `/match-reveal/${m.id}`;
             const exists = notifs.some(
-              (n) =>
-                n.id === mutualId ||
-                n.link === matchLink ||
-                n.message.toLowerCase().includes("mutual match")
+              (n) => n.id === mutualId || (n.link && n.link.includes(m.id))
             );
             if (!exists) {
               notifs.unshift({
@@ -253,12 +220,35 @@ export const Notifications = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, queryClient]);
+  }, [user]);
 
-  // Initial load with fail-safe timer
+  // Initial load with fail-safe timer + Realtime subscription
   useEffect(() => {
     let isMounted = true;
     fetchNotifications();
+
+    if (user) {
+      const channel = supabase
+        .channel(`public:notifications:user=${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            fetchNotifications();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        isMounted = false;
+        supabase.removeChannel(channel);
+      };
+    }
 
     // Fallback safety timeout: never stay in loading state longer than 4 seconds
     const timer = setTimeout(() => {
@@ -269,7 +259,7 @@ export const Notifications = () => {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [fetchNotifications]);
+  }, [fetchNotifications, user]);
 
   // Mark single or all notifications as read
   const markAllAsRead = useCallback(async () => {
@@ -305,28 +295,11 @@ export const Notifications = () => {
     }
   }, [user, notifications, queryClient]);
 
-  // Automatically mark unread notifications as read after the user reviews them on the page
-  useEffect(() => {
-    if (!user || loading || notifications.length === 0) return;
-    const hasUnread = notifications.some((n) => !n.read);
-    if (!hasUnread) return;
-
-    const timer = setTimeout(() => {
-      markAllAsRead();
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [user, loading, notifications, markAllAsRead]);
-
   const handleNotificationClick = async (notif: NotificationItem) => {
     if (!notif.read) {
-      // Optimistically update notifications state for this and any duplicate with identical message
+      // Optimistically update notifications state for this specific item only
       setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notif.id || (n.message === notif.message && n.link === notif.link)
-            ? { ...n, read: true }
-            : n
-        )
+        prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
       );
 
       if (user) {
@@ -340,8 +313,8 @@ export const Notifications = () => {
             await supabase
               .from("notifications")
               .update({ read: true })
-              .eq("user_id", user.id)
-              .or(`id.eq.${notif.id},message.eq.${notif.message}`);
+              .eq("id", notif.id)
+              .eq("user_id", user.id);
 
             queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
           } catch (err) {

@@ -112,8 +112,7 @@ export function usePushNotifications(): PushNotificationState {
     if (supported) {
       setPermission(Notification.permission);
 
-      navigator.serviceWorker
-        .register("/sw.js")
+      navigator.serviceWorker.ready
         .then(async (reg) => {
           swRegRef.current = reg;
           if (Notification.permission === "granted") {
@@ -123,8 +122,21 @@ export function usePushNotifications(): PushNotificationState {
             }
           }
         })
-        .catch((err) => {
-          console.warn("[PWA] Service Worker registration failed:", err);
+        .catch(() => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then(async (reg) => {
+              swRegRef.current = reg;
+              if (Notification.permission === "granted") {
+                setIsSubscribed(true);
+                if (user?.id) {
+                  await registerPushSubscription(reg, user.id);
+                }
+              }
+            })
+            .catch((err) => {
+              console.warn("[PWA] Service Worker registration failed:", err);
+            });
         });
     }
   }, [user?.id, registerPushSubscription]);

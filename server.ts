@@ -316,6 +316,112 @@ app.post("/api/push/dispatch", async (req, res) => {
   }
 });
 
+/**
+ * Endpoint 4: Connection Request Email Dispatcher
+ * Sends an email notification to target user when someone sends a connection request
+ */
+app.post("/api/email/request-notification", async (req, res) => {
+  try {
+    const { targetUserId, senderUserId, senderName: inputSenderName } = req.body;
+
+    if (!targetUserId) {
+      return res.status(400).json({ error: "targetUserId is required" });
+    }
+
+    const supabaseUrl =
+      process.env.SUPABASE_URL ||
+      process.env.VITE_SUPABASE_URL ||
+      "https://hdbobqzqsmmsnzbjtzbn.supabase.co";
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkYm9icXpxc21tc256Ymp0emJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTY3NDQsImV4cCI6MjA4NzY5Mjc0NH0.U_lS4-1zpd36SR4xxGDdXSBfM3408wv4pRbfDGUbQ4k";
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get recipient profile
+    const { data: recipientProfile } = await supabase
+      .from("profiles")
+      .select("first_name, email")
+      .eq("id", targetUserId)
+      .maybeSingle();
+
+    if (!recipientProfile?.email) {
+      return res.json({ success: false, reason: "Recipient email not found" });
+    }
+
+    let senderName = inputSenderName || "Someone";
+    if (senderUserId && !inputSenderName) {
+      const { data: senderProfile } = await supabase
+        .from("profiles")
+        .select("first_name")
+        .eq("id", senderUserId)
+        .maybeSingle();
+      if (senderProfile?.first_name) {
+        senderName = senderProfile.first_name;
+      }
+    }
+
+    const brevoApiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.BREVO_FROM_EMAIL || "hello@duogo.app";
+    const senderTitle = process.env.BREVO_FROM_NAME || "duogo";
+    const appUrl = process.env.APP_URL || "https://ais-pre-6yzpxzlgcwbilgl7xpgtyq-233276762244.us-east1.run.app";
+
+    if (!brevoApiKey) {
+      console.log(`[Email Dispatch] BREVO_API_KEY not configured. Email notification skipped for ${recipientProfile.email}`);
+      return res.json({
+        success: true,
+        emailSent: false,
+        reason: "BREVO_API_KEY environment variable is not configured",
+        recipient: recipientProfile.email,
+      });
+    }
+
+    const recipientName = recipientProfile.first_name || "Friend";
+    const htmlContent = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #ffffff;">
+        <h1 style="color: #e84a2b; text-align: center; font-size: 26px; margin-bottom: 8px;">✨ New Connection Request!</h1>
+        <p style="font-size: 16px; color: #333;">Hi ${recipientName},</p>
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+          <strong>${senderName}</strong> reviewed your profile on duogo and sent you a connection request!
+        </p>
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${appUrl}/matches?tab=received" style="display: inline-block; background-color: #e84a2b; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;">
+            Review Connection Request
+          </a>
+        </div>
+        <p style="font-size: 14px; color: #999; text-align: center; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
+          duogo · Find your people.
+        </p>
+      </div>
+    `;
+
+    const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": brevoApiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: senderTitle, email: senderEmail },
+        to: [{ email: recipientProfile.email }],
+        subject: `✨ ${senderName} sent you a connection request on duogo!`,
+        htmlContent,
+      }),
+    });
+
+    const emailSent = brevoRes.ok;
+    return res.json({
+      success: true,
+      emailSent,
+      recipient: recipientProfile.email,
+    });
+  } catch (err: any) {
+    console.error("Email request notification error:", err);
+    return res.status(500).json({ error: err.message || "Failed to send request email" });
+  }
+});
+
 // Vite middleware & Static serving
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

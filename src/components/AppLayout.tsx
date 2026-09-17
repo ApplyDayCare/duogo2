@@ -1,6 +1,7 @@
+import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Home, Heart, Share2, UserCircle, LogOut, Bell, Clock, MessageCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,11 +36,37 @@ const AppLayout = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const isChatRoute = pathname.includes("/chat");
 
   const { totalChatAlerts, incomingRequestsCount, totalUnreadMessages } = useChatSummary();
   usePushNotifications();
+
+  // Live subscription for notification count
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`public:notifications:applayout:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["unread-notifications", user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   const { data: profile } = useQuery({
     queryKey: ["app-layout-profile", user?.id],
@@ -60,20 +87,15 @@ const AppLayout = () => {
       if (!user) return 0;
       const { data, count, error } = await supabase
         .from("notifications")
-        .select("id, message, link", { count: "exact" })
+        .select("id", { count: "exact" })
         .eq("user_id", user.id)
         .eq("read", false);
 
       if (error || !data) return count ?? 0;
-
-      // Count unique unread notification messages
-      const uniqueNotifKeys = new Set(
-        data.map((n) => `${(n.message || "").trim().toLowerCase()}|${(n.link || "").trim().toLowerCase()}`)
-      );
-      return uniqueNotifKeys.size;
+      return count ?? data.length;
     },
     enabled: !!user,
-    refetchInterval: 30000,
+    refetchInterval: 15000,
   });
 
   const handleMatchesNav = () => {
