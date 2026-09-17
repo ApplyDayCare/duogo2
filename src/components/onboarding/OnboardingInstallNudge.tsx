@@ -74,10 +74,6 @@ export const OnboardingInstallNudge = () => {
     const installedHandler = () => {
       setInstalled(true);
       setDeferredPrompt(null);
-      toast({
-        title: "🎉 duogo installed!",
-        description: "Open duogo from your home screen to continue your signup.",
-      });
     };
 
     window.addEventListener("pwa-prompt-ready", promptHandler);
@@ -108,10 +104,6 @@ export const OnboardingInstallNudge = () => {
         await activePrompt.prompt();
         const choice = await activePrompt.userChoice;
         if (choice.outcome === "accepted") {
-          toast({
-            title: "App Installing! 🚀",
-            description: "Once installed, open duogo from your home screen to finish signup.",
-          });
           setInstalled(true);
           setDeferredPrompt(null);
         }

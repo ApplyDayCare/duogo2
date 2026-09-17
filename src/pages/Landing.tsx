@@ -3,6 +3,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { isStandaloneMode } from "@/lib/pwaDetection";
+import { getSignupDraft } from "@/lib/signupState";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +30,7 @@ import {
   HeartHandshake,
   KeyRound,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import {
   InputOTP,
@@ -54,9 +57,24 @@ export default function Landing() {
   const [verifyingLogin, setVerifyingLogin] = useState(false);
   const [loginCooldown, setLoginCooldown] = useState(0);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [hasSignupDraft, setHasSignupDraft] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      const standalone = isStandaloneMode();
+      setIsStandalone(standalone);
+
+      const savedEmail = localStorage.getItem("duogo_last_email");
+      if (savedEmail) {
+        setEmail(savedEmail);
+      }
+
+      const draft = getSignupDraft();
+      if (draft && (draft.user_type || draft.first_name || draft.location_city)) {
+        setHasSignupDraft(true);
+      }
+
       const params = new URLSearchParams(window.location.search);
       if (params.get("login") === "true") {
         setShowLogin(true);
@@ -78,22 +96,12 @@ export default function Landing() {
   };
 
   const getLoggedInDestination = useCallback(() => {
-    if (!isProfileComplete) {
-      if (!profile?.user_type) return "/onboarding/user-type";
-      if (!profile?.first_name) {
-        return profile?.user_type === "couple" ? "/onboarding/couple-setup" : "/onboarding/profile";
-      }
-      if (!profile?.quiz_completed) return "/quiz";
-      return "/onboarding/privacy-consent";
-    }
+    // If authenticated, send directly to dashboard
     return "/dashboard";
-  }, [isProfileComplete, profile]);
+  }, []);
 
   // Seamless transition: If a user launches the PWA from Home Screen or visits "/" while authenticated,
-  // automatically forward them to their dashboard or resume their current onboarding step.
-  // CRITICAL: We MUST wait until profileLoading is false so we do not prematurely redirect to step 1
-  // when an existing user's profile is still being fetched over the network.
-  // We also DO NOT redirect if the user explicitly opened the login modal (?login=true).
+  // automatically forward them straight to their dashboard.
   useEffect(() => {
     if (authLoading || profileLoading) return;
 
@@ -123,7 +131,12 @@ export default function Landing() {
     setSending(true);
     setLoginError(null);
 
-    // CRITICAL: shouldCreateUser: false ensures users who have not signed up cannot bypass onboarding
+    // Store email for subsequent launches
+    if (typeof window !== "undefined") {
+      localStorage.setItem("duogo_last_email", email.trim());
+    }
+
+    // Attempt OTP login
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
@@ -142,7 +155,7 @@ export default function Landing() {
         msg.includes("signup")
       ) {
         const notFoundText =
-          "No account found for this email. Please complete the sign-up flow and compatibility quiz to get started.";
+          "No account found for this email. Please complete the quick sign-up to get started.";
         setLoginError(notFoundText);
         toast({
           title: "Account Not Found",
@@ -199,48 +212,19 @@ export default function Landing() {
       });
     } else if (data.session?.user) {
       setShowLogin(false);
-      if (typeof window !== "undefined" && window.location.search.includes("login=true")) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-
-      // Fetch the updated profile via refreshProfile
-      const loadedProfile = await refreshProfile();
-
-      const isComplete = Boolean(
-        loadedProfile &&
-        (
-          Boolean(loadedProfile.onboarding_completed) ||
-          (
-            Boolean(loadedProfile.first_name && loadedProfile.first_name.trim().length > 0) &&
-            Boolean(loadedProfile.user_type) &&
-            Boolean(loadedProfile.location_city) &&
-            Boolean(loadedProfile.quiz_completed) &&
-            Boolean(loadedProfile.privacy_consented)
-          )
-        )
-      );
-
-      if (isComplete) {
-        toast({
-          title: "Welcome back! ✦",
-          description: "Signed in successfully.",
-        });
-        navigate("/dashboard", { replace: true });
-      } else {
-        toast({
-          title: "Welcome back! ✦",
-          description: "Let's complete your profile setup.",
-        });
-        if (!loadedProfile?.user_type) {
-          navigate("/onboarding/user-type", { replace: true });
-        } else if (!loadedProfile?.first_name) {
-          navigate(loadedProfile.user_type === "couple" ? "/onboarding/couple-setup" : "/onboarding/profile", { replace: true });
-        } else if (!loadedProfile?.quiz_completed) {
-          navigate("/quiz", { replace: true });
-        } else {
-          navigate("/onboarding/privacy-consent", { replace: true });
+      if (typeof window !== "undefined") {
+        localStorage.setItem("duogo_last_email", email.trim());
+        if (window.location.search.includes("login=true")) {
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
       }
+
+      await refreshProfile();
+      toast({
+        title: "Welcome back! ✦",
+        description: "Signed in successfully.",
+      });
+      navigate("/dashboard", { replace: true });
     }
   };
 
@@ -346,13 +330,13 @@ export default function Landing() {
               <>
                 <button
                   onClick={() => setShowLogin(true)}
-                  className="font-semibold text-[15px] text-[var(--ink)] hover:text-[var(--coral-2)] transition-colors cursor-pointer"
+                  className="font-bold text-[14.5px] px-4 py-2 rounded-full border border-[var(--line)] bg-white hover:bg-[var(--cream)] text-[var(--ink)] transition-colors cursor-pointer shadow-2xs"
                 >
                   Log in
                 </button>
                 <button
                   onClick={() => handleStartSignup()}
-                  className="inline-flex items-center justify-center gap-2 px-[26px] py-[13px] rounded-full font-bold text-[15px] cursor-pointer transition-all duration-150 active:scale-[0.97] hover:opacity-90 shadow-sm"
+                  className="inline-flex items-center justify-center gap-2 px-[24px] py-[11px] rounded-full font-bold text-[14.5px] cursor-pointer transition-all duration-150 active:scale-[0.97] hover:opacity-90 shadow-sm"
                   style={{
                     background: "linear-gradient(135deg, var(--coral-1), var(--coral-2))",
                     color: "var(--ink)",
@@ -366,8 +350,53 @@ export default function Landing() {
         </nav>
       </header>
 
+      {/* ---------- STANDALONE PWA WELCOME GATEWAY (If launched from Home Screen without active session) ---------- */}
+      {isStandalone && !session && (
+        <section className="pt-2 pb-2">
+          <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
+            <div className="rounded-3xl bg-white border-2 border-[var(--coral-2)]/40 p-5 sm:p-6 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-[#FFF0EB] text-[#FF5436] text-xs font-bold uppercase tracking-wider">
+                  <Sparkles className="h-3.5 w-3.5" /> Installed App Ready
+                </div>
+                <h2 className="font-['Fraunces',serif] text-xl sm:text-2xl font-bold text-[var(--ink)]">
+                  Welcome to duogo on your device
+                </h2>
+                <p className="text-sm text-[var(--ink-soft)] max-w-xl">
+                  Sign in to access your curated matches and active conversations immediately.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 w-full md:w-auto flex-wrap sm:flex-nowrap">
+                <button
+                  onClick={() => setShowLogin(true)}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-bold text-sm bg-[#FF5436] text-white hover:bg-[#E84326] shadow-sm transition-colors cursor-pointer"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  Sign In with Email
+                </button>
+                {hasSignupDraft ? (
+                  <button
+                    onClick={() => navigate("/onboarding/user-type")}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full font-bold text-sm border border-[var(--line)] bg-[var(--cream)] text-[var(--ink)] hover:bg-white transition-colors cursor-pointer"
+                  >
+                    Resume Setup
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleStartSignup()}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full font-bold text-sm border border-[var(--line)] bg-[var(--cream)] text-[var(--ink)] hover:bg-white transition-colors cursor-pointer"
+                  >
+                    New Account
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ---------- 1. HERO SECTION ---------- */}
-      <section className="pt-6 pb-12">
+      <section className="pt-4 pb-12">
         <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
           <div
             className="rounded-[36px] relative overflow-hidden min-h-[460px] sm:min-h-[490px] lg:min-h-[510px] p-7 sm:p-10 lg:p-12 flex flex-col justify-between border border-[var(--line)] shadow-xl text-white bg-[#1A1A1A]"
@@ -413,7 +442,7 @@ export default function Landing() {
                   We match you with people nearby based on personality, values, and interests—so conversations feel natural from the start.
                 </p>
 
-                <div className="mt-7 flex items-center gap-4 flex-wrap">
+                <div className="mt-7 flex items-center gap-3.5 flex-wrap">
                   <button
                     onClick={() => handleStartSignup()}
                     className="inline-flex items-center justify-center gap-2 px-[28px] py-[14px] rounded-full font-bold text-[16px] cursor-pointer transition-all duration-150 active:scale-[0.97] hover:opacity-90 shadow-lg text-[var(--ink)]"
@@ -430,6 +459,17 @@ export default function Landing() {
                     </span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
+
+                  {!session && (
+                    <button
+                      onClick={() => setShowLogin(true)}
+                      className="inline-flex items-center justify-center gap-2 px-[22px] py-[14px] rounded-full font-bold text-[15px] border-2 border-white/30 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white transition-all cursor-pointer shadow-md"
+                    >
+                      <KeyRound className="h-4 w-4 text-[var(--coral-1)]" />
+                      Sign in to account
+                    </button>
+                  )}
+
                   <a
                     href="#how"
                     className="inline-flex items-center gap-1.5 font-semibold text-[14.5px] text-white/85 hover:text-white transition-colors py-2 px-3"

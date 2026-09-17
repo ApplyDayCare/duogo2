@@ -25,23 +25,11 @@ const AuthCallback = () => {
 
         const isComplete = Boolean(
           profile &&
-          profile.onboarding_completed &&
-          profile.quiz_completed &&
-          profile.first_name &&
-          profile.first_name.trim().length > 0 &&
-          (profile.user_type === "solo" || profile.user_type === "couple")
+          (profile.onboarding_completed || profile.quiz_completed || Boolean(profile.first_name && profile.first_name.trim().length > 0))
         );
 
-        if (!isComplete) {
-          if (!effectiveUserType) {
-            navigate("/onboarding/user-type", { replace: true });
-          } else if (!effectiveFirstName) {
-            navigate(effectiveUserType === "couple" ? "/onboarding/couple-setup" : "/onboarding/profile", { replace: true });
-          } else if (!effectiveQuizCompleted) {
-            navigate("/quiz", { replace: true });
-          } else {
-            navigate("/onboarding/privacy-consent", { replace: true });
-          }
+        if (!isComplete && !effectiveUserType && !effectiveFirstName) {
+          navigate("/onboarding/user-type", { replace: true });
         } else {
           clearSignupDraft();
           navigate("/dashboard", { replace: true });

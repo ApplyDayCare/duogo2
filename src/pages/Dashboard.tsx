@@ -243,31 +243,12 @@ const Dashboard = () => {
         .maybeSingle();
 
       if (p) {
-        if (!p.quiz_completed) {
-          const { data: qRow } = await supabase
-            .from("quiz_responses")
-            .select("dimension_1_social")
-            .eq("user_id", user.id)
-            .maybeSingle();
-
-          const localAnswers = getSavedQuizAnswers(user.id);
-          const hasQuizData = (qRow && qRow.dimension_1_social !== null) || (localAnswers && (localAnswers.personalityChoice || Object.keys(localAnswers.scaleAnswers || {}).length > 0));
-
-          if (hasQuizData) {
-            p.quiz_completed = true;
-            p.onboarding_completed = true;
-            await supabase.from("profiles").update({ quiz_completed: true, onboarding_completed: true }).eq("id", user.id);
-            if (!qRow || qRow.dimension_1_social === null) {
-              await ensureUserQuizResponse(user.id);
-            }
-          }
+        if (!p.quiz_completed || !p.onboarding_completed) {
+          p.quiz_completed = true;
+          p.onboarding_completed = true;
+          await supabase.from("profiles").update({ quiz_completed: true, onboarding_completed: true }).eq("id", user.id);
+          await ensureUserQuizResponse(user.id);
         }
-      }
-
-      if (!p?.onboarding_completed && !p?.quiz_completed) {
-        setRedirect("/onboarding/user-type");
-        setChecked(true);
-        return;
       }
 
       setProfile(p as ProfileData);

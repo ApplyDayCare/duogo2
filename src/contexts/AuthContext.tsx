@@ -197,13 +197,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     profile &&
     (
       Boolean(profile.onboarding_completed) ||
-      (
-        Boolean(profile.first_name && profile.first_name.trim().length > 0) &&
-        Boolean(profile.user_type) &&
-        Boolean(profile.location_city) &&
-        Boolean(profile.quiz_completed) &&
-        Boolean(profile.privacy_consented)
-      )
+      Boolean(profile.quiz_completed) ||
+      Boolean(profile.first_name && profile.first_name.trim().length > 0) ||
+      Boolean(profile.user_type)
     )
   );
 

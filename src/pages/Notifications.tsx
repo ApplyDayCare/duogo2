@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useNotifications, NotificationItem } from "@/contexts/NotificationsContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,25 +16,19 @@ import {
   CheckCheck,
   RefreshCw,
 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
-
-interface NotificationItem {
-  id: string;
-  message: string;
-  read: boolean;
-  created_at: string;
-  link: string | null;
-  type?: "match" | "message" | "mutual" | "system";
-}
 
 export const Notifications = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    refreshing,
+    refreshNotifications,
+    markAllAsRead,
+    markAsRead,
+  } = useNotifications();
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   // Push notification state (safely accessed without throwing)
@@ -98,267 +91,24 @@ export const Notifications = () => {
       if (diffHours < 24) return `${diffHours}h ago`;
       if (diffDays === 1) return "Yesterday";
       if (diffDays < 7) return `${diffDays}d ago`;
-
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
+      return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     } catch {
       return "Recently";
     }
   }, []);
 
-  // Fetch notifications and synthesize real-time match events safely
-  const fetchNotifications = useCallback(async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // 1. Fetch from notifications table (guarded against missing table or RLS restrictions)
-      const notifsPromise = supabase
-        .from("notifications")
-        .select("id, user_id, message, link, read, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      // 2. Fetch pending & mutual matches for dynamic alerts
-      const matchesPromise = supabase
-        .from("matches")
-        .select("id, user_a_id, user_b_id, user_a_action, user_b_action, status, created_at, updated_at")
-        .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-        .in("status", ["pending", "mutual"])
-        .order("updated_at", { ascending: false })
-        .limit(30);
-
-      const [notifsRes, matchesRes] = await Promise.allSettled([notifsPromise, matchesPromise]);
-
-      const notifs: NotificationItem[] = [];
-      const duplicateIdsToPrune: string[] = [];
-      const seenKeys = new Set<string>();
-
-      if (notifsRes.status === "fulfilled" && notifsRes.value.data) {
-        for (const item of notifsRes.value.data) {
-          const dedupeKey = `${(item.message || "").trim().toLowerCase()}|${(item.link || "").trim().toLowerCase()}`;
-          
-          // If we already have this exact notification from this user
-          if (seenKeys.has(dedupeKey)) {
-            duplicateIdsToPrune.push(item.id);
-            continue;
-          }
-          seenKeys.add(dedupeKey);
-
-          let type: NotificationItem["type"] = "system";
-          const msg = (item.message || "").toLowerCase();
-          if (msg.includes("match") || msg.includes("connect")) {
-            type = msg.includes("mutual") ? "mutual" : "match";
-          } else if (msg.includes("message") || msg.includes("chat")) {
-            type = "message";
-          }
-          notifs.push({
-            id: item.id,
-            message: item.message,
-            read: Boolean(item.read),
-            created_at: item.created_at || new Date().toISOString(),
-            link: item.link,
-            type,
-          });
-        }
-      }
-
-      // Automatically clean up duplicate notification rows from the database in the background
-      if (duplicateIdsToPrune.length > 0) {
-        supabase
-          .from("notifications")
-          .delete()
-          .in("id", duplicateIdsToPrune)
-          .then(({ error }) => {
-            if (error) {
-              console.warn("Could not delete duplicate notifications:", error);
-            } else {
-              queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
-            }
-          });
-      }
-
-      // Synthesize incoming requests and mutual matches if not already present
-      if (matchesRes.status === "fulfilled" && matchesRes.value.data) {
-        let readSynthesized: string[] = [];
-        try {
-          readSynthesized = JSON.parse(localStorage.getItem("duogo_read_synthesized_notifs") || "[]");
-        } catch {
-          // ignore
-        }
-
-        for (const m of matchesRes.value.data) {
-          const isA = m.user_a_id === user.id;
-          const hasIncoming = isA
-            ? m.user_b_action === "accept" && !m.user_a_action
-            : m.user_a_action === "accept" && !m.user_b_action;
-
-          if (m.status === "pending" && hasIncoming) {
-            const reqId = `match-req-${m.id}`;
-            const exists = notifs.some(
-              (n) =>
-                n.id === reqId ||
-                n.link?.includes(m.id) ||
-                (n.message.toLowerCase().includes("connect") && n.link?.includes("/matches"))
-            );
-            if (!exists) {
-              notifs.unshift({
-                id: reqId,
-                message: "✨ Someone reviewed your profile and wants to connect with you!",
-                read: readSynthesized.includes(reqId),
-                created_at: m.created_at || new Date().toISOString(),
-                link: "/matches?tab=received",
-                type: "match",
-              });
-            }
-          } else if (m.status === "mutual") {
-            const mutualId = `match-mutual-${m.id}`;
-            const matchLink = `/match-reveal/${m.id}`;
-            const exists = notifs.some(
-              (n) =>
-                n.id === mutualId ||
-                n.link === matchLink ||
-                n.message.toLowerCase().includes("mutual match")
-            );
-            if (!exists) {
-              notifs.unshift({
-                id: mutualId,
-                message: "🎉 It's a Mutual Match! You both accepted each other.",
-                read: readSynthesized.includes(mutualId),
-                created_at: m.updated_at || m.created_at || new Date().toISOString(),
-                link: matchLink,
-                type: "mutual",
-              });
-            }
-          }
-        }
-      }
-
-      // Sort by created_at descending safely
-      notifs.sort((a, b) => {
-        const timeA = new Date(a.created_at).getTime() || 0;
-        const timeB = new Date(b.created_at).getTime() || 0;
-        return timeB - timeA;
-      });
-
-      setNotifications(notifs);
-    } catch (err) {
-      console.warn("Error fetching notifications:", err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [user, queryClient]);
-
-  // Initial load with fail-safe timer
+  // Automatically mark all notifications as read once they have been loaded and reviewed
   useEffect(() => {
-    let isMounted = true;
-    fetchNotifications();
-
-    // Fallback safety timeout: never stay in loading state longer than 4 seconds
-    const timer = setTimeout(() => {
-      if (isMounted) setLoading(false);
-    }, 4000);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, [fetchNotifications]);
-
-  // Mark single or all notifications as read
-  const markAllAsRead = useCallback(async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-
-    if (!user) return;
-
-    // Immediately zero out the query cache unread count so the bell badge clears without latency
-    queryClient.setQueryData(["unread-notifications", user.id], 0);
-
-    // Persist synthesized notifications as read
-    try {
-      const synIds = notifications.filter((n) => n.id.startsWith("match-")).map((n) => n.id);
-      const existing = JSON.parse(localStorage.getItem("duogo_read_synthesized_notifs") || "[]");
-      localStorage.setItem(
-        "duogo_read_synthesized_notifs",
-        JSON.stringify(Array.from(new Set([...existing, ...synIds])))
-      );
-    } catch {
-      // ignore
-    }
-
-    try {
-      await supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("user_id", user.id)
-        .eq("read", false);
-
-      await queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
-    } catch (err) {
-      console.warn("Could not mark notifications as read:", err);
-    }
-  }, [user, notifications, queryClient]);
-
-  // Automatically mark unread notifications as read after the user reviews them on the page
-  useEffect(() => {
-    if (!user || loading || notifications.length === 0) return;
+    if (loading || notifications.length === 0) return;
     const hasUnread = notifications.some((n) => !n.read);
-    if (!hasUnread) return;
-
-    const timer = setTimeout(() => {
+    if (hasUnread) {
       markAllAsRead();
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [user, loading, notifications, markAllAsRead]);
+    }
+  }, [loading, notifications, markAllAsRead]);
 
   const handleNotificationClick = async (notif: NotificationItem) => {
     if (!notif.read) {
-      // Optimistically update notifications state for this and any duplicate with identical message
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notif.id || (n.message === notif.message && n.link === notif.link)
-            ? { ...n, read: true }
-            : n
-        )
-      );
-
-      if (user) {
-        // Optimistically decrement unread count
-        queryClient.setQueryData(["unread-notifications", user.id], (old: number | undefined) =>
-          Math.max(0, (old ?? 1) - 1)
-        );
-
-        if (!notif.id.startsWith("match-")) {
-          try {
-            await supabase
-              .from("notifications")
-              .update({ read: true })
-              .eq("user_id", user.id)
-              .or(`id.eq.${notif.id},message.eq.${notif.message}`);
-
-            queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
-          } catch (err) {
-            console.warn("Error updating notification read status:", err);
-          }
-        } else {
-          try {
-            const existing = JSON.parse(localStorage.getItem("duogo_read_synthesized_notifs") || "[]");
-            if (!existing.includes(notif.id)) {
-              existing.push(notif.id);
-              localStorage.setItem("duogo_read_synthesized_notifs", JSON.stringify(existing));
-            }
-          } catch {
-            // ignore
-          }
-        }
-      }
+      await markAsRead(notif.id);
     }
 
     if (notif.link) {
@@ -373,11 +123,6 @@ export const Notifications = () => {
     }
     return notifications;
   }, [notifications, filter]);
-
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.read).length,
-    [notifications]
-  );
 
   const getNotificationIcon = (type?: NotificationItem["type"]) => {
     switch (type) {
@@ -428,8 +173,7 @@ export const Notifications = () => {
             variant="ghost"
             size="icon"
             onClick={() => {
-              setRefreshing(true);
-              fetchNotifications();
+              refreshNotifications();
             }}
             disabled={loading || refreshing}
             className="h-8 w-8 rounded-full text-[#666059] hover:text-[#181513] hover:bg-white"
@@ -453,36 +197,34 @@ export const Notifications = () => {
         </div>
       </div>
 
-      {/* Push Notification Opt-in Prompt (Non-intrusive) */}
+      {/* Push Notification Opt-in Card */}
       {pushSupported && pushPermission !== "granted" && (
-        <Card className="rounded-2xl border border-[#FFE2D6] bg-gradient-to-br from-[#FFF9F6] to-white p-4 shadow-2xs">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF0EB] text-[#FF5436] shrink-0 mt-0.5">
-              <BellRing className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0 space-y-1">
-              <h3 className="text-xs font-bold text-[#181513]">
-                Never miss a match or message
-              </h3>
-              <p className="text-[11px] text-[#666059] leading-relaxed">
-                Turn on instant alerts to know right away when someone connects with your profile.
-              </p>
-              <div className="pt-1.5">
-                <Button
-                  size="sm"
-                  onClick={requestPushPermission}
-                  disabled={enablingPush}
-                  className="rounded-full bg-[#FF5436] hover:bg-[#E03E22] text-white text-xs font-bold h-7 px-3.5 shadow-2xs gap-1.5"
-                >
-                  {enablingPush ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <BellRing className="h-3.5 w-3.5" />
-                  )}
-                  Enable Notifications
-                </Button>
+        <Card className="rounded-3xl border border-[#FFD5C8] bg-gradient-to-br from-[#FFF5F2] via-white to-[#FFF5F2] p-4 shadow-soft">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#FF5436] text-white shadow-xs">
+                <BellRing className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#181513]">
+                  Never miss an invite or message
+                </p>
+                <p className="text-[11px] text-[#666059]">
+                  Get instant lock-screen notifications when couples want to connect.
+                </p>
               </div>
             </div>
+            <Button
+              size="sm"
+              onClick={requestPushPermission}
+              disabled={enablingPush}
+              className="w-full sm:w-auto shrink-0 rounded-full bg-[#FF5436] text-xs font-bold text-white hover:bg-[#E03E22]"
+            >
+              {enablingPush ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+              ) : null}
+              Turn on notifications
+            </Button>
           </div>
         </Card>
       )}

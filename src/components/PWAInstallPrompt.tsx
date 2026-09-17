@@ -103,7 +103,6 @@ export const PWAInstallPrompt = ({ variant = "banner", className = "" }: PWAInst
         (window as any).__pwaPrompt = null;
       }
       setActiveGuide(null);
-      toast.success("duogo installed successfully!");
     };
 
     window.addEventListener("beforeinstallprompt", handler);
@@ -141,7 +140,6 @@ export const PWAInstallPrompt = ({ variant = "banner", className = "" }: PWAInst
         await activePrompt.prompt();
         const choice = await activePrompt.userChoice;
         if (choice.outcome === "accepted") {
-          toast.success("duogo is now installing!");
           setInstalled(true);
         }
         setDeferredPrompt(null);
