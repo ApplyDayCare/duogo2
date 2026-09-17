@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Send, MessageCircle, Info, MapPin, Heart, Check, CheckCheck, ChevronDown, Keyboard } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Info, MapPin, Heart, Check, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -49,7 +49,6 @@ const MatchChat = () => {
   });
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
   const [viewportTop, setViewportTop] = useState<number>(0);
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -78,9 +77,6 @@ const MatchChat = () => {
     const handleViewportChange = () => {
       if (!window.visualViewport) return;
       const vv = window.visualViewport;
-      const keyboardActive = vv.height < window.innerHeight - 80;
-
-      setIsKeyboardOpen(keyboardActive);
       setViewportHeight(vv.height);
       setViewportTop(vv.offsetTop);
 
@@ -664,35 +660,35 @@ const MatchChat = () => {
                     )}
                   >
                     {!isMe && (
-                      <div className="w-7 shrink-0 flex items-end mb-0.5">
+                      <div className="w-8 sm:w-9 shrink-0 flex items-end mb-1">
                         {msg.showAvatar ? (
-                          <Avatar className="h-7 w-7 border border-[#EBE3D5] shadow-2xs">
+                          <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border border-[#EBE3D5] shadow-2xs">
                             {otherProfile?.avatar_url && <AvatarImage src={otherProfile.avatar_url} />}
-                            <AvatarFallback className="bg-[#FFF0EB] text-primary text-[10px] font-bold">
+                            <AvatarFallback className="bg-[#FFF0EB] text-primary text-xs font-bold font-serif">
                               {otherProfile?.first_name?.[0]?.toUpperCase() || "?"}
                             </AvatarFallback>
                           </Avatar>
                         ) : (
-                          <div className="w-7" />
+                          <div className="w-8 sm:w-9" />
                         )}
                       </div>
                     )}
-                    <div className={cn("max-w-[84%] sm:max-w-[74%] flex flex-col", isMe ? "items-end" : "items-start")}>
+                    <div className={cn("max-w-[85%] sm:max-w-[75%] flex flex-col", isMe ? "items-end" : "items-start")}>
                       {!isMe && msg.showName && (
-                        <p className="text-[10.5px] font-bold text-[#888177] mb-0.5 ml-1 text-left">
+                        <p className="text-xs font-bold text-[#7A7368] mb-1 ml-1 text-left">
                           {otherProfile?.first_name || "Match"}
                         </p>
                       )}
                       <div
                         className={cn(
-                          "px-3 py-1.5 sm:px-3.5 sm:py-2 text-[13px] sm:text-[13.5px] leading-snug whitespace-pre-wrap break-words transition-colors rounded-2xl",
+                          "px-4 py-2.5 sm:px-4.5 sm:py-3 text-[15px] sm:text-[15.5px] leading-relaxed whitespace-pre-wrap break-words transition-colors rounded-2xl shadow-2xs",
                           isMe
                             ? cn(
-                                "bg-gradient-to-br from-[#FF5436] via-[#FF5F45] to-[#EE3F20] text-white shadow-2xs font-normal",
+                                "bg-gradient-to-br from-[#FF5436] via-[#FF5F45] to-[#EE3F20] text-white font-normal",
                                 msg.isLast ? "rounded-br-xs" : "rounded-r-md"
                               )
                             : cn(
-                                "bg-white text-[#191512] border border-[#E7DFD4] shadow-2xs font-normal",
+                                "bg-white text-[#191512] border border-[#E7DFD4] font-normal",
                                 msg.isLast ? "rounded-bl-xs" : "rounded-l-md"
                               )
                         )}
@@ -702,7 +698,7 @@ const MatchChat = () => {
                       {msg.isLast && (
                         <div
                           className={cn(
-                            "text-[9.5px] mt-0.5 font-medium flex items-center gap-1",
+                            "text-[11px] mt-1 font-medium flex items-center gap-1",
                             isMe ? "justify-end mr-0.5 text-[#888177]" : "justify-start ml-1 text-[#888177]"
                           )}
                         >
@@ -723,7 +719,7 @@ const MatchChat = () => {
                                         : ""
                                     }`}
                                   >
-                                    <CheckCheck className="h-3 w-3 stroke-[2.5]" />
+                                    <CheckCheck className="h-3.5 w-3.5 stroke-[2.5]" />
                                   </span>
                                 );
                               }
@@ -733,7 +729,7 @@ const MatchChat = () => {
                                   className="inline-flex items-center text-[#9E978D] ml-0.5"
                                   title="Delivered to match"
                                 >
-                                  <CheckCheck className="h-3 w-3 stroke-[2]" />
+                                  <CheckCheck className="h-3.5 w-3.5 stroke-[2]" />
                                 </span>
                               );
                             })()
@@ -751,27 +747,9 @@ const MatchChat = () => {
 
         {/* Fixed Input Area (Fixed at bottom) */}
         <div className="shrink-0 bg-white border-t border-[#EFE8DD] z-20">
-          {/* On-demand Mobile Keyboard Helper Bar */}
-          {(isInputFocused || isKeyboardOpen) && (
-            <div className="flex items-center justify-between px-3 py-1 bg-[#FFF5F2] border-b border-[#FFD5CC] text-xs text-[#888177]">
-              <div className="flex items-center gap-1.5 font-medium text-[11px] text-[#FF5436]">
-                <Keyboard className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">Keyboard active — Tap feed to view messages</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleDismissKeyboard}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#FF5436] hover:bg-[#E03E22] py-0.5 px-2.5 rounded-full shadow-2xs transition-all active:scale-95 shrink-0 ml-2"
-              >
-                <span>Hide Keypad</span>
-                <ChevronDown className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-
           {/* Bottom Input Field Bar */}
-          <div className="p-2 sm:p-2.5 max-w-3xl mx-auto flex items-end gap-1.5 sm:gap-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]">
-            <div className="flex-1 relative rounded-xl bg-[#FAF7F2] border border-[#EBE3D5] focus-within:border-[#FF5436] focus-within:bg-white transition-all shadow-2xs">
+          <div className="p-2.5 sm:p-3 max-w-3xl mx-auto flex items-end gap-2 sm:gap-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]">
+            <div className="flex-1 min-w-0 relative rounded-2xl bg-[#FAF7F2] border border-[#E0D8CB] focus-within:border-[#FF5436] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#FF5436]/15 transition-all shadow-2xs">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -781,19 +759,19 @@ const MatchChat = () => {
                 onBlur={handleInputBlur}
                 placeholder="Type a message…"
                 rows={1}
-                className="w-full resize-none bg-transparent px-3 py-2 text-[13px] sm:text-sm text-[#181513] placeholder:text-[#888177] focus:outline-none min-h-[38px] max-h-28 leading-snug"
+                className="w-full resize-none bg-transparent px-3.5 py-2.5 sm:px-4 sm:py-3 text-[15px] sm:text-base text-[#181513] placeholder:text-[#888177] focus:outline-none min-h-[44px] max-h-32 leading-relaxed"
               />
             </div>
 
             <Button
               id="btn-chat-send"
               size="icon"
-              className="h-9.5 w-9.5 sm:h-10 sm:w-10 rounded-xl bg-[#FF5436] hover:bg-[#E03E22] text-white shrink-0 shadow-[0_3px_10px_rgba(255,84,54,0.25)] transition-all active:scale-95 disabled:opacity-40"
+              className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-[#FF5436] hover:bg-[#E03E22] text-white shrink-0 shadow-[0_4px_14px_rgba(255,84,54,0.3)] transition-all active:scale-95 disabled:opacity-40"
               onClick={() => sendMessage(input)}
               disabled={!input.trim()}
               aria-label="Send message"
             >
-              <Send className="h-3.5 w-3.5" />
+              <Send className="h-5 w-5 stroke-[2.2]" />
             </Button>
           </div>
         </div>
