@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { updateSignupDraft } from "@/lib/signupState";
 import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -130,23 +131,20 @@ export default function Landing() {
 
     if (error) {
       const msg = error.message?.toLowerCase() || "";
-      if (
-        msg.includes("signups not allowed") ||
-        msg.includes("user not found") ||
-        msg.includes("not found") ||
-        msg.includes("signup")
-      ) {
-        const notFoundText =
-          "No account found for this email. Please complete the sign-up flow and compatibility quiz to get started.";
-        setLoginError(notFoundText);
+      if (msg.includes("rate") || msg.includes("too many")) {
+        setLoginError("Too many attempts. Please wait a moment before trying again.");
         toast({
-          title: "Account Not Found",
-          description: notFoundText,
+          title: "Please wait",
+          description: "Too many attempts. Please wait a moment before trying again.",
           variant: "destructive",
         });
       } else {
-        setLoginError(error.message);
-        toast({ title: "Error sending code", description: error.message, variant: "destructive" });
+        // Any other error during login for an unregistered email or new user attempt
+        setLoginError("new_user");
+        toast({
+          title: "Are you new here?",
+          description: "Sign up to take the compatibility quiz and get started.",
+        });
       }
     } else {
       setLoginStep("code");
@@ -1501,21 +1499,29 @@ export default function Landing() {
 
           {loginStep === "email" ? (
             <form onSubmit={handleLogin} className="space-y-4 pt-2">
-              {loginError && (
-                <div className="p-3.5 rounded-2xl bg-[#fff2ee] border border-[var(--coral-1)] text-xs text-[var(--ink)] space-y-2">
-                  <p className="font-medium text-[#c0382b]">{loginError}</p>
+              {loginError === "new_user" ? (
+                <div className="p-3.5 rounded-2xl bg-[#fff6f4] border border-[#ffcfc4] text-xs text-[var(--ink)] flex items-center justify-between gap-2 shadow-xs">
+                  <span className="font-medium text-[var(--ink)]">Are you new here?</span>
                   <button
                     type="button"
                     onClick={() => {
+                      if (email.trim()) {
+                        updateSignupDraft({ email: email.trim() });
+                      }
                       setShowLogin(false);
                       handleStartSignup();
                     }}
-                    className="text-xs font-bold text-[var(--ink)] underline hover:text-[var(--coral-2)] flex items-center gap-1 cursor-pointer"
+                    className="font-bold text-[#FF5436] hover:underline cursor-pointer flex items-center gap-1"
                   >
-                    Start Sign Up &amp; Take Quiz →
+                    <span>Sign up.</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
-              )}
+              ) : loginError ? (
+                <div className="p-3.5 rounded-2xl bg-[#fff2ee] border border-[var(--coral-1)] text-xs text-[var(--ink)] space-y-1">
+                  <p className="font-medium text-[#c0382b]">{loginError}</p>
+                </div>
+              ) : null}
 
               <div>
                 <label className="text-xs font-semibold text-[var(--ink-soft)] block mb-1">
