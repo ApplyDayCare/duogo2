@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Sparkles, Shuffle, Send, MessageSquarePlus, X, Zap, RefreshCw } from "lucide-react";
+import { Shuffle, Send, MessageSquarePlus, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getRandomIcebreaker, IcebreakerQuestion, LIGHTHEARTED_ICEBREAKERS } from "@/data/icebreakers";
-import { AiIcebreakers } from "@/components/AiIcebreakers";
+import { getRandomIcebreaker, IcebreakerQuestion } from "@/data/icebreakers";
 import { cn } from "@/lib/utils";
 
 const QUICK_REPLIES = [
@@ -23,13 +22,10 @@ interface ChatStartersPanelProps {
 
 export const ChatStartersPanel = ({
   matchName,
-  userName = "You",
-  city,
-  userType,
   onSelect,
   onClose,
 }: ChatStartersPanelProps) => {
-  const [activeTab, setActiveTab] = useState<"question" | "ai" | "quick">("question");
+  const [activeTab, setActiveTab] = useState<"question" | "quick">("question");
   const [currentQuestion, setCurrentQuestion] = useState<IcebreakerQuestion>(() => getRandomIcebreaker());
   const [isShuffling, setIsShuffling] = useState(false);
 
@@ -61,21 +57,7 @@ export const ChatStartersPanel = ({
             )}
           >
             <span>🎲</span>
-            <span>Icebreaker</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("ai")}
-            className={cn(
-              "flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all shrink-0",
-              activeTab === "ai"
-                ? "bg-[#FF5436] text-white shadow-2xs"
-                : "bg-white text-[#666059] border border-[#EBE3D5] hover:border-[#FFD5CC] hover:text-[#FF5436]"
-            )}
-          >
-            <Sparkles className="h-3 w-3" />
-            <span>AI Ideas</span>
+            <span>Icebreaker Question</span>
           </button>
 
           <button
@@ -89,7 +71,7 @@ export const ChatStartersPanel = ({
             )}
           >
             <Zap className="h-3 w-3" />
-            <span>Greetings</span>
+            <span>Quick Greetings</span>
           </button>
         </div>
 
@@ -165,22 +147,7 @@ export const ChatStartersPanel = ({
         )}
 
         {/* Tab 2: AI Suggestions */}
-        {activeTab === "ai" && (
-          <div className="rounded-xl overflow-hidden">
-            <AiIcebreakers
-              userName={userName}
-              matchName={matchName}
-              city={city}
-              userType={userType}
-              onSelectIcebreaker={(text, sendImmediately) => {
-                onSelect(text, sendImmediately);
-                onClose();
-              }}
-            />
-          </div>
-        )}
-
-        {/* Tab 3: Quick Greetings */}
+        {/* Tab 2: Quick Greetings */}
         {activeTab === "quick" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
             {QUICK_REPLIES.map(({ label, emoji }) => (

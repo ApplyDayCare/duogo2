@@ -110,8 +110,8 @@ const AppLayout = () => {
     // If in chat, give full-screen native app viewport without double header or tab bar
     if (isChatRoute) {
       return (
-        <div className="flex h-[100dvh] w-full flex-col bg-[#FAF7F2] font-sans text-[#181513] overflow-hidden">
-          <main className="flex-1 h-full overflow-hidden">
+        <div className="flex h-[100dvh] w-full flex-col bg-[#FAF7F2] font-sans text-[#181513] overflow-hidden fixed inset-0">
+          <main className="flex-1 h-full overflow-hidden relative">
             <Outlet />
           </main>
         </div>

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Send, MessageCircle, Info, Sparkles, MapPin, Heart, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Info, Sparkles, MapPin, Heart, Check, CheckCheck, ChevronDown, Keyboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -49,8 +49,85 @@ const MatchChat = () => {
       return null;
     }
   });
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const [viewportTop, setViewportTop] = useState<number>(0);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Lock window scroll position on mobile chat so page header never scrolls off-screen
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const preventWindowScroll = () => {
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+
+    window.addEventListener("scroll", preventWindowScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", preventWindowScroll);
+    };
+  }, []);
+
+  // Monitor mobile visual viewport to shrink layout dynamically when soft keyboard opens
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    const handleViewportChange = () => {
+      if (!window.visualViewport) return;
+      const vv = window.visualViewport;
+      const keyboardActive = vv.height < window.innerHeight - 80;
+
+      setIsKeyboardOpen(keyboardActive);
+      setViewportHeight(vv.height);
+      setViewportTop(vv.offsetTop);
+
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+
+      setTimeout(() => {
+        scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 60);
+    };
+
+    window.visualViewport.addEventListener("resize", handleViewportChange);
+    window.visualViewport.addEventListener("scroll", handleViewportChange);
+    handleViewportChange();
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleViewportChange);
+        window.visualViewport.removeEventListener("scroll", handleViewportChange);
+      }
+    };
+  }, []);
+
+  const scrollToBottom = useCallback((smooth = true) => {
+    setTimeout(() => {
+      scrollRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "instant" });
+    }, 60);
+  }, []);
+
+  const handleInputFocus = () => {
+    setIsInputFocused(true);
+    scrollToBottom(true);
+  };
+
+  const handleInputBlur = () => {
+    setIsInputFocused(false);
+  };
+
+  const handleDismissKeyboard = () => {
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+    setIsInputFocused(false);
+  };
 
   // Fetch other user's profile and match details
   const { data: matchData } = useQuery({
@@ -400,7 +477,13 @@ const MatchChat = () => {
   const displayScore = matchData?.match?.compatibility_score || 91;
 
   return (
-    <div className="flex h-full w-full bg-[#FAF7F2] overflow-hidden">
+    <div
+      className="flex h-full w-full bg-[#FAF7F2] overflow-hidden fixed inset-0 lg:static lg:inset-auto"
+      style={{
+        height: viewportHeight ? `${viewportHeight}px` : "100dvh",
+        top: viewportTop ? `${viewportTop}px` : 0,
+      }}
+    >
       {/* Primary Chat Column */}
       <div className="flex flex-col flex-1 min-w-0 h-full bg-white relative overflow-hidden">
         {/* Chat Header (Fixed at top) */}
@@ -484,7 +567,7 @@ const MatchChat = () => {
               onClick={() => setShowIcebreakerCard((prev) => !prev)}
               title="Suggest a random lighthearted icebreaker question"
             >
-              <Sparkles className="h-3 w-3 mr-1" />
+              <Zap className="h-3 w-3 mr-1" />
               <span>Icebreaker</span>
             </Button>
 
@@ -495,7 +578,7 @@ const MatchChat = () => {
               onClick={() => navigate(`/match-reveal/${matchId}`)}
               title={`Compatibility score: ${displayScore}%`}
             >
-              <Sparkles className="h-3 w-3 mr-1 fill-[#FF5436]" />
+              <Heart className="h-3 w-3 mr-1 fill-[#FF5436]" />
               <span className="hidden sm:inline">Score </span>
               <span>{displayScore}%</span>
             </Button>
@@ -525,7 +608,12 @@ const MatchChat = () => {
         </header>
 
         {/* Message Feed Area (Scrolls independently taking all remaining height) */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-2.5 sm:px-4 py-2 sm:py-3 bg-[#FAF7F2]/40 overscroll-contain">
+        <div
+          className="flex-1 min-h-0 overflow-y-auto px-2.5 sm:px-4 py-2 sm:py-3 bg-[#FAF7F2]/40 overscroll-contain"
+          onClick={() => {
+            if (isInputFocused) handleDismissKeyboard();
+          }}
+        >
           {loading ? (
             <div className="space-y-3 pt-3 max-w-xl mx-auto">
               {[1, 2, 3].map((i) => (
@@ -573,7 +661,6 @@ const MatchChat = () => {
                   onClick={() => setShowIcebreakerCard(true)}
                   className="inline-flex items-center gap-1.5 rounded-full bg-[#FF5436] hover:bg-[#E03E22] text-white font-bold text-xs h-7.5 px-3 shadow-2xs transition-all active:scale-95"
                 >
-                  <Sparkles className="h-3 w-3 fill-white" />
                   <span>🎲 Roll Question</span>
                 </Button>
                 {QUICK_REPLIES.slice(0, 2).map(({ label, emoji }) => (
@@ -694,6 +781,24 @@ const MatchChat = () => {
 
         {/* Fixed Input Area (Fixed at bottom) */}
         <div className="shrink-0 bg-white border-t border-[#EFE8DD] z-20">
+          {/* On-demand Mobile Keyboard Helper Bar */}
+          {(isInputFocused || isKeyboardOpen) && (
+            <div className="flex items-center justify-between px-3 py-1 bg-[#FFF5F2] border-b border-[#FFD5CC] text-xs text-[#888177]">
+              <div className="flex items-center gap-1.5 font-medium text-[11px] text-[#FF5436]">
+                <Keyboard className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Keyboard active — Tap feed to view messages</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleDismissKeyboard}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#FF5436] hover:bg-[#E03E22] py-0.5 px-2.5 rounded-full shadow-2xs transition-all active:scale-95 shrink-0 ml-2"
+              >
+                <span>Hide Keypad</span>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* On-Demand Conversation Starters & Icebreaker Drawer */}
           {showIcebreakerCard && (
             <div className="max-w-3xl w-full mx-auto">
@@ -726,10 +831,10 @@ const MatchChat = () => {
                   ? "bg-[#FF5436] text-white hover:bg-[#E03E22] border-transparent shadow-soft"
                   : "bg-[#FFF5F2] hover:bg-[#FFEAE3] text-[#FF5436] border-[#FFD5CC]"
               )}
-              title="Conversation starters, questions & AI suggestions"
+              title="Conversation starters & icebreaker questions"
               aria-label="Toggle conversation starters"
             >
-              <Sparkles className="h-4 w-4 fill-current" />
+              <Zap className="h-4 w-4 fill-current" />
             </Button>
 
             <div className="flex-1 relative rounded-xl bg-[#FAF7F2] border border-[#EBE3D5] focus-within:border-[#FF5436] focus-within:bg-white transition-all shadow-2xs">
@@ -738,6 +843,8 @@ const MatchChat = () => {
                 value={input}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
                 placeholder="Type a message…"
                 rows={1}
                 className="w-full resize-none bg-transparent px-3 py-2 text-[13px] sm:text-sm text-[#181513] placeholder:text-[#888177] focus:outline-none min-h-[38px] max-h-28 leading-snug"
