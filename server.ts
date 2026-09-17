@@ -457,7 +457,7 @@ app.post("/api/email/request-notification", async (req, res) => {
     const brevoApiKey = process.env.BREVO_API_KEY;
     const senderEmail = process.env.BREVO_FROM_EMAIL || "hello@duogo.app";
     const senderTitle = process.env.BREVO_FROM_NAME || "duogo";
-    const appUrl = process.env.APP_URL || "https://ais-pre-6yzpxzlgcwbilgl7xpgtyq-233276762244.us-east1.run.app";
+    const appUrl = process.env.APP_URL || (req.get("host") ? `${req.protocol}://${req.get("host")}` : "https://duogo.app");
 
     if (!brevoApiKey) {
       console.log(`[Email Dispatch] BREVO_API_KEY not configured. Email notification skipped for ${recipientProfile.email}`);
