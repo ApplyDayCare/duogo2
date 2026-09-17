@@ -21,5 +21,19 @@ export default defineConfig(() => ({
   optimizeDeps: {
     include: ["react", "react-dom", "react-router-dom"],
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-charts": ["recharts", "d3"],
+          "vendor-supabase": ["@supabase/supabase-js"],
+          "vendor-motion": ["framer-motion"],
+          "vendor-query": ["@tanstack/react-query", "@tanstack/react-query-persist-client"],
+        },
+      },
+    },
+  },
 }));
 
