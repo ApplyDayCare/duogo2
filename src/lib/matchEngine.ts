@@ -1133,7 +1133,16 @@ export async function executeMatchAction(
   return res;
 }
 
+let lastInstantMatchCheckTime = 0;
+const INSTANT_MATCH_COOLDOWN_MS = 60 * 1000; // 1 minute cooldown per client session
+
 export async function triggerInstantMatchCheck(session?: any): Promise<void> {
+  const now = Date.now();
+  if (now - lastInstantMatchCheckTime < INSTANT_MATCH_COOLDOWN_MS) {
+    return;
+  }
+  lastInstantMatchCheckTime = now;
+
   try {
     const headers: Record<string, string> = {};
     if (session?.access_token) {

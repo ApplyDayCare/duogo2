@@ -19,13 +19,9 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { deduplicateNotifications, RawNotification } from "@/lib/notificationDeduplication";
 
-interface NotificationItem {
-  id: string;
-  message: string;
-  read: boolean;
-  created_at: string;
-  link: string | null;
+export interface NotificationItem extends RawNotification {
   type?: "match" | "message" | "mutual" | "system";
 }
 
@@ -251,14 +247,10 @@ export const Notifications = () => {
         }
       }
 
-      // Sort by created_at descending safely
-      notifs.sort((a, b) => {
-        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
-        return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
-      });
+      // Deduplicate notifications so duplicate background notices are cleanly merged
+      const dedupedNotifs = deduplicateNotifications(notifs) as NotificationItem[];
 
-      setNotifications(notifs);
+      setNotifications(dedupedNotifs);
     } catch (err) {
       console.warn("Error fetching notifications:", err);
       setFetchError("Unable to load latest notifications.");
@@ -350,20 +342,29 @@ export const Notifications = () => {
           Math.max(0, (old ?? 1) - 1)
         );
 
-        if (!notif.id.startsWith("match-")) {
+        const targetIds = (notif.associated_ids && notif.associated_ids.length > 0)
+          ? notif.associated_ids
+          : [notif.id];
+
+        const dbIds = targetIds.filter((id) => !id.startsWith("match-"));
+        const synIds = targetIds.filter((id) => id.startsWith("match-"));
+
+        if (dbIds.length > 0) {
           try {
             await supabase
               .from("notifications")
               .update({ read: true })
-              .eq("id", notif.id)
+              .in("id", dbIds)
               .eq("user_id", user.id);
 
             queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
           } catch (err) {
             console.warn("Error updating notification read status:", err);
           }
-        } else {
-          saveReadSynthesizedIds([notif.id]);
+        }
+
+        if (synIds.length > 0) {
+          saveReadSynthesizedIds(synIds);
         }
       }
     }

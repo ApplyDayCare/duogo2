@@ -13,6 +13,7 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useChatSummary } from "@/hooks/useChatSummary";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { deduplicateNotifications } from "@/lib/notificationDeduplication";
 
 const DESKTOP_NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: Home },
@@ -85,14 +86,25 @@ const AppLayout = () => {
     queryKey: ["unread-notifications", user?.id],
     queryFn: async () => {
       if (!user) return 0;
-      const { data, count, error } = await supabase
+      const { data, error } = await supabase
         .from("notifications")
-        .select("id", { count: "exact" })
+        .select("id, message, link, read, created_at")
         .eq("user_id", user.id)
-        .eq("read", false);
+        .eq("read", false)
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-      if (error || !data) return count ?? 0;
-      return count ?? data.length;
+      if (error || !data) return 0;
+      const deduped = deduplicateNotifications(
+        data.map((item) => ({
+          id: String(item.id),
+          message: typeof item.message === "string" ? item.message : JSON.stringify(item.message ?? ""),
+          read: Boolean(item.read),
+          created_at: typeof item.created_at === "string" ? item.created_at : new Date().toISOString(),
+          link: typeof item.link === "string" ? item.link : null,
+        }))
+      );
+      return deduped.filter((n) => !n.read).length;
     },
     enabled: !!user,
     refetchInterval: 15000,

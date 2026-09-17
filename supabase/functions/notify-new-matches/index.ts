@@ -219,16 +219,18 @@ Deno.serve(async (req) => {
           ? "A new match is waiting for you 👀"
           : `${count} new matches are waiting for you 👀`;
 
-      // Check if user already received an identical match notification recently to avoid duplicates
+      // Check if user already received any match notification in the last 24 hours to prevent spam/duplicates
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data: existingNotifs } = await supabase
         .from("notifications")
         .select("id")
         .eq("user_id", profile.id)
-        .eq("message", message)
+        .gte("created_at", oneDayAgo)
+        .ilike("message", "%new match%")
         .limit(1);
 
       if (existingNotifs && existingNotifs.length > 0) {
-        // Record the ledger to ensure synchronization
+        // Record the ledger to ensure synchronization without inserting duplicate notification
         await supabase
           .from("match_candidate_notices")
           .upsert(
