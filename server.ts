@@ -27,17 +27,17 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   }
 }
 
-// Supabase client for authentication verification
-const supabaseUrl =
-  process.env.SUPABASE_URL ||
-  process.env.VITE_SUPABASE_URL ||
-  "";
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.VITE_SUPABASE_ANON_KEY ||
-  "";
+// Supabase client setup with safe fallback defaults
+const DEFAULT_SUPABASE_URL = "https://hdbobqzqsmmsnzbjtzbn.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkYm9icXpxc21tc256Ymp0emJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTY3NDQsImV4cCI6MjA4NzY5Mjc0NH0.U_lS4-1zpd36SR4xxGDdXSBfM3408wv4pRbfDGUbQ4k";
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+function getSupabaseAdmin() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+  return createClient(url, key);
+}
+
+const supabase = getSupabaseAdmin();
 
 // In-memory sliding window rate limiter
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -313,16 +313,7 @@ app.post("/api/push/dispatch", async (req, res) => {
       return res.status(401).json({ error: "Unauthorized: Missing Authorization header" });
     }
 
-    const supabaseUrl =
-      process.env.SUPABASE_URL ||
-      process.env.VITE_SUPABASE_URL ||
-      "";
-    const supabaseKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.VITE_SUPABASE_ANON_KEY ||
-      "";
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = getSupabaseAdmin();
 
     // Verify caller user JWT
     const { data: { user: callerUser }, error: authError } = await supabase.auth.getUser(token);
@@ -380,16 +371,7 @@ app.post("/api/push/dispatch", async (req, res) => {
     // 2. Dispatch to all active subscriptions of target user
     if (targetUserId) {
       try {
-        const supabaseUrl =
-          process.env.SUPABASE_URL ||
-          process.env.VITE_SUPABASE_URL ||
-          "";
-        const supabaseKey =
-          process.env.SUPABASE_SERVICE_ROLE_KEY ||
-          process.env.VITE_SUPABASE_ANON_KEY ||
-          "";
-
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        const supabase = getSupabaseAdmin();
         const { data: subs, error } = await supabase
           .from("push_subscriptions")
           .select("endpoint, p256dh, auth")
@@ -447,16 +429,7 @@ app.post("/api/email/request-notification", async (req, res) => {
       return res.status(400).json({ error: "targetUserId is required" });
     }
 
-    const supabaseUrl =
-      process.env.SUPABASE_URL ||
-      process.env.VITE_SUPABASE_URL ||
-      "";
-    const supabaseKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.VITE_SUPABASE_ANON_KEY ||
-      "";
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = getSupabaseAdmin();
 
     // Get recipient profile
     const { data: recipientProfile } = await supabase
