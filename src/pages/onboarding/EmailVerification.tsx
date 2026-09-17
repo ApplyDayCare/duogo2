@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -72,30 +72,55 @@ const EmailVerification = () => {
     if (e) e.preventDefault();
     if (!email.trim()) return;
 
+    if (!isSupabaseConfigured) {
+      toast({
+        title: "Authentication Not Configured",
+        description: "VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set in your deployment environment variables.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSending(true);
     updateSignupDraft({ email: email.trim() });
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    setSending(false);
-
-    if (error) {
-      toast({
-        title: "Error sending verification code",
-        description: error.message,
-        variant: "destructive",
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
-    } else {
-      setStep("code");
-      startResendTimer();
+
+      setSending(false);
+
+      if (error) {
+        let desc = error.message;
+        if (desc.toLowerCase().includes("failed to fetch")) {
+          desc = "Cannot reach authentication server. Please check your Supabase project status and ensure environment variables are configured in your hosting platform.";
+        }
+        toast({
+          title: "Error sending verification code",
+          description: desc,
+          variant: "destructive",
+        });
+      } else {
+        setStep("code");
+        startResendTimer();
+        toast({
+          title: "Verification code sent! 📬",
+          description: `Check ${email.trim()} for your 6-digit one-time code.`,
+        });
+      }
+    } catch (err: unknown) {
+      setSending(false);
+      const message = err instanceof Error ? err.message : "Failed to connect to authentication service.";
       toast({
-        title: "Verification code sent! 📬",
-        description: `Check ${email.trim()} for your 6-digit one-time code.`,
+        title: "Connection error",
+        description: message.toLowerCase().includes("fetch")
+          ? "Unable to reach Supabase. Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your deployment settings."
+          : message,
+        variant: "destructive",
       });
     }
   };
