@@ -34,14 +34,9 @@ export const OnboardingStepGuard = ({ children, requiredStage = "user_type" }: O
     );
   }
 
-  // If user is already authenticated with a completed profile, redirect to dashboard
-  if (user && (profile?.onboarding_completed || (profile?.first_name && profile?.quiz_completed))) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // If user is authenticated, they have an account in database and can proceed with onboarding
+  // If user is already authenticated, redirect to dashboard so they never get stuck in onboarding steps
   if (user) {
-    return <>{children}</>;
+    return <Navigate to="/dashboard" replace />;
   }
 
   // For unauthenticated guests: check if they have started the onboarding flow in this browser

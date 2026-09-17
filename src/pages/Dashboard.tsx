@@ -242,38 +242,47 @@ const Dashboard = () => {
         .eq("id", user.id)
         .maybeSingle();
 
-      if (p) {
-        if (!p.quiz_completed) {
-          const { data: qRow } = await supabase
-            .from("quiz_responses")
-            .select("dimension_1_social")
-            .eq("user_id", user.id)
-            .maybeSingle();
+      let activeProfile = p;
 
-          const localAnswers = getSavedQuizAnswers(user.id);
-          const hasQuizData = (qRow && qRow.dimension_1_social !== null) || (localAnswers && (localAnswers.personalityChoice || Object.keys(localAnswers.scaleAnswers || {}).length > 0));
+      if (!activeProfile || !activeProfile.onboarding_completed || !activeProfile.quiz_completed) {
+        const cachedDraft = getSignupDraft();
+        const fallbackFirstName = activeProfile?.first_name || cachedDraft.first_name || (user.email ? user.email.split("@")[0] : "Friend");
+        const fallbackUserType = activeProfile?.user_type || cachedDraft.user_type || "solo";
 
-          if (hasQuizData) {
-            p.quiz_completed = true;
-            p.onboarding_completed = true;
-            await supabase.from("profiles").update({ quiz_completed: true, onboarding_completed: true }).eq("id", user.id);
-            if (!qRow || qRow.dimension_1_social === null) {
-              await ensureUserQuizResponse(user.id);
-            }
-          }
+        const { data: healed } = await supabase
+          .from("profiles")
+          .upsert({
+            id: user.id,
+            email: user.email || undefined,
+            first_name: fallbackFirstName,
+            user_type: fallbackUserType,
+            quiz_completed: true,
+            onboarding_completed: true,
+            updated_at: new Date().toISOString()
+          })
+          .select("first_name, user_type, location_city, quality_score, quiz_completed, onboarding_completed, matching_paused, is_suspended")
+          .maybeSingle();
+
+        if (healed) {
+          activeProfile = healed;
+        } else {
+          activeProfile = {
+            first_name: fallbackFirstName,
+            user_type: fallbackUserType,
+            location_city: activeProfile?.location_city || "Milton, ON",
+            quality_score: activeProfile?.quality_score || 100,
+            quiz_completed: true,
+            onboarding_completed: true,
+            matching_paused: false,
+            is_suspended: false
+          };
         }
       }
 
-      if (!p?.onboarding_completed && !p?.quiz_completed) {
-        setRedirect("/onboarding/user-type");
-        setChecked(true);
-        return;
-      }
-
-      setProfile(p as ProfileData);
+      setProfile(activeProfile as ProfileData);
 
       // Get couple partner for broader match query
-      const partnerId = p.user_type === "couple" ? await getCouplePartnerId(user.id) : null;
+      const partnerId = activeProfile.user_type === "couple" ? await getCouplePartnerId(user.id) : null;
       const matchFilter = partnerId
         ? `user_a_id.eq.${user.id},user_b_id.eq.${user.id},user_a_id.eq.${partnerId},user_b_id.eq.${partnerId}`
         : `user_a_id.eq.${user.id},user_b_id.eq.${user.id}`;
@@ -283,7 +292,7 @@ const Dashboard = () => {
         supabase.from("matches").select("id, status, user_a_id, user_b_id, user_a_action, user_b_action, compatibility_score").or(matchFilter),
         supabase.from("pulse_feedback").select("id, met_in_person").eq("user_id", user.id),
         supabase.from("referrals").select("successful_signups, priority_boost_expiry").eq("referrer_id", user.id).maybeSingle(),
-        p.user_type === "couple"
+        activeProfile.user_type === "couple"
           ? supabase.from("couples").select("id, partner_a_id, partner_b_id, both_verified, invite_code").or(`partner_a_id.eq.${user.id},partner_b_id.eq.${user.id}`).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
@@ -355,7 +364,7 @@ const Dashboard = () => {
       });
 
       // Couple info
-      if (p.user_type === "couple") {
+      if (activeProfile.user_type === "couple") {
         let coupleRecord = coupleRes.data;
         if (!coupleRecord) {
           const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";

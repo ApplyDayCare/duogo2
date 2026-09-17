@@ -67,8 +67,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
 
-      if (data) {
-        let quizDone = Boolean(data.quiz_completed);
+      let resolvedData = data as UserProfile | null;
+
+      if (!resolvedData && userId) {
+        // Automatically create missing profile row for this authenticated user so they are never stranded
+        const { data: { session: activeSession } } = await supabase.auth.getSession();
+        const fallbackName = activeSession?.user?.email ? activeSession.user.email.split("@")[0] : "Member";
+        const { data: createdData } = await supabase
+          .from("profiles")
+          .upsert({
+            id: userId,
+            email: activeSession?.user?.email || "",
+            first_name: fallbackName,
+            user_type: "solo",
+            quiz_completed: true,
+            onboarding_completed: true,
+            updated_at: new Date().toISOString()
+          })
+          .select("id, email, first_name, user_type, location_city, age_group, gender, quality_score, quiz_completed, onboarding_completed, privacy_consented, matching_paused, is_suspended, avatar_url")
+          .maybeSingle();
+
+        if (createdData) {
+          resolvedData = createdData as UserProfile;
+        } else {
+          resolvedData = {
+            id: userId,
+            email: activeSession?.user?.email || "",
+            first_name: fallbackName,
+            user_type: "solo",
+            quiz_completed: true,
+            onboarding_completed: true,
+          };
+        }
+      }
+
+      if (resolvedData) {
+        let quizDone = Boolean(resolvedData.quiz_completed);
         if (!quizDone) {
           const { data: qRow } = await supabase
             .from("quiz_responses")
@@ -78,76 +112,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           if (qRow && qRow.dimension_1_social !== null) {
             quizDone = true;
-            (data as UserProfile).quiz_completed = true;
+            resolvedData.quiz_completed = true;
             supabase.from("profiles").update({ quiz_completed: true }).eq("id", userId).then();
           } else {
             const saved = getSavedQuizAnswers(userId);
             if (saved && (saved.personalityChoice || Object.keys(saved.scaleAnswers || {}).length > 0)) {
               quizDone = true;
-              (data as UserProfile).quiz_completed = true;
+              resolvedData.quiz_completed = true;
               ensureUserQuizResponse(userId).then();
             }
           }
         }
 
-        if (!data.onboarding_completed && data.first_name && quizDone) {
-          (data as UserProfile).onboarding_completed = true;
+        if (!resolvedData.onboarding_completed) {
+          resolvedData.onboarding_completed = true;
           supabase.from("profiles").update({ onboarding_completed: true }).eq("id", userId).then();
         }
 
         // Auto-heal existing user profiles so logged-in users never get forced into signup flow again
-        if (data) {
-          let updatedNeeded = false;
-          const patch: Record<string, any> = {};
+        let updatedNeeded = false;
+        const patch: Record<string, any> = {};
 
-          if (!data.first_name || data.first_name.trim().length === 0) {
-            const fallbackName = data.email?.split("@")[0] || "Member";
-            (data as UserProfile).first_name = fallbackName;
-            patch.first_name = fallbackName;
-            updatedNeeded = true;
-          }
-          if (!data.user_type) {
-            (data as UserProfile).user_type = "solo";
-            patch.user_type = "solo";
-            updatedNeeded = true;
-          }
-          if (!data.onboarding_completed) {
-            (data as UserProfile).onboarding_completed = true;
-            patch.onboarding_completed = true;
-            updatedNeeded = true;
-          }
-          if (!data.quiz_completed) {
-            (data as UserProfile).quiz_completed = true;
-            patch.quiz_completed = true;
-            updatedNeeded = true;
-          }
+        if (!resolvedData.first_name || resolvedData.first_name.trim().length === 0) {
+          const fallbackName = resolvedData.email?.split("@")[0] || "Member";
+          resolvedData.first_name = fallbackName;
+          patch.first_name = fallbackName;
+          updatedNeeded = true;
+        }
+        if (!resolvedData.user_type) {
+          resolvedData.user_type = "solo";
+          patch.user_type = "solo";
+          updatedNeeded = true;
+        }
+        if (!resolvedData.onboarding_completed) {
+          resolvedData.onboarding_completed = true;
+          patch.onboarding_completed = true;
+          updatedNeeded = true;
+        }
+        if (!resolvedData.quiz_completed) {
+          resolvedData.quiz_completed = true;
+          patch.quiz_completed = true;
+          updatedNeeded = true;
+        }
 
-          if (updatedNeeded) {
-            supabase.from("profiles").update(patch).eq("id", userId).then();
-          }
+        if (updatedNeeded) {
+          supabase.from("profiles").update(patch).eq("id", userId).then();
         }
       }
 
       console.info("[AuthGuard:ProfileLoaded]", {
         userId,
-        email: data?.email,
-        firstName: data?.first_name,
-        userType: data?.user_type,
-        onboardingCompleted: data?.onboarding_completed,
-        quizCompleted: data?.quiz_completed,
-        privacyConsented: data?.privacy_consented,
+        email: resolvedData?.email,
+        firstName: resolvedData?.first_name,
+        userType: resolvedData?.user_type,
+        onboardingCompleted: resolvedData?.onboarding_completed,
+        quizCompleted: resolvedData?.quiz_completed,
+        privacyConsented: resolvedData?.privacy_consented,
       });
 
-      if (data) {
-        saveOfflineProfile(userId, data);
-        // Cross-device draft cleanup: if profile is completed, clear stale local signup drafts
-        if (data.onboarding_completed || (data.first_name && data.quiz_completed)) {
-          clearSignupDraft();
-        }
+      if (resolvedData) {
+        saveOfflineProfile(userId, resolvedData);
+        clearSignupDraft();
       }
 
-      setProfile(data as UserProfile);
-      return data as UserProfile;
+      setProfile(resolvedData);
+      return resolvedData;
     } catch (err) {
       console.warn("Exception fetching profile in AuthContext, checking offline cache:", err);
       // Seamless offline recovery: check IndexedDB for stored profile
