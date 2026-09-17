@@ -15,7 +15,13 @@ app.use(express.json());
 
 // Anti-caching middleware for dev and preview to ensure browsers always load fresh code
 app.use((req, res, next) => {
-  if (req.path === "/" || req.path.endsWith(".html") || req.path === "/sw.js" || req.path.startsWith("/src/")) {
+  // Prevent caching for all HTML, JS, CSS, SW, and API/navigation routes
+  if (
+    !req.path.startsWith("/assets/") ||
+    req.path.endsWith(".html") ||
+    req.path === "/sw.js" ||
+    req.headers.accept?.includes("text/html")
+  ) {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");

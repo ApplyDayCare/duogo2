@@ -48,8 +48,20 @@
       // Force unregister stale service workers and purge all cached assets
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(regs) {
-          for (var i = 0; i < regs.length; i++) {
-            regs[i].unregister();
+          if (regs.length > 0) {
+            for (var i = 0; i < regs.length; i++) {
+              regs[i].unregister();
+            }
+            if ('caches' in window) {
+              caches.keys().then(function(keys) {
+                Promise.all(keys.map(function(k) { return caches.delete(k); })).then(function() {
+                  console.log('[Cache] Purged stale service worker and caches. Reloading fresh.');
+                  window.location.reload();
+                });
+              });
+            } else {
+              window.location.reload();
+            }
           }
         });
       }
