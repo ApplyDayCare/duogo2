@@ -25,26 +25,32 @@ export class ErrorBoundary extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error in component tree:", error, errorInfo);
 
-    // If chunk loading failed (e.g. after a new deployment or network drop), attempt reload once
+    // If chunk loading failed (e.g. after a new deployment or network drop), attempt reload once with timestamp debounce
+    const msg = error.message || "";
     if (
-      error.message?.includes("dynamically imported module") ||
-      error.message?.includes("Failed to fetch dynamically imported") ||
-      error.message?.includes("Loading chunk")
+      msg.includes("dynamically imported module") ||
+      msg.includes("Failed to fetch dynamically imported") ||
+      msg.includes("Loading chunk") ||
+      msg.includes("Failed to load module script")
     ) {
-      const hasReloaded = sessionStorage.getItem("duogo_chunk_reload_attempted");
-      if (!hasReloaded) {
-        sessionStorage.setItem("duogo_chunk_reload_attempted", "true");
+      const key = "duogo_chunk_reload_timestamp";
+      const lastReload = sessionStorage.getItem(key);
+      const now = Date.now();
+      if (!lastReload || now - Number(lastReload) > 8000) {
+        sessionStorage.setItem(key, String(now));
         window.location.reload();
       }
     }
   }
 
   private handleReload = () => {
+    sessionStorage.removeItem("duogo_chunk_reload_timestamp");
     sessionStorage.removeItem("duogo_chunk_reload_attempted");
     window.location.reload();
   };
 
   private handleGoHome = () => {
+    sessionStorage.removeItem("duogo_chunk_reload_timestamp");
     sessionStorage.removeItem("duogo_chunk_reload_attempted");
     window.location.href = "/dashboard";
   };
@@ -55,6 +61,13 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
+      const errorMsg = this.state.error?.message || "";
+      const isChunkError =
+        errorMsg.includes("dynamically imported module") ||
+        errorMsg.includes("Failed to fetch dynamically imported") ||
+        errorMsg.includes("Loading chunk") ||
+        errorMsg.includes("Failed to load module script");
+
       return (
         <div className="flex min-h-[70vh] w-full flex-col items-center justify-center p-6 text-center font-sans bg-[#FAF7F2]">
           <div className="mx-auto max-w-sm rounded-3xl border border-[#EBE3D5] bg-white p-6 sm:p-8 shadow-soft space-y-4">
@@ -64,10 +77,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <div className="space-y-1.5">
               <h2 className="font-serif text-xl font-bold text-[#181513]">
-                Something went wrong
+                {isChunkError ? "App Update Available" : "Something went wrong"}
               </h2>
               <p className="text-xs text-[#666059] leading-relaxed">
-                We encountered an unexpected glitch loading this view. You can refresh or return to your dashboard.
+                {isChunkError
+                  ? "A new update for duogo was just deployed. Please reload to load the latest features and fixes."
+                  : "We encountered an unexpected glitch loading this view. You can refresh or return to your dashboard."}
               </p>
             </div>
 
@@ -89,7 +104,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 className="flex-1 rounded-full border-[#EBE3D5] text-xs font-semibold h-10 gap-1.5 hover:bg-[#FAF7F2]"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
-                Refresh Page
+                {isChunkError ? "Load Update" : "Refresh Page"}
               </Button>
               <Button
                 onClick={this.handleGoHome}
