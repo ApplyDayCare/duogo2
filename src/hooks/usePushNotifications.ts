@@ -263,11 +263,16 @@ export function usePushNotifications(): PushNotificationState {
         if (swRegRef.current && "pushManager" in swRegRef.current) {
           const sub = await swRegRef.current.pushManager.getSubscription();
           if (sub) {
+            const { data: { session } } = await supabase.auth.getSession();
             const resp = await fetch("/api/push/dispatch", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+              },
               body: JSON.stringify({
                 subscription: sub.toJSON(),
+                userId: user?.id,
                 title: "🎉 duogo: It's a Mutual Match!",
                 body: "You and Alex & Jordan both connected! Tap to plan your double date.",
                 url: "/matches",

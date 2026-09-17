@@ -15,28 +15,27 @@ const app = express();
 app.use(express.json());
 
 // Configure Web Push VAPID
-const VAPID_PUBLIC_KEY =
-  process.env.VAPID_PUBLIC_KEY ||
-  "BFenrfWblKrdVKBkKrxLgsEVJ51So2YQ4GomdjpusNrHKj3E5AVKWEKjnKXiR2cxzvdOQ49q7Qth8DfBPt0Ec7o";
-const VAPID_PRIVATE_KEY =
-  process.env.VAPID_PRIVATE_KEY || "EthUTKhFS6weuz64Xc-zUrHXrGVk1_AUkzwdtRvySis";
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:hello@duogo.space";
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || "";
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:admin@duogo.app";
 
-try {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-} catch (vapidErr) {
-  console.warn("Failed to configure WebPush VAPID:", vapidErr);
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  } catch (vapidErr) {
+    console.warn("Failed to configure WebPush VAPID:", vapidErr);
+  }
 }
 
 // Supabase client for authentication verification
 const supabaseUrl =
   process.env.SUPABASE_URL ||
   process.env.VITE_SUPABASE_URL ||
-  "https://hdbobqzqsmmsnzbjtzbn.supabase.co";
+  "";
 const supabaseKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.VITE_SUPABASE_ANON_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkYm9icXpxc21tc256Ymp0emJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTY3NDQsImV4cCI6MjA4NzY5Mjc0NH0.U_lS4-1zpd36SR4xxGDdXSBfM3408wv4pRbfDGUbQ4k";
+  "";
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -306,6 +305,55 @@ app.post("/api/push/dispatch", async (req, res) => {
       return res.status(400).json({ error: "Must provide either subscription object or userId/user_id" });
     }
 
+    // Authenticate request token
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized: Missing Authorization header" });
+    }
+
+    const supabaseUrl =
+      process.env.SUPABASE_URL ||
+      process.env.VITE_SUPABASE_URL ||
+      "";
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      "";
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Verify caller user JWT
+    const { data: { user: callerUser }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !callerUser) {
+      return res.status(401).json({ error: "Unauthorized: Invalid or expired token" });
+    }
+
+    // Authorize caller for targetUserId
+    if (targetUserId && callerUser.id !== targetUserId) {
+      const [{ data: matchRecord }, { data: coupleRecord }] = await Promise.all([
+        supabase
+          .from("matches")
+          .select("id")
+          .or(
+            `and(user_a_id.eq.${callerUser.id},user_b_id.eq.${targetUserId}),and(user_a_id.eq.${targetUserId},user_b_id.eq.${callerUser.id})`
+          )
+          .maybeSingle(),
+        supabase
+          .from("couples")
+          .select("id")
+          .or(
+            `and(partner_a_id.eq.${callerUser.id},partner_b_id.eq.${targetUserId}),and(partner_a_id.eq.${targetUserId},partner_b_id.eq.${callerUser.id})`
+          )
+          .maybeSingle(),
+      ]);
+
+      if (!matchRecord && !coupleRecord) {
+        return res.status(403).json({ error: "Forbidden: You are not authorized to send push notifications to this user" });
+      }
+    }
+
     const payload = JSON.stringify({
       title,
       body: body || "",
@@ -335,11 +383,11 @@ app.post("/api/push/dispatch", async (req, res) => {
         const supabaseUrl =
           process.env.SUPABASE_URL ||
           process.env.VITE_SUPABASE_URL ||
-          "https://hdbobqzqsmmsnzbjtzbn.supabase.co";
+          "";
         const supabaseKey =
           process.env.SUPABASE_SERVICE_ROLE_KEY ||
           process.env.VITE_SUPABASE_ANON_KEY ||
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkYm9icXpxc21tc256Ymp0emJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTY3NDQsImV4cCI6MjA4NzY5Mjc0NH0.U_lS4-1zpd36SR4xxGDdXSBfM3408wv4pRbfDGUbQ4k";
+          "";
 
         const supabase = createClient(supabaseUrl, supabaseKey);
         const { data: subs, error } = await supabase
@@ -402,11 +450,11 @@ app.post("/api/email/request-notification", async (req, res) => {
     const supabaseUrl =
       process.env.SUPABASE_URL ||
       process.env.VITE_SUPABASE_URL ||
-      "https://hdbobqzqsmmsnzbjtzbn.supabase.co";
+      "";
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY ||
       process.env.VITE_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkYm9icXpxc21tc256Ymp0emJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTY3NDQsImV4cCI6MjA4NzY5Mjc0NH0.U_lS4-1zpd36SR4xxGDdXSBfM3408wv4pRbfDGUbQ4k";
+      "";
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 

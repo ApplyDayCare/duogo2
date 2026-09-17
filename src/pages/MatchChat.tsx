@@ -393,32 +393,41 @@ const MatchChat = () => {
       const senderName = (await supabase.from("profiles").select("first_name").eq("id", user.id).single()).data?.first_name || "Someone";
       const preview = trimmed.length > 50 ? trimmed.slice(0, 47) + "…" : trimmed;
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       for (const recipientId of recipientIds) {
-        supabase.functions
-          .invoke("send-push", {
-            body: {
+        if (token) {
+          supabase.functions
+            .invoke("send-push", {
+              body: {
+                userId: recipientId,
+                user_id: recipientId,
+                title: `${senderName} sent a message`,
+                body: preview,
+                url: `/match/${matchId}/chat`,
+                type: "chat_message",
+              },
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            .catch(() => {});
+
+          fetch("/api/push/dispatch", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
               userId: recipientId,
-              user_id: recipientId,
               title: `${senderName} sent a message`,
               body: preview,
               url: `/match/${matchId}/chat`,
               type: "chat_message",
-            },
-          })
-          .catch(() => {});
-
-        fetch("/api/push/dispatch", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: recipientId,
-            title: `${senderName} sent a message`,
-            body: preview,
-            url: `/match/${matchId}/chat`,
-            type: "chat_message",
-            tag: `chat-${matchId}`,
-          }),
-        }).catch(() => {});
+              tag: `chat-${matchId}`,
+            }),
+          }).catch(() => {});
+        }
       }
     }
   }

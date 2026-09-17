@@ -38,7 +38,57 @@ serve(async (req) => {
       });
     }
 
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized: Missing Authorization header" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // 1. Authenticate caller using JWT
+    const { data: { user: callerUser }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !callerUser) {
+      return new Response(JSON.stringify({ error: "Unauthorized: Invalid or expired authentication token" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // 2. Authorize caller for targetUserId
+    // Caller can send to self, or to matched/partner user
+    if (callerUser.id !== targetUserId) {
+      const [{ data: matchRecord }, { data: coupleRecord }] = await Promise.all([
+        supabase
+          .from("matches")
+          .select("id")
+          .or(
+            `and(user_a_id.eq.${callerUser.id},user_b_id.eq.${targetUserId}),and(user_a_id.eq.${targetUserId},user_b_id.eq.${callerUser.id})`
+          )
+          .maybeSingle(),
+        supabase
+          .from("couples")
+          .select("id")
+          .or(
+            `and(partner_a_id.eq.${callerUser.id},partner_b_id.eq.${targetUserId}),and(partner_a_id.eq.${targetUserId},partner_b_id.eq.${callerUser.id})`
+          )
+          .maybeSingle(),
+      ]);
+
+      if (!matchRecord && !coupleRecord) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden: You are not authorized to send push notifications to this user" }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
 
     // Fetch all active device push subscriptions for target user
     const { data: subscriptions, error } = await supabase

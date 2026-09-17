@@ -890,7 +890,10 @@ export async function executeMatchAction(
     // 4. Also trigger backend web-push dispatcher fallback
     fetch("/api/push/dispatch", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token}`,
+      },
       body: JSON.stringify({
         userId: otherUserId,
         title: "It's a Match! 🎉",
@@ -934,7 +937,10 @@ export async function executeMatchAction(
     // 3. Also trigger backend web-push dispatcher fallback
     fetch("/api/push/dispatch", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token}`,
+      },
       body: JSON.stringify({
         userId: otherUserId,
         title: "New Match Request! ✨",
