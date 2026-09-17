@@ -25,14 +25,10 @@ const AuthCallback = () => {
 
         const isComplete = Boolean(
           profile &&
-          profile.onboarding_completed &&
-          profile.quiz_completed &&
-          profile.first_name &&
-          profile.first_name.trim().length > 0 &&
-          (profile.user_type === "solo" || profile.user_type === "couple")
+          (profile.onboarding_completed || profile.first_name || profile.quiz_completed)
         );
 
-        if (!isComplete) {
+        if (!isComplete && !profile?.first_name) {
           if (!effectiveUserType) {
             navigate("/onboarding/user-type", { replace: true });
           } else if (!effectiveFirstName) {
@@ -40,7 +36,7 @@ const AuthCallback = () => {
           } else if (!effectiveQuizCompleted) {
             navigate("/quiz", { replace: true });
           } else {
-            navigate("/onboarding/privacy-consent", { replace: true });
+            navigate("/dashboard", { replace: true });
           }
         } else {
           clearSignupDraft();

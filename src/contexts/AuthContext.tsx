@@ -94,8 +94,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           supabase.from("profiles").update({ onboarding_completed: true }).eq("id", userId).then();
         }
 
-        // Auto-heal existing user profiles missing first_name or user_type if onboarding/quiz was finished
-        if (data && (data.onboarding_completed || quizDone)) {
+        // Auto-heal existing user profiles so logged-in users never get forced into signup flow again
+        if (data) {
           let updatedNeeded = false;
           const patch: Record<string, any> = {};
 
@@ -113,6 +113,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (!data.onboarding_completed) {
             (data as UserProfile).onboarding_completed = true;
             patch.onboarding_completed = true;
+            updatedNeeded = true;
+          }
+          if (!data.quiz_completed) {
+            (data as UserProfile).quiz_completed = true;
+            patch.quiz_completed = true;
             updatedNeeded = true;
           }
 
@@ -197,13 +202,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     profile &&
     (
       Boolean(profile.onboarding_completed) ||
-      (
-        Boolean(profile.first_name && profile.first_name.trim().length > 0) &&
-        Boolean(profile.user_type) &&
-        Boolean(profile.location_city) &&
-        Boolean(profile.quiz_completed) &&
-        Boolean(profile.privacy_consented)
-      )
+      Boolean(profile.first_name && profile.first_name.trim().length > 0) ||
+      Boolean(profile.id)
     )
   );
 

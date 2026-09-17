@@ -78,13 +78,8 @@ export default function Landing() {
   };
 
   const getLoggedInDestination = useCallback(() => {
-    if (!isProfileComplete) {
-      if (!profile?.user_type) return "/onboarding/user-type";
-      if (!profile?.first_name) {
-        return profile?.user_type === "couple" ? "/onboarding/couple-setup" : "/onboarding/profile";
-      }
-      if (!profile?.quiz_completed) return "/quiz";
-      return "/onboarding/privacy-consent";
+    if (profile || isProfileComplete) {
+      return "/dashboard";
     }
     return "/dashboard";
   }, [isProfileComplete, profile]);

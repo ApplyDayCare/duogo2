@@ -38,7 +38,7 @@ const AppLayout = () => {
   const { signOut, user } = useAuth();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const isChatRoute = pathname.includes("/chat");
+  const isSingleChatRoom = pathname !== "/chats" && pathname.includes("/chat");
 
   const { totalChatAlerts, incomingRequestsCount, totalUnreadMessages } = useChatSummary();
   usePushNotifications();
@@ -107,8 +107,8 @@ const AppLayout = () => {
   };
 
   if (isMobile) {
-    // If in chat, give full-screen native app viewport without double header or tab bar
-    if (isChatRoute) {
+    // If in single active chat room, give full-screen native app viewport without double header or tab bar
+    if (isSingleChatRoom) {
       return (
         <div className="flex h-[100dvh] w-full flex-col bg-[#FAF7F2] font-sans text-[#181513] overflow-hidden fixed inset-0">
           <main className="flex-1 h-full overflow-hidden relative">
@@ -339,7 +339,7 @@ const AppLayout = () => {
         </div>
       </aside>
 
-      <main className={cn("flex-1", isChatRoute ? "h-screen overflow-hidden" : "h-screen overflow-y-auto")}>
+      <main className={cn("flex-1", isSingleChatRoom ? "h-screen overflow-hidden" : "h-screen overflow-y-auto")}>
         <ErrorBoundary>
           <Outlet />
         </ErrorBoundary>
