@@ -25,9 +25,6 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-const DEFAULT_VAPID_PUBLIC_KEY =
-  "BFenrfWblKrdVKBkKrxLgsEVJ51So2YQ4GomdjpusNrHKj3E5AVKWEKjnKXiR2cxzvdOQ49q7Qth8DfBPt0Ec7o";
-
 export function usePushNotifications(): PushNotificationState {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -36,7 +33,7 @@ export function usePushNotifications(): PushNotificationState {
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
   const swRegRef = useRef<ServiceWorkerRegistration | null>(null);
 
-  const vapidPublicKey = (import.meta.env.VITE_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY) as string;
+  const vapidPublicKey = (import.meta.env.VITE_VAPID_PUBLIC_KEY || "") as string;
   const hasVapidKey = Boolean(vapidPublicKey && vapidPublicKey.trim().length > 0);
 
   // Sync PushSubscription to Supabase
