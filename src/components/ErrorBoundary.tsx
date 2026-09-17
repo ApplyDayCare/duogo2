@@ -71,6 +71,17 @@ export class ErrorBoundary extends Component<Props, State> {
               </p>
             </div>
 
+            {this.state.error && (
+              <details className="text-left bg-[#FAF7F2] p-2.5 rounded-xl border border-[#EBE3D5] text-[11px] text-[#666059] cursor-pointer">
+                <summary className="font-semibold text-[#FF5436] hover:underline">
+                  Error Details ({this.state.error.name || "Error"})
+                </summary>
+                <div className="mt-2 font-mono text-[10px] text-[#4A453F] break-words whitespace-pre-wrap max-h-32 overflow-y-auto">
+                  {this.state.error.message || "Unknown error occurred"}
+                </div>
+              </details>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
               <Button
                 variant="outline"

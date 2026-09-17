@@ -10,12 +10,12 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import Notifications from "./pages/Notifications";
 
 // Lazy loaded page components
 const Landing = lazy(() => import("./pages/Landing"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Notifications = lazy(() => import("./pages/Notifications"));
 const AgeGroup = lazy(() => import("./pages/onboarding/AgeGroup"));
 const Gender = lazy(() => import("./pages/onboarding/Gender"));
 const Kids = lazy(() => import("./pages/onboarding/Kids"));

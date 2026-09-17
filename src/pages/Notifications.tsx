@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -17,6 +16,7 @@ import {
   Heart,
   CheckCheck,
   RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -29,6 +29,54 @@ interface NotificationItem {
   type?: "match" | "message" | "mutual" | "system";
 }
 
+// Safely extract string message from any raw payload
+function extractMessage(raw: unknown): string {
+  if (typeof raw === "string" && raw.trim().length > 0) {
+    return raw;
+  }
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    const extracted = obj.message || obj.text || obj.title || obj.body;
+    if (typeof extracted === "string" && extracted.trim().length > 0) {
+      return extracted;
+    }
+    try {
+      return JSON.stringify(raw);
+    } catch {
+      return "New notification";
+    }
+  }
+  if (raw != null) {
+    return String(raw);
+  }
+  return "New notification";
+}
+
+// Safely retrieve read synthesized notification IDs from localStorage
+function getReadSynthesizedIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem("duogo_read_synthesized_notifs");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+// Safely persist read synthesized notification IDs to localStorage
+function saveReadSynthesizedIds(ids: string[]): void {
+  if (typeof window === "undefined" || ids.length === 0) return;
+  try {
+    const existing = getReadSynthesizedIds();
+    const merged = Array.from(new Set([...existing, ...ids]));
+    localStorage.setItem("duogo_read_synthesized_notifs", JSON.stringify(merged));
+  } catch {
+    // Ignore storage quota or security errors
+  }
+}
+
 export const Notifications = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -36,17 +84,16 @@ export const Notifications = () => {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
-  const { requestPermission, permission: pushPermissionHook } = usePushNotifications();
-
-  // Push notification state (safely accessed without throwing)
+  // Push notification state (safely checked directly from browser APIs)
   const [pushSupported, setPushSupported] = useState(false);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>("default");
   const [enablingPush, setEnablingPush] = useState(false);
 
-  // Check push notification support safely
+  // Check push notification support safely without crashing
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator) {
       setPushSupported(true);
@@ -58,16 +105,14 @@ export const Notifications = () => {
     } else {
       setPushSupported(false);
     }
-  }, [pushPermissionHook]);
+  }, []);
 
   const requestPushPermission = async () => {
     if (!pushSupported || typeof window === "undefined" || !("Notification" in window)) return;
     setEnablingPush(true);
     try {
-      await requestPermission();
-      if (typeof Notification !== "undefined") {
-        setPushPermission(Notification.permission);
-      }
+      const perm = await Notification.requestPermission();
+      setPushPermission(perm);
     } catch (err) {
       console.warn("Could not request notification permission:", err);
     } finally {
@@ -105,10 +150,12 @@ export const Notifications = () => {
 
   // Fetch notifications and synthesize real-time match events safely
   const fetchNotifications = useCallback(async () => {
-    if (!user) {
+    if (!user || !user.id) {
       setLoading(false);
       return;
     }
+
+    setFetchError(null);
 
     try {
       // 1. Fetch from notifications table (guarded against missing table or RLS restrictions)
@@ -119,13 +166,13 @@ export const Notifications = () => {
         .order("created_at", { ascending: false })
         .limit(50);
 
-      // 2. Fetch pending & mutual matches for dynamic alerts
+      // 2. Fetch pending & mutual matches for dynamic alerts (using existing valid columns)
       const matchesPromise = supabase
         .from("matches")
-        .select("id, user_a_id, user_b_id, user_a_action, user_b_action, status, created_at, updated_at")
+        .select("id, user_a_id, user_b_id, user_a_action, user_b_action, status, created_at, revealed_at")
         .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
         .in("status", ["pending", "mutual"])
-        .order("updated_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(30);
 
       const [notifsRes, matchesRes] = await Promise.allSettled([notifsPromise, matchesPromise]);
@@ -133,39 +180,37 @@ export const Notifications = () => {
       const notifs: NotificationItem[] = [];
       const seenIds = new Set<string>();
 
-      if (notifsRes.status === "fulfilled" && notifsRes.value.data) {
+      if (notifsRes.status === "fulfilled" && Array.isArray(notifsRes.value.data)) {
         for (const item of notifsRes.value.data) {
-          if (seenIds.has(item.id)) continue;
+          if (!item || !item.id || seenIds.has(item.id)) continue;
           seenIds.add(item.id);
 
+          const safeMsg = extractMessage(item.message);
+          const lowerMsg = safeMsg.toLowerCase();
           let type: NotificationItem["type"] = "system";
-          const msg = (item.message || "").toLowerCase();
-          if (msg.includes("match") || msg.includes("connect")) {
-            type = msg.includes("mutual") ? "mutual" : "match";
-          } else if (msg.includes("message") || msg.includes("chat")) {
+          if (lowerMsg.includes("match") || lowerMsg.includes("connect")) {
+            type = lowerMsg.includes("mutual") ? "mutual" : "match";
+          } else if (lowerMsg.includes("message") || lowerMsg.includes("chat")) {
             type = "message";
           }
+
           notifs.push({
-            id: item.id,
-            message: item.message,
+            id: String(item.id),
+            message: safeMsg,
             read: Boolean(item.read),
-            created_at: item.created_at || new Date().toISOString(),
-            link: item.link,
+            created_at: typeof item.created_at === "string" ? item.created_at : new Date().toISOString(),
+            link: typeof item.link === "string" && item.link.trim().length > 0 ? item.link : null,
             type,
           });
         }
       }
 
       // Synthesize incoming requests and mutual matches if not already present
-      if (matchesRes.status === "fulfilled" && matchesRes.value.data) {
-        let readSynthesized: string[] = [];
-        try {
-          readSynthesized = JSON.parse(localStorage.getItem("duogo_read_synthesized_notifs") || "[]");
-        } catch {
-          // ignore
-        }
+      if (matchesRes.status === "fulfilled" && Array.isArray(matchesRes.value.data)) {
+        const readSynthesized = getReadSynthesizedIds();
 
         for (const m of matchesRes.value.data) {
+          if (!m || !m.id) continue;
           const isA = m.user_a_id === user.id;
           const hasIncoming = isA
             ? m.user_b_action === "accept" && !m.user_a_action
@@ -174,7 +219,7 @@ export const Notifications = () => {
           if (m.status === "pending" && hasIncoming) {
             const reqId = `match-req-${m.id}`;
             const exists = notifs.some(
-              (n) => n.id === reqId || (n.link && n.link.includes(m.id))
+              (n) => n.id === reqId || (typeof n.link === "string" && n.link.includes(m.id))
             );
             if (!exists) {
               notifs.unshift({
@@ -190,14 +235,14 @@ export const Notifications = () => {
             const mutualId = `match-mutual-${m.id}`;
             const matchLink = `/match-reveal/${m.id}`;
             const exists = notifs.some(
-              (n) => n.id === mutualId || (n.link && n.link.includes(m.id))
+              (n) => n.id === mutualId || (typeof n.link === "string" && n.link.includes(m.id))
             );
             if (!exists) {
               notifs.unshift({
                 id: mutualId,
                 message: "🎉 It's a Mutual Match! You both accepted each other.",
                 read: readSynthesized.includes(mutualId),
-                created_at: m.updated_at || m.created_at || new Date().toISOString(),
+                created_at: m.revealed_at || m.created_at || new Date().toISOString(),
                 link: matchLink,
                 type: "mutual",
               });
@@ -208,14 +253,15 @@ export const Notifications = () => {
 
       // Sort by created_at descending safely
       notifs.sort((a, b) => {
-        const timeA = new Date(a.created_at).getTime() || 0;
-        const timeB = new Date(b.created_at).getTime() || 0;
-        return timeB - timeA;
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
       });
 
       setNotifications(notifs);
     } catch (err) {
       console.warn("Error fetching notifications:", err);
+      setFetchError("Unable to load latest notifications.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -227,9 +273,9 @@ export const Notifications = () => {
     let isMounted = true;
     fetchNotifications();
 
-    if (user) {
+    if (user && user.id) {
       const channel = supabase
-        .channel(`public:notifications:user=${user.id}`)
+        .channel(`notifications-page:${user.id}:${Date.now()}`)
         .on(
           "postgres_changes",
           {
@@ -239,7 +285,7 @@ export const Notifications = () => {
             filter: `user_id=eq.${user.id}`,
           },
           () => {
-            fetchNotifications();
+            if (isMounted) fetchNotifications();
           }
         )
         .subscribe();
@@ -261,26 +307,20 @@ export const Notifications = () => {
     };
   }, [fetchNotifications, user]);
 
-  // Mark single or all notifications as read
+  // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
-    if (!user) return;
+    if (!user || !user.id) return;
 
     // Immediately zero out the query cache unread count so the bell badge clears without latency
     queryClient.setQueryData(["unread-notifications", user.id], 0);
 
     // Persist synthesized notifications as read
-    try {
-      const synIds = notifications.filter((n) => n.id.startsWith("match-")).map((n) => n.id);
-      const existing = JSON.parse(localStorage.getItem("duogo_read_synthesized_notifs") || "[]");
-      localStorage.setItem(
-        "duogo_read_synthesized_notifs",
-        JSON.stringify(Array.from(new Set([...existing, ...synIds])))
-      );
-    } catch {
-      // ignore
-    }
+    const synIds = notifications
+      .filter((n) => n && typeof n.id === "string" && n.id.startsWith("match-"))
+      .map((n) => n.id);
+    saveReadSynthesizedIds(synIds);
 
     try {
       await supabase
@@ -296,13 +336,15 @@ export const Notifications = () => {
   }, [user, notifications, queryClient]);
 
   const handleNotificationClick = async (notif: NotificationItem) => {
+    if (!notif) return;
+
     if (!notif.read) {
       // Optimistically update notifications state for this specific item only
       setNotifications((prev) =>
         prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
       );
 
-      if (user) {
+      if (user && user.id) {
         // Optimistically decrement unread count
         queryClient.setQueryData(["unread-notifications", user.id], (old: number | undefined) =>
           Math.max(0, (old ?? 1) - 1)
@@ -321,20 +363,12 @@ export const Notifications = () => {
             console.warn("Error updating notification read status:", err);
           }
         } else {
-          try {
-            const existing = JSON.parse(localStorage.getItem("duogo_read_synthesized_notifs") || "[]");
-            if (!existing.includes(notif.id)) {
-              existing.push(notif.id);
-              localStorage.setItem("duogo_read_synthesized_notifs", JSON.stringify(existing));
-            }
-          } catch {
-            // ignore
-          }
+          saveReadSynthesizedIds([notif.id]);
         }
       }
     }
 
-    if (notif.link) {
+    if (typeof notif.link === "string" && notif.link.trim().length > 0) {
       navigate(notif.link);
     }
   };
@@ -342,13 +376,13 @@ export const Notifications = () => {
   // Filtered notifications
   const displayedNotifications = useMemo(() => {
     if (filter === "unread") {
-      return notifications.filter((n) => !n.read);
+      return notifications.filter((n) => n && !n.read);
     }
-    return notifications;
+    return notifications.filter((n) => n && typeof n.id === "string");
   }, [notifications, filter]);
 
   const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.read).length,
+    () => notifications.filter((n) => n && !n.read).length,
     [notifications]
   );
 
@@ -425,6 +459,24 @@ export const Notifications = () => {
           )}
         </div>
       </div>
+
+      {/* Inline Fetch Warning if Supabase failed */}
+      {fetchError && (
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-[#FFE2D6] bg-[#FFF5F2] px-4 py-3 text-xs text-[#888177]">
+          <div className="flex items-center gap-2 text-[#FF5436]">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{fetchError}</span>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => fetchNotifications()}
+            className="h-7 text-xs font-bold text-[#FF5436] hover:bg-[#FFE2D6] rounded-full px-2"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* Push Notification Opt-in Prompt (Non-intrusive) */}
       {pushSupported && pushPermission !== "granted" && (
@@ -567,7 +619,7 @@ export const Notifications = () => {
                         n.read ? "text-[#4A453F] font-medium" : "text-[#181513] font-bold"
                       )}
                     >
-                      {n.message}
+                      {typeof n.message === "string" ? n.message : extractMessage(n.message)}
                     </p>
                     {!n.read && (
                       <span className="h-2 w-2 rounded-full bg-[#FF5436] shrink-0 mt-1.5" />
