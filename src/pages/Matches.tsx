@@ -14,6 +14,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { DIMENSION_LABELS, getTopSharedVibes } from "@/lib/matchUtils";
+import { calculateDistanceKm } from "@/lib/postalCodeUtils";
 import { MatchesSkeleton } from "@/components/MatchesSkeleton";
 import { cn } from "@/lib/utils";
 import { MatchCardItem } from "@/components/MatchCard";

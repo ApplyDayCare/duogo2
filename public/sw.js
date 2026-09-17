@@ -1,18 +1,37 @@
+const CACHE_NAME = "duogo-pwa-v3";
+const OFFLINE_URL = "/offline.html";
+
 self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll([OFFLINE_URL, "/icon-192.png", "/icon-512.png", "/favicon.ico"]);
+    })
+  );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
-      .then(() => self.registration.unregister())
-      .then(() => self.clients.claim())
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
   );
 });
 
+// Network-first fetch handler satisfying Chromium PWA install criteria
 self.addEventListener("fetch", (event) => {
-  // Never serve from cache; always fetch directly from network
-  return;
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match(OFFLINE_URL).then((res) => res || Response.error());
+      })
+    );
+    return;
+  }
+  // For static assets or API requests, fetch from network directly
+  event.respondWith(fetch(event.request));
 });
 
 // Web Push handling

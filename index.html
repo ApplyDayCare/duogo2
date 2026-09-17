@@ -45,29 +45,16 @@
         console.log('[PWA] app was installed');
       });
 
-      // Force unregister stale service workers and purge all cached assets
+      // Register service worker to qualify for PWA installability and notifications
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(regs) {
-          if (regs.length > 0) {
-            for (var i = 0; i < regs.length; i++) {
-              regs[i].unregister();
-            }
-            if ('caches' in window) {
-              caches.keys().then(function(keys) {
-                Promise.all(keys.map(function(k) { return caches.delete(k); })).then(function() {
-                  console.log('[Cache] Purged stale service worker and caches. Reloading fresh.');
-                  window.location.reload();
-                });
-              });
-            } else {
-              window.location.reload();
-            }
-          }
-        });
-      }
-      if ('caches' in window) {
-        caches.keys().then(function(keys) {
-          keys.forEach(function(key) { caches.delete(key); });
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then(function(reg) {
+              console.log('[PWA] Service Worker registered with scope:', reg.scope);
+            })
+            .catch(function(err) {
+              console.warn('[PWA] Service Worker registration failed:', err);
+            });
         });
       }
     </script>
