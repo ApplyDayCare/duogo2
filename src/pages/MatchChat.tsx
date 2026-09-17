@@ -5,12 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Send, MessageCircle, Info, Sparkles, MapPin, Heart, Check, CheckCheck, ChevronDown, Keyboard } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Info, MapPin, Heart, Check, CheckCheck, ChevronDown, Keyboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
-import { ChatStartersPanel } from "@/components/ChatStartersPanel";
 import { MatchSidebarProfile } from "@/components/MatchSidebarProfile";
 import MatchActions from "@/components/MatchActions";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -39,7 +38,6 @@ const MatchChat = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
-  const [showIcebreakerCard, setShowIcebreakerCard] = useState(false);
   const [isOtherUserInChat, setIsOtherUserInChat] = useState(false);
   const [otherLastReadAt, setOtherLastReadAt] = useState<string | null>(() => {
     if (!matchId) return null;
@@ -445,19 +443,6 @@ const MatchChat = () => {
     }
   };
 
-  const handleSelectIcebreaker = (text: string, sendImmediately = false) => {
-    if (sendImmediately) {
-      sendMessage(text);
-    } else {
-      setInput(text);
-      if (inputRef.current) {
-        inputRef.current.focus();
-        inputRef.current.style.height = "auto";
-        inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + "px";
-      }
-    }
-  };
-
   const groupedMessages = messages.reduce<
     (Message & { showAvatar: boolean; showName: boolean; isLast: boolean })[]
   >((acc, msg, i) => {
@@ -564,26 +549,9 @@ const MatchChat = () => {
 
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             <Button
-              id="btn-header-icebreaker"
               variant="outline"
               size="sm"
-              className={cn(
-                "hidden md:inline-flex rounded-full h-7 px-2.5 text-xs font-semibold border-[#FFD5CC] transition-all",
-                showIcebreakerCard
-                  ? "bg-[#FF5436] text-white hover:bg-[#E03E22]"
-                  : "bg-[#FFF5F2] hover:bg-[#FFEAE3] text-[#FF5436]"
-              )}
-              onClick={() => setShowIcebreakerCard((prev) => !prev)}
-              title="Suggest a random lighthearted icebreaker question"
-            >
-              <Zap className="h-3 w-3 mr-1" />
-              <span>Icebreaker</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full h-7 px-2 text-[11px] font-bold border-[#FFD5CC] bg-[#FFF5F2] hover:bg-[#FFEAE3] text-[#FF5436] shrink-0"
+              className="rounded-full h-7 px-2.5 text-[11px] font-bold border-[#FFD5CC] bg-[#FFF5F2] hover:bg-[#FFEAE3] text-[#FF5436] shrink-0"
               onClick={() => navigate(`/match-reveal/${matchId}`)}
               title={`Compatibility score: ${displayScore}%`}
             >
@@ -660,26 +628,19 @@ const MatchChat = () => {
               <div className="space-y-1">
                 <h3 className="font-serif text-base sm:text-lg font-bold text-[#181513]">You're connected! 🎉</h3>
                 <p className="text-[11.5px] sm:text-xs text-[#666059] leading-relaxed max-w-xs mx-auto">
-                  Say hello or tap a conversation starter to break the ice!
+                  Say hello to get your conversation started!
                 </p>
               </div>
 
               <div className="flex flex-wrap justify-center gap-1.5 pt-1">
-                <Button
-                  id="btn-empty-state-icebreaker"
-                  onClick={() => setShowIcebreakerCard(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[#FF5436] hover:bg-[#E03E22] text-white font-bold text-xs h-7.5 px-3 shadow-2xs transition-all active:scale-95"
-                >
-                  <span>🎲 Roll Question</span>
-                </Button>
                 {QUICK_REPLIES.slice(0, 2).map(({ label, emoji }) => (
                   <button
                     key={label}
                     onClick={() => sendMessage(label)}
-                    className="inline-flex items-center gap-1 rounded-full border border-[#FFD5CC] bg-white px-2.5 py-1 text-xs font-semibold text-[#181513] shadow-2xs hover:bg-[#FFF5F2] hover:border-[#FF5436] transition-all active:scale-95"
+                    className="inline-flex items-center gap-1 rounded-full border border-[#FFD5CC] bg-white px-3 py-1 text-xs font-semibold text-[#181513] shadow-2xs hover:bg-[#FFF5F2] hover:border-[#FF5436] transition-all active:scale-95"
                   >
                     <span>{emoji}</span>
-                    <span className="truncate max-w-[140px]">{label}</span>
+                    <span className="truncate max-w-[160px]">{label}</span>
                   </button>
                 ))}
               </div>
@@ -808,44 +769,8 @@ const MatchChat = () => {
             </div>
           )}
 
-          {/* On-Demand Conversation Starters & Icebreaker Drawer */}
-          {showIcebreakerCard && (
-            <div className="max-w-3xl w-full mx-auto">
-              <ChatStartersPanel
-                matchName={headerName}
-                userName={myProfile?.first_name || "You"}
-                city={otherProfile?.location_city || undefined}
-                userType={otherProfile?.user_type || undefined}
-                onSelect={(text, sendImmediately) => {
-                  handleSelectIcebreaker(text, sendImmediately);
-                  setShowIcebreakerCard(false);
-                }}
-                onClose={() => setShowIcebreakerCard(false)}
-              />
-            </div>
-          )}
-
           {/* Bottom Input Field Bar */}
           <div className="p-2 sm:p-2.5 max-w-3xl mx-auto flex items-end gap-1.5 sm:gap-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]">
-            {/* Sleek Starters & Icebreaker Toggle Icon Button */}
-            <Button
-              id="btn-chat-icebreaker"
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => setShowIcebreakerCard((prev) => !prev)}
-              className={cn(
-                "h-9.5 w-9.5 sm:h-10 sm:w-10 rounded-xl shrink-0 flex items-center justify-center transition-all shadow-2xs active:scale-95",
-                showIcebreakerCard
-                  ? "bg-[#FF5436] text-white hover:bg-[#E03E22] border-transparent shadow-soft"
-                  : "bg-[#FFF5F2] hover:bg-[#FFEAE3] text-[#FF5436] border-[#FFD5CC]"
-              )}
-              title="Conversation starters & icebreaker questions"
-              aria-label="Toggle conversation starters"
-            >
-              <Zap className="h-4 w-4 fill-current" />
-            </Button>
-
             <div className="flex-1 relative rounded-xl bg-[#FAF7F2] border border-[#EBE3D5] focus-within:border-[#FF5436] focus-within:bg-white transition-all shadow-2xs">
               <textarea
                 ref={inputRef}

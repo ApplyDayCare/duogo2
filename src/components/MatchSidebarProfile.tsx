@@ -89,7 +89,7 @@ export const MatchSidebarProfile = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FF5436] text-white shadow-2xs">
-              <Sparkles className="h-4 w-4" />
+              <Heart className="h-4 w-4 fill-white" />
             </div>
             <div>
               <p className="text-xs font-bold text-[#181513]">Compatibility Match</p>
@@ -111,7 +111,7 @@ export const MatchSidebarProfile = ({
             navigate(`/match-reveal/${matchId}`);
           }}
         >
-          <Sparkles className="h-4 w-4 mr-2" />
+          <Heart className="h-4 w-4 mr-2 fill-white" />
           View Full Match Reveal
         </Button>
 
