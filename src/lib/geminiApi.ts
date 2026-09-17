@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export interface MatchSynergyData {
   headline: string;
   summary: string;
@@ -16,9 +18,15 @@ export interface FetchSynergyParams {
 
 export async function fetchMatchSynergy(params: FetchSynergyParams): Promise<MatchSynergyData> {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
     const response = await fetch("/api/ai/synergy", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(params),
     });
 
@@ -61,9 +69,15 @@ export interface FetchIcebreakersParams {
 
 export async function fetchMatchIcebreakers(params: FetchIcebreakersParams): Promise<string[]> {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
     const response = await fetch("/api/ai/icebreakers", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(params),
     });
 

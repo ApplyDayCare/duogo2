@@ -28,6 +28,77 @@ try {
   console.warn("Failed to configure WebPush VAPID:", vapidErr);
 }
 
+// Supabase client for authentication verification
+const supabaseUrl =
+  process.env.SUPABASE_URL ||
+  process.env.VITE_SUPABASE_URL ||
+  "https://hdbobqzqsmmsnzbjtzbn.supabase.co";
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkYm9icXpxc21tc256Ymp0emJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTY3NDQsImV4cCI6MjA4NzY5Mjc0NH0.U_lS4-1zpd36SR4xxGDdXSBfM3408wv4pRbfDGUbQ4k";
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// In-memory sliding window rate limiter
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(key: string, limit: number = 10, windowMs: number = 60000): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const record = rateLimitMap.get(key);
+
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
+    return { allowed: true, remaining: limit - 1 };
+  }
+
+  if (record.count >= limit) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  record.count += 1;
+  return { allowed: true, remaining: limit - record.count };
+}
+
+// Authentication middleware requiring a valid Supabase Bearer token
+async function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Authentication required. Please provide a valid Bearer token." });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      return res.status(401).json({ error: "Invalid or expired session token." });
+    }
+
+    (req as any).user = user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Authentication check failed." });
+  }
+}
+
+// Rate Limiter middleware for AI endpoints (10 requests per user per minute)
+function aiRateLimiter(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const userId = (req as any).user?.id || req.ip || "unknown";
+  const { allowed, remaining } = checkRateLimit(`ai:${userId}`, 10, 60000);
+
+  res.setHeader("X-RateLimit-Limit", "10");
+  res.setHeader("X-RateLimit-Remaining", remaining.toString());
+
+  if (!allowed) {
+    return res.status(429).json({
+      error: "Rate limit exceeded. Please wait a minute before making more AI requests.",
+    });
+  }
+
+  next();
+}
+
 // Lazy-initialized Gemini AI client
 let aiClient: GoogleGenAI | null = null;
 function getAIClient(): GoogleGenAI | null {
@@ -51,7 +122,7 @@ app.get("/api/health", (_req, res) => {
  * Endpoint 1: Match Synergy Summary ("Why You Two Click")
  * Generates an intelligent, personalized breakdown of compatibility
  */
-app.post("/api/ai/synergy", async (req, res) => {
+app.post("/api/ai/synergy", requireAuth, aiRateLimiter, async (req, res) => {
   try {
     const {
       userName = "You",
@@ -147,7 +218,7 @@ Generate an insightful, uplifting, and realistic "Why You Two Click" breakdown:
  * Endpoint 2: AI Conversation Starters
  * Generates personalized, engaging icebreakers to kickstart in-app chat
  */
-app.post("/api/ai/icebreakers", async (req, res) => {
+app.post("/api/ai/icebreakers", requireAuth, aiRateLimiter, async (req, res) => {
   try {
     const {
       userName = "User",

@@ -21,22 +21,26 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  let isAllowed = isAuthorizedCronCall(req);
-  if (!isAllowed) {
+  const isCronOrService = isAuthorizedCronCall(req);
+  let callingUser: any = null;
+
+  if (!isCronOrService) {
     const authHeader = req.headers.get("authorization");
     if (authHeader) {
-      const pubKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkYm9icXpxc21tc256Ymp0emJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTY3NDQsImV4cCI6MjA4NzY5Mjc0NH0.U_lS4-1zpd36SR4xxGDdXSBfM3408wv4pRbfDGUbQ4k";
-      const userClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        pubKey,
-        { global: { headers: { Authorization: authHeader } } }
-      );
-      const { data: { user } } = await userClient.auth.getUser();
-      if (user) isAllowed = true;
+      const pubKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
+      if (pubKey) {
+        const userClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          pubKey,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const { data: { user } } = await userClient.auth.getUser();
+        if (user) callingUser = user;
+      }
     }
   }
 
-  if (!isAllowed) {
+  if (!isCronOrService && !callingUser) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -197,7 +201,11 @@ Deno.serve(async (req) => {
 
     let notified = 0;
 
-    for (const profile of profiles) {
+    const targetProfiles = isCronOrService
+      ? profiles
+      : profiles.filter((p: any) => p.id === callingUser?.id);
+
+    for (const profile of targetProfiles) {
       const candidates = candidatesFor(profile);
       if (candidates.length === 0) continue;
 
@@ -271,7 +279,7 @@ Deno.serve(async (req) => {
       notified++;
     }
 
-    return new Response(JSON.stringify({ notified, checked: profiles.length }), {
+    return new Response(JSON.stringify({ notified, checked: targetProfiles.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
