@@ -42,11 +42,16 @@ const EmailVerification = () => {
       if (session?.user && active) {
         await syncSignupDraftToSupabase(session.user);
         const updated = await refreshProfile();
-        if (updated?.onboarding_completed || updated?.quiz_completed || updated?.privacy_consented) {
+        const draftData = getSignupDraft();
+        if (updated?.onboarding_completed || updated?.quiz_completed || updated?.first_name) {
           clearSignupDraft();
           navigate("/dashboard", { replace: true });
+        } else if (draftData.quiz_completed || updated?.privacy_consented) {
+          navigate("/dashboard", { replace: true });
+        } else if (draftData.first_name) {
+          navigate("/quiz", { replace: true });
         } else {
-          navigate("/onboarding/privacy-consent", { replace: true });
+          navigate("/onboarding/user-type", { replace: true });
         }
       }
     });

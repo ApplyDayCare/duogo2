@@ -1021,10 +1021,9 @@ export default function Landing() {
               <svg
                 viewBox="0 0 300 300"
                 width="100%"
-                height="auto"
                 role="img"
                 aria-label="Radar chart comparing five lifestyle dimensions between two matched users"
-                className="overflow-visible"
+                className="w-full h-auto overflow-visible"
               >
                 {/* Concentric pentagon rings */}
                 <polygon
