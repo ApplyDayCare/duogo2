@@ -242,47 +242,16 @@ const Dashboard = () => {
         .eq("id", user.id)
         .maybeSingle();
 
-      let activeProfile = p;
-
-      if (!activeProfile || !activeProfile.onboarding_completed || !activeProfile.quiz_completed) {
-        const cachedDraft = getSignupDraft();
-        const fallbackFirstName = activeProfile?.first_name || cachedDraft.first_name || (user.email ? user.email.split("@")[0] : "Friend");
-        const fallbackUserType = activeProfile?.user_type || cachedDraft.user_type || "solo";
-
-        const { data: healed } = await supabase
-          .from("profiles")
-          .upsert({
-            id: user.id,
-            email: user.email || undefined,
-            first_name: fallbackFirstName,
-            user_type: fallbackUserType,
-            quiz_completed: true,
-            onboarding_completed: true,
-            updated_at: new Date().toISOString()
-          })
-          .select("first_name, user_type, location_city, quality_score, quiz_completed, onboarding_completed, matching_paused, is_suspended")
-          .maybeSingle();
-
-        if (healed) {
-          activeProfile = healed;
-        } else {
-          activeProfile = {
-            first_name: fallbackFirstName,
-            user_type: fallbackUserType,
-            location_city: activeProfile?.location_city || "Milton, ON",
-            quality_score: activeProfile?.quality_score || 100,
-            quiz_completed: true,
-            onboarding_completed: true,
-            matching_paused: false,
-            is_suspended: false
-          };
-        }
+      if (!p || !p.onboarding_completed || !p.quiz_completed) {
+        setRedirect("/onboarding/user-type");
+        setChecked(true);
+        return;
       }
 
-      setProfile(activeProfile as ProfileData);
+      setProfile(p as ProfileData);
 
       // Get couple partner for broader match query
-      const partnerId = activeProfile.user_type === "couple" ? await getCouplePartnerId(user.id) : null;
+      const partnerId = p.user_type === "couple" ? await getCouplePartnerId(user.id) : null;
       const matchFilter = partnerId
         ? `user_a_id.eq.${user.id},user_b_id.eq.${user.id},user_a_id.eq.${partnerId},user_b_id.eq.${partnerId}`
         : `user_a_id.eq.${user.id},user_b_id.eq.${user.id}`;
@@ -482,7 +451,7 @@ const Dashboard = () => {
     fetchDashboardData(false);
   }, [fetchDashboardData]);
 
-  if (!checked) {
+  if (!checked || profileLoading) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8 sm:py-10 space-y-7 animate-pulse">
         {/* Skeleton Greeting Card */}

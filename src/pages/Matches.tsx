@@ -344,7 +344,7 @@ const Matches = () => {
       .then(({ match_id, status }) => {
         const resolvedMatchId = match_id || match.pending_match_id;
 
-        if (status === "mutual" || (action === "accept" && isIncoming)) {
+        if (status === "mutual") {
           toast({
             title: "It's a Mutual Match! 🎉",
             description: "You both connected! Unlocking your match reveal and chat...",
@@ -384,7 +384,6 @@ const Matches = () => {
         });
         setOptimisticPendingMatches((prev) => prev.filter((p) => p.user_id !== match.user_id));
         setOptimisticConnectedMatches((prev) => prev.filter((p) => p.user_id !== match.user_id));
-        toast({ title: "Error", description: err.message || "Failed to update match", variant: "destructive" });
       });
   }, [user, session, queryClient, navigate]);
 

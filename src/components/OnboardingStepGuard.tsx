@@ -34,24 +34,25 @@ export const OnboardingStepGuard = ({ children, requiredStage = "user_type" }: O
     );
   }
 
-  // If user is already authenticated, redirect to dashboard so they never get stuck in onboarding steps
-  if (user) {
+  // Only redirect authenticated users to /dashboard if BOTH onboarding and quiz are completed
+  if (user && profile?.onboarding_completed && profile?.quiz_completed) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // For unauthenticated guests: check if they have started the onboarding flow in this browser
+  // Check draft or profile data for stage requirements
   const draft = getSignupDraft();
   const hasDraft = hasSignupDraft();
+  const effectiveUserType = profile?.user_type || draft.user_type;
 
-  // If no draft exists at all, redirect to /signup so they start from the beginning
-  if (!hasDraft || !draft.user_type) {
-    console.info(`[OnboardingStepGuard] Unauthenticated direct access to ${location.pathname} with no draft. Redirecting to /signup.`);
+  // If user is not authenticated and has no local draft, redirect to /signup
+  if (!user && (!hasDraft || !draft.user_type)) {
+    console.info(`[OnboardingStepGuard] Direct access to ${location.pathname} with no draft or session. Redirecting to /signup.`);
     return <Navigate to="/signup" replace state={{ from: location.pathname }} />;
   }
 
-  // Optional stage checks for unauthenticated guests
-  if (requiredStage === "profile" && !draft.age_group && !draft.gender) {
-    return <Navigate to="/onboarding/age" replace />;
+  // Stage checks
+  if (requiredStage === "profile" && !effectiveUserType) {
+    return <Navigate to="/onboarding/user-type" replace />;
   }
 
   return <>{children}</>;

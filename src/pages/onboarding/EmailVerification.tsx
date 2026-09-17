@@ -43,12 +43,10 @@ const EmailVerification = () => {
         await syncSignupDraftToSupabase(session.user);
         const updated = await refreshProfile();
         const draftData = getSignupDraft();
-        if (updated?.onboarding_completed || updated?.quiz_completed || updated?.first_name) {
+        if (updated?.onboarding_completed && updated?.quiz_completed) {
           clearSignupDraft();
           navigate("/dashboard", { replace: true });
-        } else if (draftData.quiz_completed || updated?.privacy_consented) {
-          navigate("/dashboard", { replace: true });
-        } else if (draftData.first_name) {
+        } else if (updated?.first_name || draftData.first_name) {
           navigate("/quiz", { replace: true });
         } else {
           navigate("/onboarding/user-type", { replace: true });
@@ -181,10 +179,15 @@ const EmailVerification = () => {
       });
       await syncSignupDraftToSupabase(verifiedUser);
       const updated = await refreshProfile(verifiedUser.id);
-      if (updated?.onboarding_completed) {
+      const draftData = getSignupDraft();
+      if (updated?.onboarding_completed && updated?.quiz_completed) {
         clearSignupDraft();
+        navigate("/dashboard", { replace: true });
+      } else if (updated?.first_name || draftData.first_name) {
+        navigate("/quiz", { replace: true });
+      } else {
+        navigate("/onboarding/user-type", { replace: true });
       }
-      navigate("/dashboard", { replace: true });
     } else {
       setVerifying(false);
       toast({

@@ -4,6 +4,7 @@ import { ensureUserQuizResponse, getSavedQuizAnswers } from "@/lib/quizSync";
 import { fetchBlockedUserIds } from "@/lib/blockService";
 import { saveOfflineMatches, getOfflineMatches } from "@/lib/queryPersister";
 import { sanitizeLocationCity } from "@/lib/matchUtils";
+import { toast } from "@/hooks/use-toast";
 
 export interface MatchData {
   user_id: string;
@@ -855,139 +856,26 @@ export async function executeMatchAction(
     };
   }
 
-  let res: { match_id: string; status: string } = {
+  const { data: result, error } = await supabase.rpc("handle_match_action", {
+    _other_user_id: otherUserId,
+    _action: action,
+  });
+
+  if (error) {
+    toast({
+      title: "Action failed",
+      description: error.message || "Failed to process match action. Please try again.",
+      variant: "destructive",
+    });
+    throw error;
+  }
+
+  const res = (result || {
     match_id: pendingMatchId || "",
     status: action === "accept" ? "pending" : "passed",
-  };
-
-  try {
-    const { data: result, error } = await supabase.rpc("handle_match_action", {
-      _other_user_id: otherUserId,
-      _action: action,
-    });
-
-    if (!error && result) {
-      res = result as { match_id: string; status: string };
-    }
-  } catch (rpcErr) {
-    console.warn("handle_match_action RPC warning:", rpcErr);
-  }
+  }) as { match_id: string; status: string };
 
   const activeUserId = session?.user?.id;
-
-  // SAFETY GUARANTEE:
-  // If the user clicked "Connect Back" / accepted an incoming request,
-  // or if pendingMatchId was provided, but the RPC did not return 'mutual',
-  // directly update the match record via client RLS so the match is guaranteed to transition to mutual!
-  if (action === "accept" && (hasIncomingRequest || pendingMatchId || res.status !== "mutual")) {
-    const matchIdToTarget = pendingMatchId || res.match_id;
-    if (matchIdToTarget) {
-      const { data: matchRecord } = await supabase
-        .from("matches")
-        .select("id, user_a_id, user_b_id, user_a_action, user_b_action, status")
-        .eq("id", matchIdToTarget)
-        .maybeSingle();
-
-      if (matchRecord) {
-        const isUserA = matchRecord.user_a_id === activeUserId;
-        const otherPartyAction = isUserA ? matchRecord.user_b_action : matchRecord.user_a_action;
-
-        if (otherPartyAction === "accept" || hasIncomingRequest) {
-          const updatePayload: any = {
-            status: "mutual",
-            revealed_at: new Date().toISOString(),
-          };
-          if (isUserA) {
-            updatePayload.user_a_action = "accept";
-          } else {
-            updatePayload.user_b_action = "accept";
-          }
-          if (score && score > 0) {
-            updatePayload.compatibility_score = score;
-          }
-
-          const { error: updateErr } = await supabase
-            .from("matches")
-            .update(updatePayload)
-            .eq("id", matchRecord.id);
-
-          if (!updateErr) {
-            res.status = "mutual";
-            res.match_id = matchRecord.id;
-          }
-        }
-      }
-    } else if (activeUserId && otherUserId) {
-      // Check if an existing match row exists in either direction
-      const { data: existingMatches } = await supabase
-        .from("matches")
-        .select("id, user_a_id, user_b_id, user_a_action, user_b_action, status")
-        .or(`and(user_a_id.eq.${activeUserId},user_b_id.eq.${otherUserId}),and(user_a_id.eq.${otherUserId},user_b_id.eq.${activeUserId})`)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (existingMatches && existingMatches.length > 0) {
-        const mRecord = existingMatches[0];
-        const isUserA = mRecord.user_a_id === activeUserId;
-        const otherPartyAction = isUserA ? mRecord.user_b_action : mRecord.user_a_action;
-
-        if (otherPartyAction === "accept" || hasIncomingRequest) {
-          const updatePayload: any = {
-            status: "mutual",
-            revealed_at: new Date().toISOString(),
-          };
-          if (isUserA) {
-            updatePayload.user_a_action = "accept";
-          } else {
-            updatePayload.user_b_action = "accept";
-          }
-          if (score && score > 0) {
-            updatePayload.compatibility_score = score;
-          }
-
-          const { error: upErr } = await supabase
-            .from("matches")
-            .update(updatePayload)
-            .eq("id", mRecord.id);
-
-          if (!upErr) {
-            res.status = "mutual";
-            res.match_id = mRecord.id;
-          }
-        }
-      }
-    }
-  }
-
-  if (typeof score === "number" && score > 0) {
-    if (res.match_id) {
-      supabase
-        .from("matches")
-        .update({ compatibility_score: Math.round(score) })
-        .eq("id", res.match_id)
-        .then(({ error: updateErr }) => {
-          if (updateErr) {
-            console.error("Error updating match compatibility score in background:", updateErr);
-          }
-        });
-    } else if (activeUserId && otherUserId) {
-      supabase
-        .from("matches")
-        .select("id")
-        .or(`and(user_a_id.eq.${activeUserId},user_b_id.eq.${otherUserId}),and(user_a_id.eq.${otherUserId},user_b_id.eq.${activeUserId})`)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .then(({ data: foundMatches }) => {
-          if (foundMatches && foundMatches.length > 0) {
-            supabase
-              .from("matches")
-              .update({ compatibility_score: Math.round(score) })
-              .eq("id", foundMatches[0].id)
-              .then();
-          }
-        });
-    }
-  }
 
   if (res.status === "mutual") {
     // 1. Persist in-app notifications in Supabase so Realtime listeners and notification bells trigger
