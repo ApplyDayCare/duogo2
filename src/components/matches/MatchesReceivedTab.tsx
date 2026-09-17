@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, ChevronLeft, ChevronRight, Sparkles, ShieldCheck } from "lucide-react";
+import { Handshake, ChevronLeft, ChevronRight, Sparkles, ShieldCheck } from "lucide-react";
 import { MatchCard } from "@/components/MatchCard";
 import { CompatibilityScoreMeter } from "@/components/CompatibilityScoreMeter";
 import {
@@ -80,7 +80,7 @@ export const MatchesReceivedTab = ({
         <div className="flex items-center justify-between px-1 shrink-0 text-xs">
           <div className="flex items-center gap-2">
             <span className="font-bold text-foreground text-sm flex items-center gap-1.5">
-              <Heart className="h-4 w-4 text-primary fill-primary" />
+              <Handshake className="h-4 w-4 text-primary" />
               <span>Request {Math.min(receivedIndex + 1, incomingMatches.length)} of {incomingMatches.length}</span>
             </span>
             <Badge variant="outline" className="bg-[#FFF4F0] border-[#FFD9CE] text-primary font-semibold text-[10px] py-0.5">

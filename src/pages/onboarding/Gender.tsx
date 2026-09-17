@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, User, Lock, HeartHandshake } from "lucide-react";
+import { ArrowLeft, User, Lock, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import OnboardingProgress from "@/components/OnboardingProgress";
 import { getSignupDraft, updateSignupDraft } from "@/lib/signupState";
@@ -118,7 +118,7 @@ const Gender = () => {
                     className={`flex h-14 w-14 items-center justify-center rounded-2xl ${option.bgColor} transition-transform group-hover:scale-105 shadow-2xs`}
                   >
                     {isCouple ? (
-                      <HeartHandshake className={`h-7 w-7 ${option.iconColor}`} />
+                      <Users className={`h-7 w-7 ${option.iconColor}`} />
                     ) : (
                       <User className={`h-7 w-7 ${option.iconColor}`} />
                     )}

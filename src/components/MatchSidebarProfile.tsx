@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, ShieldCheck, Heart, ExternalLink, Flag, Ban } from "lucide-react";
+import { MapPin, ShieldCheck, Sparkles, ExternalLink, Flag, Ban } from "lucide-react";
 import { calculateDistanceKm } from "@/lib/postalCodeUtils";
 import MatchActions from "@/components/MatchActions";
 
@@ -89,7 +89,7 @@ export const MatchSidebarProfile = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FF5436] text-white shadow-2xs">
-              <Heart className="h-4 w-4 fill-white" />
+              <Sparkles className="h-4 w-4" />
             </div>
             <div>
               <p className="text-xs font-bold text-[#181513]">Compatibility Match</p>
@@ -111,7 +111,7 @@ export const MatchSidebarProfile = ({
             navigate(`/match-reveal/${matchId}`);
           }}
         >
-          <Heart className="h-4 w-4 mr-2 fill-white" />
+          <Sparkles className="h-4 w-4 mr-2" />
           View Full Match Reveal
         </Button>
 

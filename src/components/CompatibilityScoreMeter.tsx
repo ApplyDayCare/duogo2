@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import * as d3 from "d3";
-import { Heart, ShieldCheck, ChevronDown, ChevronUp, Zap, HeartHandshake, Compass } from "lucide-react";
+import { Sparkles, Handshake, ShieldCheck, ChevronDown, ChevronUp, Zap, Compass } from "lucide-react";
 import { calculateQuizCompatibility } from "@/lib/quizScoring";
 
 export interface CompatibilityScoreMeterProps {
@@ -266,7 +266,7 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
       case "Lifestyle Foundations":
       case "Anchor Values":
       case "Core Values":
-        return <HeartHandshake className="h-3.5 w-3.5 text-primary" />;
+        return <Handshake className="h-3.5 w-3.5 text-primary" />;
       case "Social Battery":
         return <Zap className="h-3.5 w-3.5 text-amber-500" />;
       default:
@@ -283,7 +283,7 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
       <div className="p-4 sm:p-5 pb-2 border-b border-[#F5EDE3] flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#FFF0EB] text-primary shrink-0 shadow-2xs">
-            <Heart className="h-4 w-4 fill-primary" />
+            <Sparkles className="h-4 w-4 text-primary" />
           </div>
           <div>
             <h3 className="font-serif font-bold text-base text-[#1A1816] leading-tight">

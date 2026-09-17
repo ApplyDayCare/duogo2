@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Send, MessageCircle, Info, MapPin, Heart, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Info, MapPin, Sparkles, Handshake, Check, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -551,7 +551,7 @@ const MatchChat = () => {
               onClick={() => navigate(`/match-reveal/${matchId}`)}
               title={`Compatibility score: ${displayScore}%`}
             >
-              <Heart className="h-3 w-3 mr-1 fill-[#FF5436]" />
+              <Sparkles className="h-3 w-3 mr-1 text-[#FF5436]" />
               <span className="hidden sm:inline">Score </span>
               <span>{displayScore}%</span>
             </Button>
@@ -617,7 +617,7 @@ const MatchChat = () => {
                   </Avatar>
                 </div>
                 <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-[#FF5436] p-0.5 text-white shadow-xs">
-                  <Heart className="h-3 w-3 fill-white" />
+                  <Handshake className="h-3 w-3 text-white" />
                 </div>
               </div>
 

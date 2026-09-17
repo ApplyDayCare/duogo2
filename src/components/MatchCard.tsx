@@ -6,7 +6,7 @@ import {
   MapPin,
   Users,
   User,
-  Heart,
+  Handshake,
   X,
   Check,
   MessageCircle,
@@ -228,7 +228,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
               </Badge>
             ) : match.has_incoming_request ? (
               <Badge className="bg-[#FFF0EB] text-primary border-[#FFD9CE] px-3 py-1 text-xs font-bold gap-1.5 animate-pulse">
-                <Heart className="h-3.5 w-3.5 fill-[#FF5436]" />
+                <Handshake className="h-3.5 w-3.5 text-[#FF5436]" />
                 <span>Sent You a Connection Request</span>
               </Badge>
             ) : (
@@ -292,7 +292,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             <div className="space-y-3 flex flex-col items-center w-full">
               {/* Minimalist Aura Ring */}
               <div className="h-20 w-20 rounded-full bg-gradient-to-br from-[#FFF0EB] via-[#FFE4DC] to-[#FFD9CE] border-2 border-[#FFC8B8] flex items-center justify-center text-primary shadow-xs">
-                <Heart className="h-8 w-8 fill-[#FF5436] text-[#FF5436]" />
+                {match.user_type === "couple" ? (
+                  <Users className="h-8 w-8 text-[#FF5436]" />
+                ) : (
+                  <User className="h-8 w-8 text-[#FF5436]" />
+                )}
               </div>
 
               <div className="space-y-1">
@@ -362,7 +366,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 >
                   {match.has_incoming_request ? (
                     <>
-                      <Heart className="mr-1.5 h-4 w-4 fill-white" />
+                      <Handshake className="mr-1.5 h-4 w-4" />
                       <span>Connect Back</span>
                     </>
                   ) : (

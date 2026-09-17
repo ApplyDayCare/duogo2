@@ -34,7 +34,7 @@ import {
   Users,
   CheckCircle2,
   Smile,
-  HeartHandshake,
+  Handshake,
   ArrowRight,
   HelpCircle,
   Sliders,
@@ -423,7 +423,7 @@ export const QuizResponseSummary = ({
                 {/* Valued Friend Qualities */}
                 <div className="p-4 rounded-2xl border border-[#EFE8DD] bg-[#FAF7F2]/50 dark:bg-muted/30 space-y-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <HeartHandshake className="h-3.5 w-3.5 text-pink-600" />
+                    <Handshake className="h-3.5 w-3.5 text-primary" />
                     Valued Friend Qualities
                   </span>
                   <div className="flex flex-wrap gap-1.5 pt-1">

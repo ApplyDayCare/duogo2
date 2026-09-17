@@ -31,6 +31,7 @@ export interface MatchesResult {
   invite_code?: string | null;
   quiz_needed?: boolean;
   onboarding_needed?: boolean;
+  sent_request_user_ids?: string[];
 }
 
 export async function fetchMatchesWithFallback(
@@ -211,6 +212,24 @@ async function executeFetchMatches(
     console.warn("Error fetching blocked user IDs in matchEngine:", err);
   }
 
+  // EXPLICIT FILTERING CHECK:
+  // Identify all users who have already received a connection request from the current user (or couple partner).
+  // These users MUST be excluded from the discovery feed.
+  const sentRequestRecipientIds = new Set<string>();
+  for (const m of existingMatches || []) {
+    const isUserA = m.user_a_id === userId || (partnerId && m.user_a_id === partnerId);
+    const isUserB = m.user_b_id === userId || (partnerId && m.user_b_id === partnerId);
+
+    // If current user or partner sent a connection request ('accept') to the other party
+    if ((isUserA && m.user_a_action === "accept") || (isUserB && m.user_b_action === "accept")) {
+      const recipientId = isUserA ? m.user_b_id : m.user_a_id;
+      if (recipientId) {
+        sentRequestRecipientIds.add(recipientId);
+        excludeIds.add(recipientId);
+      }
+    }
+  }
+
   // Populate exclusion list with users already passed, mutual, blocked, or pending
   for (const m of existingMatches || []) {
     if (
@@ -227,11 +246,13 @@ async function executeFetchMatches(
 
   // Check outgoing pending match records (where current user has accepted, waiting for other party)
   const outgoingPendingRecords = (existingMatches || []).filter((m) => {
-    if (m.status !== "pending") return false;
+    if (m.status === "mutual" || m.status === "passed_by_a" || m.status === "passed_by_b" || m.status === "blocked") {
+      return false;
+    }
     const isA = m.user_a_id === userId || (partnerId && m.user_a_id === partnerId);
     const isB = m.user_b_id === userId || (partnerId && m.user_b_id === partnerId);
-    if (isA && m.user_a_action === "accept" && !m.user_b_action) return true;
-    if (isB && m.user_b_action === "accept" && !m.user_a_action) return true;
+    if (isA && m.user_a_action === "accept" && m.user_b_action !== "accept") return true;
+    if (isB && m.user_b_action === "accept" && m.user_a_action !== "accept") return true;
     return false;
   });
 
@@ -301,7 +322,12 @@ async function executeFetchMatches(
   } catch (e) {
     console.warn("Error reading local demo swipes", e);
   }
-  Object.keys(demoSwipes).forEach((id) => excludeIds.add(id));
+  Object.entries(demoSwipes).forEach(([id, act]) => {
+    excludeIds.add(id);
+    if (act === "accept") {
+      sentRequestRecipientIds.add(id);
+    }
+  });
 
   const matchesMap = new Map<string, MatchData>();
   const incomingMatchesList: MatchData[] = [];
@@ -637,21 +663,33 @@ async function executeFetchMatches(
       console.warn("Client fallback candidate matching warning:", err);
     }
 
-  const matchesList = Array.from(matchesMap.values());
-  matchesList.sort((a, b) => {
+  // Explicit filtering check: Ensure users who have already received a connection request
+  // from the current user (or couple partner) are strictly excluded from the discovery feed
+  const discoveryCandidates = Array.from(matchesMap.values()).filter((cand) => {
+    // 1. Exclude if current user or partner already sent a connection request
+    if (sentRequestRecipientIds.has(cand.user_id)) return false;
+    // 2. Exclude if candidate is in pending matches list
+    if (pendingMatchesList.some((p) => p.user_id === cand.user_id)) return false;
+    // 3. Exclude if in excludeIds (unless candidate is an incoming request waiting for current user's review)
+    if (excludeIds.has(cand.user_id) && !cand.has_incoming_request) return false;
+    return true;
+  });
+
+  discoveryCandidates.sort((a, b) => {
     if (a.has_incoming_request && !b.has_incoming_request) return -1;
     if (!a.has_incoming_request && b.has_incoming_request) return 1;
     return b.score - a.score;
   });
 
   const result: MatchesResult = {
-    matches: matchesList,
+    matches: discoveryCandidates,
     pending_matches: pendingMatchesList,
     incoming_matches: incomingMatchesList,
     pending_match: outgoingPendingRecords[0] || null,
     incoming_requests: incomingMatchRecords,
     user_type: userType,
     waiting_for_partner: false,
+    sent_request_user_ids: Array.from(sentRequestRecipientIds),
   };
 
   // Cache to IndexedDB for offline resilience

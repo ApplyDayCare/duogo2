@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Baby, Heart, Check, Plus, Minus, Users } from "lucide-react";
+import { ArrowLeft, Baby, Check, Plus, Minus, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import OnboardingProgress from "@/components/OnboardingProgress";
@@ -219,7 +219,7 @@ const Kids = () => {
           >
             <CardContent className="flex flex-col items-center text-center p-5 sm:p-6 space-y-2">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 shadow-2xs">
-                <Heart className="h-7 w-7" />
+                <Users className="h-7 w-7" />
               </div>
               <div className="space-y-0.5">
                 <h3 className="font-serif font-bold text-base sm:text-lg text-[#1A1816] dark:text-foreground">No Kids</h3>

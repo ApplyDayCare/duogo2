@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   ArrowLeft,
   MessageCircle,
-  Heart,
+  Handshake,
   CheckCheck,
   RefreshCw,
   AlertCircle,
@@ -391,7 +391,7 @@ export const Notifications = () => {
       case "mutual":
         return <Sparkles className="h-4 w-4 text-[#FF5436]" />;
       case "match":
-        return <Heart className="h-4 w-4 text-[#FF5436]" />;
+        return <Handshake className="h-4 w-4 text-[#FF5436]" />;
       case "message":
         return <MessageCircle className="h-4 w-4 text-[#FF5436]" />;
       default:

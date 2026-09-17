@@ -25,7 +25,7 @@ import {
   Lock,
   Compass,
   Users,
-  HeartHandshake,
+  Handshake,
   KeyRound,
   Loader2,
 } from "lucide-react";
@@ -1185,7 +1185,7 @@ export default function Landing() {
             </div>
             <div className="bg-[var(--cream)]/6 rounded-[22px] p-6.5 border border-[var(--cream)]/10">
               <div className="flex items-center gap-2.5 mb-2.5 text-[var(--coral-1)]">
-                <HeartHandshake className="h-5 w-5" />
+                <Handshake className="h-5 w-5" />
                 <h3 className="font-['Fraunces',serif] font-semibold text-[19px] text-[var(--cream)]">
                   Post-Hangout Pulse Checks
                 </h3>

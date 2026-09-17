@@ -434,6 +434,49 @@ const Matches = () => {
     return [...extra, ...fromServer];
   }, [data?.pending_matches, optimisticPendingMatches]);
 
+  // Aggregate all user IDs who have already received a connection request from the current user
+  const sentRequestRecipientIds = useMemo(() => {
+    const ids = new Set<string>();
+
+    // 1. From server matchEngine sent_request_user_ids
+    (data?.sent_request_user_ids || []).forEach((id) => ids.add(id));
+
+    // 2. From server pending_matches list
+    (data?.pending_matches || []).forEach((m) => ids.add(m.user_id));
+
+    // 3. From optimistic pending matches (active in-session connection requests)
+    optimisticPendingMatches.forEach((m) => ids.add(m.user_id));
+
+    // 4. From combined pendingMatches
+    pendingMatches.forEach((m) => ids.add(m.user_id));
+
+    // 5. From local storage demo swipes
+    if (user?.id) {
+      try {
+        const storedUser = localStorage.getItem(`duogo_demo_swipes_${user.id}`);
+        const storedAnon = localStorage.getItem(`duogo_demo_swipes_anonymous`);
+        const swipesUser = storedUser ? JSON.parse(storedUser) : {};
+        const swipesAnon = storedAnon ? JSON.parse(storedAnon) : {};
+        const merged = { ...swipesAnon, ...swipesUser };
+        Object.entries(merged).forEach(([candId, act]) => {
+          if (act === "accept") {
+            ids.add(candId);
+          }
+        });
+      } catch (e) {
+        // storage guard
+      }
+    }
+
+    return ids;
+  }, [
+    data?.sent_request_user_ids,
+    data?.pending_matches,
+    optimisticPendingMatches,
+    pendingMatches,
+    user?.id,
+  ]);
+
   const effectiveMutualMatches = useMemo(() => {
     const serverIds = new Set((mutualMatches || []).map((m) => m.user_id));
     const extra = optimisticConnectedMatches.filter((m) => !serverIds.has(m.user_id));
@@ -453,6 +496,9 @@ const Matches = () => {
     if (data?.matches && data.matches.length > 0) {
       // Exclude any candidates with incoming requests, pending requests, or existing mutual connections
       const candidates = data.matches.filter((m) => {
+        // FILTERING CHECK: Ensure users who have already received a connection request from the current user are excluded
+        if (sentRequestRecipientIds.has(m.user_id)) return false;
+
         if (optimisticallyRemovedIds.has(m.user_id)) return false;
         if (m.pending_match_id && optimisticallyRemovedIds.has(m.pending_match_id)) return false;
         if (m.has_incoming_request || m.pending_match_id) return false;
@@ -501,7 +547,7 @@ const Matches = () => {
 
       return b.score - a.score;
     });
-  }, [incomingMatches, pendingMatches, effectiveMutualMatches, data?.matches, data?.pending_matches, optimisticPendingMatches, myProfile?.location_city, myProfile?.user_type, optimisticallyRemovedIds]);
+  }, [incomingMatches, pendingMatches, effectiveMutualMatches, data?.matches, data?.pending_matches, optimisticPendingMatches, myProfile?.location_city, myProfile?.user_type, optimisticallyRemovedIds, sentRequestRecipientIds]);
 
   const currentMatch = matchesList[0];
 

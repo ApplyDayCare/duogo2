@@ -68,7 +68,7 @@ const FREE_TIME_OPTIONS: ChipOption[] = [
   { id: "wine", label: "Wine", emoji: "🍷" },
   { id: "beers", label: "Beers", emoji: "🍺" },
   { id: "psychology", label: "Psychology & Self-growth", emoji: "🧠" },
-  { id: "volunteering", label: "Volunteering & Social Causes", emoji: "❤️" },
+  { id: "volunteering", label: "Volunteering & Social Causes", emoji: "🤝" },
   { id: "board_games", label: "Board Games & Trivia Nights", emoji: "🎲" },
 ];
 

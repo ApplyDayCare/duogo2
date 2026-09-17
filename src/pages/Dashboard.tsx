@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Target, Heart, Share2, Settings, Clock, CheckCircle, Users, Star, Pause, Play, ShieldCheck, Sparkles, MessageCircle, ArrowRight, Copy, Check, Link2, AlertCircle, RotateCw } from "lucide-react";
+import { Target, Handshake, Share2, Settings, Clock, CheckCircle, Users, Star, Pause, Play, ShieldCheck, Sparkles, MessageCircle, ArrowRight, Copy, Check, Link2, AlertCircle, RotateCw } from "lucide-react";
 import SuspensionBanner from "@/components/SuspensionBanner";
 import PushNotificationPrompt from "@/components/PushNotificationPrompt";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
@@ -917,7 +917,7 @@ const Dashboard = () => {
               </>
             ) : (
               <>
-                <Heart className="h-5 w-5 text-primary fill-primary mr-1" />
+                <Users className="h-5 w-5 text-primary mr-1.5" />
                 <span>Find Matches</span>
               </>
             )}
@@ -1063,7 +1063,7 @@ const Dashboard = () => {
           className="rounded-3xl bg-white border border-[#EFE8DD] p-6 shadow-soft text-center space-y-3 relative overflow-hidden"
         >
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF0EB] text-[#FF5436]">
-            <Heart className="h-6 w-6 stroke-[2]" />
+            <Users className="h-6 w-6 stroke-[2]" />
           </div>
           <div className="max-w-md mx-auto space-y-1">
             <h4 className="font-serif font-bold text-base sm:text-lg text-foreground">No Active Matches Yet</h4>
@@ -1106,7 +1106,7 @@ const Dashboard = () => {
               label: "Active Matches",
               value: stats.activeMatches,
               subtext: stats.activeMatches === 0 ? "0 connected" : `${stats.activeMatches} active`,
-              icon: Heart,
+              icon: Users,
               color: "text-[#FF5436]",
               bg: "bg-[#FFF0EB]",
               onClick: () => navigate("/matches?tab=connected"),

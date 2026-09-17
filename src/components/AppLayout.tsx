@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, Heart, Share2, UserCircle, LogOut, Bell, Clock, MessageCircle, Sparkles } from "lucide-react";
+import { Home, Users, Share2, UserCircle, LogOut, Bell, Clock, MessageCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const DESKTOP_NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: Home },
-  { label: "Matches", path: "/matches", icon: Heart },
+  { label: "Matches", path: "/matches", icon: Users },
   { label: "Chats", path: "/chats", icon: MessageCircle },
   { label: "Notifications", path: "/notifications", icon: Bell },
   { label: "History", path: "/history", icon: Clock },
@@ -26,7 +26,7 @@ const DESKTOP_NAV_ITEMS = [
 
 const MOBILE_NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: Home },
-  { label: "Matches", path: "/matches", icon: Heart },
+  { label: "Matches", path: "/matches", icon: Users },
   { label: "Chats", path: "/chats", icon: MessageCircle },
   { label: "History", path: "/history", icon: Clock },
   { label: "Profile", path: "/profile", icon: UserCircle },
@@ -246,7 +246,7 @@ const AppLayout = () => {
               </>
             ) : (
               <>
-                <Heart className="h-4 w-4 fill-white" />
+                <Users className="h-4 w-4" />
                 <span>View Matches</span>
               </>
             )}
