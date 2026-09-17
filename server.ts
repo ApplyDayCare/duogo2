@@ -233,99 +233,405 @@ app.post("/api/push/dispatch", async (req, res) => {
 });
 
 /**
+ * Transactional Email Dispatcher Utilities
+ * Supports Resend (primary) and Brevo (SMTP REST), with intelligent fallback
+ */
+interface SendEmailOptions {
+  to: string;
+  recipientName?: string;
+  subject: string;
+  htmlContent: string;
+}
+
+async function sendTransactionalEmail(opts: SendEmailOptions): Promise<{ success: boolean; provider?: string; error?: string; skipped?: boolean }> {
+  const { to, subject, htmlContent } = opts;
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const brevoApiKey = process.env.BREVO_API_KEY;
+
+  const senderEmail = process.env.RESEND_FROM_EMAIL || process.env.BREVO_FROM_EMAIL || process.env.EMAIL_FROM || "hello@duogo.space";
+  const senderName = process.env.BREVO_FROM_NAME || process.env.RESEND_FROM_NAME || "duogo";
+
+  // 1. Try Resend if configured
+  if (resendApiKey) {
+    try {
+      // If using sandbox without custom domain, resend requires 'onboarding@resend.dev' or verified domain
+      let fromField = senderEmail.includes("<") ? senderEmail : `${senderName} <${senderEmail}>`;
+      if (!process.env.RESEND_FROM_EMAIL && !process.env.EMAIL_FROM) {
+        fromField = `${senderName} <onboarding@resend.dev>`;
+      }
+
+      const resendRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: fromField,
+          to: [to],
+          subject,
+          html: htmlContent,
+        }),
+      });
+
+      const data = await resendRes.json().catch(() => ({}));
+      if (resendRes.ok) {
+        console.log(`[Email Dispatcher - Resend] Successfully sent "${subject}" to ${to}`);
+        return { success: true, provider: "resend" };
+      } else {
+        console.warn(`[Email Dispatcher - Resend] Delivery failed:`, data);
+      }
+    } catch (err: any) {
+      console.warn(`[Email Dispatcher - Resend] Network exception:`, err?.message);
+    }
+  }
+
+  // 2. Try Brevo if configured
+  if (brevoApiKey) {
+    try {
+      const cleanSenderEmail = process.env.BREVO_FROM_EMAIL || "hello@duogo.app";
+      const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "api-key": brevoApiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sender: { name: senderName, email: cleanSenderEmail },
+          to: [{ email: to }],
+          subject,
+          htmlContent,
+        }),
+      });
+
+      if (brevoRes.ok) {
+        console.log(`[Email Dispatcher - Brevo] Successfully sent "${subject}" to ${to}`);
+        return { success: true, provider: "brevo" };
+      } else {
+        const data = await brevoRes.json().catch(() => ({}));
+        console.warn(`[Email Dispatcher - Brevo] Delivery failed:`, data);
+      }
+    } catch (err: any) {
+      console.warn(`[Email Dispatcher - Brevo] Network exception:`, err?.message);
+    }
+  }
+
+  // If no provider API key is set
+  if (!resendApiKey && !brevoApiKey) {
+    console.info(`[Email Dispatcher] Neither RESEND_API_KEY nor BREVO_API_KEY is configured in Settings. Skipped email "${subject}" to ${to}.`);
+    return {
+      success: false,
+      skipped: true,
+      error: "No email API key (RESEND_API_KEY or BREVO_API_KEY) configured in environment settings",
+    };
+  }
+
+  return { success: false, error: "Configured email service providers failed to deliver the email." };
+}
+
+/**
+ * Robust User Email & Name Resolver
+ * Checks profiles first, then falls back to Supabase Auth Users table via service-role admin
+ */
+async function resolveUserContact(supabase: any, userId: string): Promise<{ email: string | null; firstName: string; userType: string; socialLink: string | null }> {
+  let email: string | null = null;
+  let firstName = "Community Member";
+  let userType = "solo";
+  let socialLink: string | null = null;
+
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("first_name, email, user_type, social_link")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (profile) {
+      if (profile.email) email = profile.email;
+      if (profile.first_name) firstName = profile.first_name;
+      if (profile.user_type) userType = profile.user_type;
+      if (profile.social_link) socialLink = profile.social_link;
+    }
+  } catch (err) {
+    console.warn("Error fetching profile contact info:", err);
+  }
+
+  // Fallback to auth.users if email wasn't recorded in profile
+  if (!email) {
+    try {
+      const { data: authUserData } = await supabase.auth.admin.getUserById(userId);
+      if (authUserData?.user?.email) {
+        email = authUserData.user.email;
+      }
+    } catch (err) {
+      console.warn("Could not query auth.admin for user email:", err);
+    }
+  }
+
+  return { email, firstName, userType, socialLink };
+}
+
+/**
+ * Helper to fetch partner name for couples
+ */
+async function getPartnerName(supabase: any, uid: string): Promise<string | null> {
+  try {
+    const { data: couple } = await supabase
+      .from("couples")
+      .select("partner_a_id, partner_b_id")
+      .or(`partner_a_id.eq.${uid},partner_b_id.eq.${uid}`)
+      .maybeSingle();
+
+    if (!couple) return null;
+    const partnerId = couple.partner_a_id === uid ? couple.partner_b_id : couple.partner_a_id;
+    if (!partnerId) return null;
+
+    const { data: partner } = await supabase
+      .from("profiles")
+      .select("first_name")
+      .eq("id", partnerId)
+      .maybeSingle();
+
+    return partner?.first_name || "Partner";
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Diagnostic Endpoint: Check email service status
+ */
+app.get("/api/email/status", (req, res) => {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const brevoApiKey = process.env.BREVO_API_KEY;
+
+  return res.json({
+    resendConfigured: Boolean(resendApiKey && resendApiKey.length > 5),
+    brevoConfigured: Boolean(brevoApiKey && brevoApiKey.length > 5),
+    hasConfiguredProvider: Boolean((resendApiKey && resendApiKey.length > 5) || (brevoApiKey && brevoApiKey.length > 5)),
+    activeProvider: resendApiKey ? "resend" : brevoApiKey ? "brevo" : "none",
+  });
+});
+
+/**
  * Endpoint 4: Connection Request Email Dispatcher
  * Sends an email notification to target user when someone sends a connection request
  */
 app.post("/api/email/request-notification", async (req, res) => {
   try {
-    const { targetUserId, senderUserId, senderName: inputSenderName } = req.body;
+    const { targetUserId, senderUserId, senderName: inputSenderName, compatibilityScore } = req.body;
 
     if (!targetUserId) {
       return res.status(400).json({ error: "targetUserId is required" });
     }
 
     const supabase = getSupabaseAdmin();
+    const recipient = await resolveUserContact(supabase, targetUserId);
 
-    // Get recipient profile
-    const { data: recipientProfile } = await supabase
-      .from("profiles")
-      .select("first_name, email")
-      .eq("id", targetUserId)
-      .maybeSingle();
-
-    if (!recipientProfile?.email) {
-      return res.json({ success: false, reason: "Recipient email not found" });
+    if (!recipient.email) {
+      return res.json({ success: false, reason: "Recipient email address could not be resolved" });
     }
 
-    let senderName = inputSenderName || "Someone";
-    if (senderUserId && !inputSenderName) {
-      const { data: senderProfile } = await supabase
-        .from("profiles")
-        .select("first_name")
-        .eq("id", senderUserId)
-        .maybeSingle();
-      if (senderProfile?.first_name) {
-        senderName = senderProfile.first_name;
+    let senderName = inputSenderName;
+    if (!senderName && senderUserId) {
+      const sender = await resolveUserContact(supabase, senderUserId);
+      senderName = sender.firstName;
+      if (sender.userType === "couple") {
+        const partnerName = await getPartnerName(supabase, senderUserId);
+        if (partnerName) senderName = `${senderName} & ${partnerName}`;
       }
     }
+    senderName = senderName || "Someone";
 
-    const brevoApiKey = process.env.BREVO_API_KEY;
-    const senderEmail = process.env.BREVO_FROM_EMAIL || "hello@duogo.app";
-    const senderTitle = process.env.BREVO_FROM_NAME || "duogo";
     const appUrl = process.env.APP_URL || (req.get("host") ? `${req.protocol}://${req.get("host")}` : "https://duogo.app");
+    const scoreBadge = typeof compatibilityScore === "number" && compatibilityScore > 0
+      ? `<p style="font-size: 15px; color: #e84a2b; font-weight: 700; margin: 4px 0 16px 0;">✨ ${Math.round(compatibilityScore)}% Compatibility Match</p>`
+      : "";
 
-    if (!brevoApiKey) {
-      console.log(`[Email Dispatch] BREVO_API_KEY not configured. Email notification skipped for ${recipientProfile.email}`);
-      return res.json({
-        success: true,
-        emailSent: false,
-        reason: "BREVO_API_KEY environment variable is not configured",
-        recipient: recipientProfile.email,
-      });
-    }
-
-    const recipientName = recipientProfile.first_name || "Friend";
     const htmlContent = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #ffffff;">
-        <h1 style="color: #e84a2b; text-align: center; font-size: 26px; margin-bottom: 8px;">✨ New Connection Request!</h1>
-        <p style="font-size: 16px; color: #333;">Hi ${recipientName},</p>
-        <p style="font-size: 16px; color: #333; line-height: 1.6;">
-          <strong>${senderName}</strong> reviewed your profile on duogo and sent you a connection request!
-        </p>
-        <div style="text-align: center; margin: 32px 0;">
-          <a href="${appUrl}/matches?tab=received" style="display: inline-block; background-color: #e84a2b; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;">
-            Review Connection Request
-          </a>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border-radius: 12px; border: 1px solid #f0eee9;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <span style="font-size: 32px;">✨</span>
+          <h1 style="color: #1A1816; font-size: 24px; font-weight: 800; margin: 12px 0 4px 0;">New Connection Request</h1>
+          <p style="color: #706A62; font-size: 15px; margin: 0;">Someone in your local area wants to connect on duogo</p>
         </div>
-        <p style="font-size: 14px; color: #999; text-align: center; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
-          duogo · Find your people.
-        </p>
+
+        <div style="background-color: #FAF7F2; border-radius: 16px; padding: 24px; margin: 24px 0; border: 1px solid #EDE8E1; text-align: center;">
+          <p style="font-size: 17px; color: #1A1816; line-height: 1.5; margin: 0 0 8px 0;">
+            Hi <strong>${recipient.firstName}</strong>,
+          </p>
+          <p style="font-size: 16px; color: #403B35; line-height: 1.6; margin: 0;">
+            <strong>${senderName}</strong> reviewed your profile, discovered shared vibe affinities, and sent you a connection request!
+          </p>
+          ${scoreBadge}
+          <div style="margin-top: 24px;">
+            <a href="${appUrl}/matches?tab=received" style="display: inline-block; background-color: #FF5436; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 30px; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(255,84,54,0.25);">
+              Review & Connect Back
+            </a>
+          </div>
+        </div>
+
+        <div style="padding: 16px 0; border-top: 1px solid #F0ECE4; text-align: center;">
+          <p style="font-size: 13px; color: #8C847B; margin: 0 0 6px 0;">
+            You can accept or decline anytime inside your <strong>Received</strong> tab.
+          </p>
+          <p style="font-size: 12px; color: #B3ABA0; margin: 0;">
+            duogo · Authentic Social Friendships & Pair Gatherings
+          </p>
+        </div>
       </div>
     `;
 
-    const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": brevoApiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        sender: { name: senderTitle, email: senderEmail },
-        to: [{ email: recipientProfile.email }],
-        subject: `✨ ${senderName} sent you a connection request on duogo!`,
-        htmlContent,
-      }),
+    const result = await sendTransactionalEmail({
+      to: recipient.email,
+      recipientName: recipient.firstName,
+      subject: `✨ ${senderName} sent you a connection request on duogo!`,
+      htmlContent,
     });
 
-    const emailSent = brevoRes.ok;
     return res.json({
       success: true,
-      emailSent,
-      recipient: recipientProfile.email,
+      emailSent: result.success,
+      provider: result.provider,
+      skipped: result.skipped,
+      reason: result.error,
+      recipient: recipient.email,
     });
   } catch (err: any) {
     console.error("Email request notification error:", err);
     return res.status(500).json({ error: err.message || "Failed to send request email" });
+  }
+});
+
+/**
+ * Endpoint 5: Mutual Match Notification Email Dispatcher
+ * Sends celebratory match intro emails to both users when a mutual match occurs
+ */
+app.post("/api/email/match-notification", async (req, res) => {
+  try {
+    const { matchId, userAId, userBId } = req.body;
+
+    if (!matchId && (!userAId || !userBId)) {
+      return res.status(400).json({ error: "matchId or both userAId and userBId required" });
+    }
+
+    const supabase = getSupabaseAdmin();
+
+    // 1. Fetch match record
+    let matchData: any = null;
+    if (matchId) {
+      const { data } = await supabase.from("matches").select("*").eq("id", matchId).maybeSingle();
+      matchData = data;
+    }
+
+    const resolvedUserAId = userAId || matchData?.user_a_id;
+    const resolvedUserBId = userBId || matchData?.user_b_id;
+
+    if (!resolvedUserAId || !resolvedUserBId) {
+      return res.status(404).json({ error: "Could not identify matched users" });
+    }
+
+    // 2. Resolve contact details for both users
+    const [userA, userB] = await Promise.all([
+      resolveUserContact(supabase, resolvedUserAId),
+      resolveUserContact(supabase, resolvedUserBId),
+    ]);
+
+    // Handle couple partner names if applicable
+    let nameA = userA.firstName;
+    if (userA.userType === "couple") {
+      const partner = await getPartnerName(supabase, resolvedUserAId);
+      if (partner) nameA = `${nameA} & ${partner}`;
+    }
+
+    let nameB = userB.firstName;
+    if (userB.userType === "couple") {
+      const partner = await getPartnerName(supabase, resolvedUserBId);
+      if (partner) nameB = `${nameB} & ${partner}`;
+    }
+
+    const score = matchData?.compatibility_score
+      ? Math.round(Number(matchData.compatibility_score))
+      : 88;
+
+    const appUrl = process.env.APP_URL || (req.get("host") ? `${req.protocol}://${req.get("host")}` : "https://duogo.app");
+    const revealUrl = matchId ? `${appUrl}/match-reveal/${matchId}` : `${appUrl}/matches?tab=connected`;
+
+    const buildMatchEmailHtml = (recipientName: string, partnerDisplayName: string) => `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border-radius: 12px; border: 1px solid #f0eee9;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <span style="font-size: 36px;">🎉</span>
+          <h1 style="color: #1A1816; font-size: 26px; font-weight: 800; margin: 12px 0 4px 0;">It's a Mutual Match!</h1>
+          <p style="color: #e84a2b; font-size: 16px; font-weight: 700; margin: 0;">${score}% Compatibility Score</p>
+        </div>
+
+        <div style="background-color: #FAF7F2; border-radius: 16px; padding: 24px; margin: 24px 0; border: 1px solid #EDE8E1; text-align: center;">
+          <p style="font-size: 17px; color: #1A1816; line-height: 1.5; margin: 0 0 12px 0;">
+            Hi <strong>${recipientName}</strong>,
+          </p>
+          <p style="font-size: 16px; color: #403B35; line-height: 1.6; margin: 0 0 20px 0;">
+            Great news! You and <strong>${partnerDisplayName}</strong> both accepted each other on duogo. You're officially connected!
+          </p>
+
+          <div style="margin: 24px 0 12px 0;">
+            <a href="${revealUrl}" style="display: inline-block; background-color: #FF5436; color: #ffffff; text-decoration: none; padding: 14px 34px; border-radius: 30px; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(255,84,54,0.25);">
+              View Match & Start Chatting
+            </a>
+          </div>
+        </div>
+
+        <div style="margin: 24px 0; padding: 16px 20px; background-color: #ffffff; border: 1px solid #EDE8E1; border-radius: 12px;">
+          <p style="font-size: 14px; font-weight: 700; color: #1A1816; margin: 0 0 8px 0;">Next steps:</p>
+          <ol style="font-size: 14px; color: #57524C; margin: 0; padding-left: 20px; line-height: 1.7;">
+            <li>Open duogo to review your full shared archetype and top vibes.</li>
+            <li>Send a greeting message or respond in the live chat room.</li>
+            <li>Coordinate a friendly double date or coffee hangout!</li>
+          </ol>
+        </div>
+
+        <div style="padding: 16px 0; border-top: 1px solid #F0ECE4; text-align: center;">
+          <p style="font-size: 12px; color: #B3ABA0; margin: 0;">
+            duogo · Find your people.
+          </p>
+        </div>
+      </div>
+    `;
+
+    const dispatchPromises: Promise<any>[] = [];
+
+    if (userA.email) {
+      dispatchPromises.push(
+        sendTransactionalEmail({
+          to: userA.email,
+          recipientName: userA.firstName,
+          subject: `🎉 It's a Match! You and ${nameB} connected on duogo`,
+          htmlContent: buildMatchEmailHtml(userA.firstName, nameB),
+        })
+      );
+    }
+
+    if (userB.email) {
+      dispatchPromises.push(
+        sendTransactionalEmail({
+          to: userB.email,
+          recipientName: userB.firstName,
+          subject: `🎉 It's a Match! You and ${nameA} connected on duogo`,
+          htmlContent: buildMatchEmailHtml(userB.firstName, nameA),
+        })
+      );
+    }
+
+    const results = await Promise.all(dispatchPromises);
+
+    return res.json({
+      success: true,
+      sentCount: results.filter((r) => r.success).length,
+      skipped: results.every((r) => r.skipped),
+      results,
+    });
+  } catch (err: any) {
+    console.error("Mutual match notification email error:", err);
+    return res.status(500).json({ error: err.message || "Failed to dispatch match emails" });
   }
 });
 

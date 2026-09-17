@@ -8,6 +8,7 @@ import { idbPersister } from "@/lib/queryPersister";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { OnboardingStepGuard } from "@/components/OnboardingStepGuard";
 import AppLayout from "@/components/AppLayout";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -96,16 +97,16 @@ const App = () => (
               {/* Progressive Signup & Onboarding Flow */}
               <Route path="/signup" element={<UserType />} />
               <Route path="/onboarding/user-type" element={<UserType />} />
-              <Route path="/onboarding/age" element={<AgeGroup />} />
-              <Route path="/onboarding/gender" element={<Gender />} />
-              <Route path="/onboarding/kids" element={<Kids />} />
-              <Route path="/onboarding/looking-for" element={<LookingFor />} />
-              <Route path="/onboarding/couple-setup" element={<CoupleSetup />} />
-              <Route path="/onboarding/profile" element={<SoloProfile />} />
-              <Route path="/onboarding/location" element={<Location />} />
-              <Route path="/quiz" element={<Quiz />} />
-              <Route path="/onboarding/privacy-consent" element={<PrivacyConsent />} />
-              <Route path="/onboarding/verify" element={<EmailVerification />} />
+              <Route path="/onboarding/age" element={<OnboardingStepGuard><AgeGroup /></OnboardingStepGuard>} />
+              <Route path="/onboarding/gender" element={<OnboardingStepGuard><Gender /></OnboardingStepGuard>} />
+              <Route path="/onboarding/kids" element={<OnboardingStepGuard><Kids /></OnboardingStepGuard>} />
+              <Route path="/onboarding/looking-for" element={<OnboardingStepGuard><LookingFor /></OnboardingStepGuard>} />
+              <Route path="/onboarding/couple-setup" element={<OnboardingStepGuard><CoupleSetup /></OnboardingStepGuard>} />
+              <Route path="/onboarding/profile" element={<OnboardingStepGuard><SoloProfile /></OnboardingStepGuard>} />
+              <Route path="/onboarding/location" element={<OnboardingStepGuard><Location /></OnboardingStepGuard>} />
+              <Route path="/quiz" element={<OnboardingStepGuard><Quiz /></OnboardingStepGuard>} />
+              <Route path="/onboarding/privacy-consent" element={<OnboardingStepGuard><PrivacyConsent /></OnboardingStepGuard>} />
+              <Route path="/onboarding/verify" element={<OnboardingStepGuard><EmailVerification /></OnboardingStepGuard>} />
 
               {/* App pages with persistent navigation */}
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>

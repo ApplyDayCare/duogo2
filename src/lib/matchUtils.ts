@@ -70,12 +70,38 @@ export function getTopSharedVibes(
   return top2.map(t => DIMENSION_TAGS[t.dim]);
 }
 
+/**
+ * Strips postal codes, zip codes, and raw delimiters to return a clean city name or area.
+ * E.g. "Milton · L9T 8M4" -> "Milton"
+ *      "Milton • L9T 8M4" -> "Milton"
+ *      "L9T 8M4" -> "Local area"
+ */
+export function sanitizeLocationCity(location?: string | null): string {
+  if (!location) return "Local area";
+
+  // Split on delimiters (·, •, |, -)
+  const parts = location.split(/[·•|]/);
+  let mainPart = parts[0].trim();
+
+  // Regex patterns for postal codes (Canadian: A1A 1A1 or A1A1A1; US: 12345 or 12345-6789)
+  const isPurePostal = /^[A-Za-z]\d[A-Za-z](\s?\d[A-Za-z]\d)?$/i;
+  const postalGlobal = /\b[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d\b|\b\d{5}(-\d{4})?\b/gi;
+
+  if (isPurePostal.test(mainPart) && parts[1]) {
+    mainPart = parts[1].trim();
+  }
+
+  const cleaned = mainPart.replace(postalGlobal, "").trim().replace(/^[,\-–\s]+|[,\-–\s]+$/g, "");
+  return cleaned || "Local area";
+}
+
 export function getCandidateDisplayName(
   match: { user_type?: string; location_city?: string | null },
   vibes?: { label: string; emoji?: string }[]
 ): string {
   const topVibe = vibes && vibes.length > 0 ? vibes[0].label : null;
-  const city = match.location_city ? match.location_city.split("·")[0].split("•")[0].trim() : null;
+  const rawCity = sanitizeLocationCity(match.location_city);
+  const city = rawCity !== "Local area" ? rawCity : null;
   const isCouple = match.user_type === "couple";
 
   if (topVibe && city) {

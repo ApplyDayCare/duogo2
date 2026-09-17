@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { calculateDistanceKm } from "@/lib/postalCodeUtils";
-import { getCandidateDisplayName } from "@/lib/matchUtils";
+import { getCandidateDisplayName, sanitizeLocationCity } from "@/lib/matchUtils";
 import MatchActions from "@/components/MatchActions";
 
 export interface MatchCardItem {
@@ -245,7 +245,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             {match.location_city && (
               <span className="inline-flex items-center gap-1 text-xs text-[#706A62] bg-[#FAF7F2] border border-[#E8E1D5] px-2.5 py-1 rounded-full font-medium">
                 <MapPin className="h-3 w-3 text-[#FF5436]" />
-                <span>{match.location_city}</span>
+                <span>{sanitizeLocationCity(match.location_city)}</span>
                 {distanceKm !== null && <span className="text-[#8C847B]">· ~{distanceKm} km</span>}
               </span>
             )}

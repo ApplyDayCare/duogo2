@@ -64,6 +64,17 @@ export function clearSignupDraft() {
   }
 }
 
+export function hasSignupDraft(): boolean {
+  try {
+    const raw = localStorage.getItem(SIGNUP_STORAGE_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return Boolean(parsed && (parsed.user_type || parsed.age_group || parsed.first_name || parsed.quiz_answers));
+  } catch {
+    return false;
+  }
+}
+
 export async function syncSignupDraftToSupabase(user: { id: string; email?: string | null }): Promise<{ ok: boolean; error?: string }> {
   const draft = getSignupDraft();
 

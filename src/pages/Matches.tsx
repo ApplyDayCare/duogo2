@@ -284,6 +284,27 @@ const Matches = () => {
       return next;
     });
 
+    // Cache candidate details so Pending tab retains full archetype, score, and sanitized location
+    if (action === "accept") {
+      try {
+        localStorage.setItem(
+          `duogo_candidate_cache_${match.user_id}`,
+          JSON.stringify({
+            user_id: match.user_id,
+            first_name: match.first_name,
+            user_type: match.user_type,
+            location_city: match.location_city,
+            travel_radius_km: match.travel_radius_km,
+            score: match.score,
+            dimensions: match.dimensions,
+            my_dimensions: match.my_dimensions,
+          })
+        );
+      } catch {
+        // storage safe
+      }
+    }
+
     if (action === "accept" && !isIncoming) {
       setOptimisticPendingMatches((prev) => {
         if (prev.some((p) => p.user_id === match.user_id)) return prev;
@@ -427,11 +448,17 @@ const Matches = () => {
 
   const pendingMatches = useMemo(() => {
     const fromServer = data?.pending_matches || [];
-    const fromServerIds = new Set(fromServer.map((m) => m.user_id));
-    const extra = optimisticPendingMatches.filter(
-      (m) => !fromServerIds.has(m.user_id)
-    );
-    return [...extra, ...fromServer];
+    const seen = new Set<string>();
+    const list: MatchData[] = [];
+
+    // Prioritize optimistic updates, then server records, guaranteeing unique user IDs
+    for (const m of [...optimisticPendingMatches, ...fromServer]) {
+      if (!seen.has(m.user_id)) {
+        seen.add(m.user_id);
+        list.push(m);
+      }
+    }
+    return list;
   }, [data?.pending_matches, optimisticPendingMatches]);
 
   // Aggregate all user IDs who have already received a connection request from the current user

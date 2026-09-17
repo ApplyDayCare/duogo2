@@ -3,6 +3,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { getSavedQuizAnswers, ensureUserQuizResponse } from "@/lib/quizSync";
 import { saveOfflineProfile, getOfflineProfile } from "@/lib/queryPersister";
+import { clearSignupDraft } from "@/lib/signupState";
 
 export interface UserProfile {
   id: string;
@@ -139,6 +140,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (data) {
         saveOfflineProfile(userId, data);
+        // Cross-device draft cleanup: if profile is completed, clear stale local signup drafts
+        if (data.onboarding_completed || (data.first_name && data.quiz_completed)) {
+          clearSignupDraft();
+        }
       }
 
       setProfile(data as UserProfile);

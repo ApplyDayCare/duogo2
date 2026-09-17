@@ -3,6 +3,7 @@ import { ALL_DIMS, getDim, soloScore, QuizRow } from "@/lib/scoring";
 import { ensureUserQuizResponse, getSavedQuizAnswers } from "@/lib/quizSync";
 import { fetchBlockedUserIds } from "@/lib/blockService";
 import { saveOfflineMatches, getOfflineMatches } from "@/lib/queryPersister";
+import { sanitizeLocationCity } from "@/lib/matchUtils";
 
 export interface MatchData {
   user_id: string;
@@ -257,10 +258,22 @@ async function executeFetchMatches(
   });
 
   const pendingMatchesList: MatchData[] = [];
+  const seenPendingIds = new Set<string>();
+
   for (const out of outgoingPendingRecords) {
     const isUserA = out.user_a_id === userId || (partnerId && out.user_a_id === partnerId);
     const otherId = isUserA ? out.user_b_id : out.user_a_id;
     if (excludeIds.has(otherId) && out.status === "blocked") continue;
+    if (seenPendingIds.has(otherId)) continue;
+    seenPendingIds.add(otherId);
+
+    let cachedCandidate: MatchData | null = null;
+    try {
+      const raw = localStorage.getItem(`duogo_candidate_cache_${otherId}`);
+      if (raw) cachedCandidate = JSON.parse(raw);
+    } catch {
+      // safe
+    }
 
     const { data: otherProfile } = await supabase
       .from("profiles")
@@ -276,27 +289,63 @@ async function executeFetchMatches(
 
     const otherQuiz = (otherQuizData || {}) as QuizRow;
     const myQuizRow = { ...myQuizDims, user_id: userId } as QuizRow;
-    const score = out.compatibility_score && out.compatibility_score > 0
-      ? out.compatibility_score
-      : (otherQuizData ? soloScore(myQuizRow, otherQuiz) : 88);
+    const myDims = ALL_DIMS.map((d) => getDim(myQuizRow, d));
+
+    // Resolve location: candidate's sanitized location, or cached candidate's city, or broad area
+    let resolvedCity: string;
+    if (otherProfile?.location_city) {
+      resolvedCity = sanitizeLocationCity(otherProfile.location_city);
+    } else if (cachedCandidate?.location_city) {
+      resolvedCity = sanitizeLocationCity(cachedCandidate.location_city);
+    } else {
+      const myCleanCity = myProfile?.location_city ? sanitizeLocationCity(myProfile.location_city) : null;
+      resolvedCity = myCleanCity && myCleanCity !== "Local area" ? myCleanCity : "Local area";
+    }
+
+    // Resolve dimensions: real quiz, cached candidate, or deterministic diverse archetypes
+    let resolvedOtherDims: number[];
+    if (otherQuizData) {
+      resolvedOtherDims = ALL_DIMS.map((d) => getDim(otherQuiz, d));
+    } else if (cachedCandidate?.dimensions && cachedCandidate.dimensions.length === ALL_DIMS.length) {
+      resolvedOtherDims = cachedCandidate.dimensions;
+    } else {
+      const hash = otherId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      resolvedOtherDims = myDims.map((val, idx) => {
+        const offset = ((hash + idx * 7) % 3) - 1;
+        return Math.min(5, Math.max(1, val + offset));
+      });
+    }
+
+    // Resolve score: record score, calculated score, cached score, or deterministic score
+    let score: number;
+    if (out.compatibility_score && out.compatibility_score > 0) {
+      score = out.compatibility_score;
+    } else if (otherQuizData) {
+      score = soloScore(myQuizRow, otherQuiz);
+    } else if (cachedCandidate?.score && cachedCandidate.score > 0) {
+      score = cachedCandidate.score;
+    } else {
+      const hash = otherId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      score = 84 + (hash % 11);
+    }
 
     const resolvedProfile = otherProfile || {
       id: otherId,
-      first_name: "Community Member",
-      user_type: userType || "solo",
-      location_city: myProfile?.location_city || null,
-      travel_radius_km: 15,
+      first_name: cachedCandidate?.first_name || "Community Member",
+      user_type: cachedCandidate?.user_type || userType || "solo",
+      location_city: resolvedCity,
+      travel_radius_km: cachedCandidate?.travel_radius_km || 15,
     };
 
     pendingMatchesList.push({
       user_id: resolvedProfile.id,
       first_name: resolvedProfile.first_name || "Community Member",
       user_type: resolvedProfile.user_type || "solo",
-      location_city: resolvedProfile.location_city,
+      location_city: resolvedCity,
       travel_radius_km: resolvedProfile.travel_radius_km || 15,
       score,
-      dimensions: ALL_DIMS.map((d) => getDim(otherQuiz, d)),
-      my_dimensions: ALL_DIMS.map((d) => getDim(myQuizRow, d)),
+      dimensions: resolvedOtherDims,
+      my_dimensions: myDims,
       pending_match_id: out.id,
     });
   }
@@ -337,6 +386,15 @@ async function executeFetchMatches(
     const isUserA = inc.user_a_id === userId || (partnerId && inc.user_a_id === partnerId);
     const otherId = isUserA ? inc.user_b_id : inc.user_a_id;
     if (excludeIds.has(otherId) && inc.status === "blocked") continue;
+
+    let cachedCandidate: MatchData | null = null;
+    try {
+      const raw = localStorage.getItem(`duogo_candidate_cache_${otherId}`);
+      if (raw) cachedCandidate = JSON.parse(raw);
+    } catch {
+      // safe
+    }
+
     const { data: otherProfile } = await supabase
       .from("profiles")
       .select("id, first_name, user_type, location_city, travel_radius_km")
@@ -351,27 +409,60 @@ async function executeFetchMatches(
 
     const otherQuiz = (otherQuizData || {}) as QuizRow;
     const myQuizRow = { ...myQuizDims, user_id: userId } as QuizRow;
-    const score = inc.compatibility_score && inc.compatibility_score > 0
-      ? inc.compatibility_score
-      : (otherQuizData ? soloScore(myQuizRow, otherQuiz) : 88);
+    const myDims = ALL_DIMS.map((d) => getDim(myQuizRow, d));
+
+    let resolvedCity: string;
+    if (otherProfile?.location_city) {
+      resolvedCity = sanitizeLocationCity(otherProfile.location_city);
+    } else if (cachedCandidate?.location_city) {
+      resolvedCity = sanitizeLocationCity(cachedCandidate.location_city);
+    } else {
+      const myCleanCity = myProfile?.location_city ? sanitizeLocationCity(myProfile.location_city) : null;
+      resolvedCity = myCleanCity && myCleanCity !== "Local area" ? myCleanCity : "Local area";
+    }
+
+    let resolvedOtherDims: number[];
+    if (otherQuizData) {
+      resolvedOtherDims = ALL_DIMS.map((d) => getDim(otherQuiz, d));
+    } else if (cachedCandidate?.dimensions && cachedCandidate.dimensions.length === ALL_DIMS.length) {
+      resolvedOtherDims = cachedCandidate.dimensions;
+    } else {
+      const hash = otherId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      resolvedOtherDims = myDims.map((val, idx) => {
+        const offset = ((hash + idx * 7) % 3) - 1;
+        return Math.min(5, Math.max(1, val + offset));
+      });
+    }
+
+    let score: number;
+    if (inc.compatibility_score && inc.compatibility_score > 0) {
+      score = inc.compatibility_score;
+    } else if (otherQuizData) {
+      score = soloScore(myQuizRow, otherQuiz);
+    } else if (cachedCandidate?.score && cachedCandidate.score > 0) {
+      score = cachedCandidate.score;
+    } else {
+      const hash = otherId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      score = 84 + (hash % 11);
+    }
 
     const resolvedProfile = otherProfile || {
       id: otherId,
-      first_name: "Match Candidate",
-      user_type: userType || "solo",
-      location_city: myProfile?.location_city || null,
-      travel_radius_km: 15,
+      first_name: cachedCandidate?.first_name || "Match Candidate",
+      user_type: cachedCandidate?.user_type || userType || "solo",
+      location_city: resolvedCity,
+      travel_radius_km: cachedCandidate?.travel_radius_km || 15,
     };
 
     const matchObj: MatchData = {
       user_id: resolvedProfile.id,
       first_name: resolvedProfile.first_name || "Match Candidate",
       user_type: resolvedProfile.user_type || "solo",
-      location_city: resolvedProfile.location_city,
+      location_city: resolvedCity,
       travel_radius_km: resolvedProfile.travel_radius_km || 15,
       score,
-      dimensions: ALL_DIMS.map((d) => getDim(otherQuiz, d)),
-      my_dimensions: ALL_DIMS.map((d) => getDim(myQuizRow, d)),
+      dimensions: resolvedOtherDims,
+      my_dimensions: myDims,
       has_incoming_request: true,
       pending_match_id: inc.id,
     };
@@ -389,7 +480,10 @@ async function executeFetchMatches(
       for (const m of edgeData.matches) {
         // MUST filter by excludeIds here so that already swiped/pending candidates from Edge Function do not surface
         if (!excludeIds.has(m.user_id) && !matchesMap.has(m.user_id)) {
-          matchesMap.set(m.user_id, m);
+          matchesMap.set(m.user_id, {
+            ...m,
+            location_city: sanitizeLocationCity(m.location_city),
+          });
         }
       }
     }
@@ -402,7 +496,7 @@ async function executeFetchMatches(
     // Append accepted demo candidates to pendingMatchesList so they appear in the Pending tab
     try {
       const myDims = ALL_DIMS.map((d) => getDim(myQuizRow, d));
-      const myCity = myProfile.location_city || "Milton";
+      const myCity = myProfile?.location_city ? sanitizeLocationCity(myProfile.location_city) : "Milton";
       const demoFallbacks = [
         {
           user_id: "demo_candidate_1",
@@ -439,7 +533,8 @@ async function executeFetchMatches(
       Object.entries(demoSwipes).forEach(([id, act]) => {
         if (act === "accept") {
           const found = demoFallbacks.find((f) => f.user_id === id);
-          if (found) {
+          if (found && !seenPendingIds.has(found.user_id)) {
+            seenPendingIds.add(found.user_id);
             pendingMatchesList.push(found);
           }
         }
@@ -490,7 +585,7 @@ async function executeFetchMatches(
             user_id: c.id,
             first_name: c.first_name || "Community Member",
             user_type: c.user_type || "solo",
-            location_city: c.location_city,
+            location_city: sanitizeLocationCity(c.location_city),
             travel_radius_km: c.travel_radius_km,
             score,
             dimensions: ALL_DIMS.map((d) => getDim(dimsObj, d)),
@@ -516,7 +611,7 @@ async function executeFetchMatches(
               user_id: candId,
               first_name: c.first_name || "Community Member",
               user_type: candType,
-              location_city: c.location_city,
+              location_city: sanitizeLocationCity(c.location_city),
               travel_radius_km: c.travel_radius_km,
               score,
               dimensions: ALL_DIMS.map((d) => getDim(dimsObj, d)),
@@ -604,7 +699,7 @@ async function executeFetchMatches(
                 user_id: c.id,
                 first_name: c.first_name || "Community Member",
                 user_type: c.user_type || "solo",
-                location_city: c.location_city,
+                location_city: sanitizeLocationCity(c.location_city),
                 travel_radius_km: c.travel_radius_km,
                 score,
                 dimensions: ALL_DIMS.map((d) => getDim(otherQuiz, d)),
@@ -618,7 +713,7 @@ async function executeFetchMatches(
       // 5c. If no unswiped candidates exist in database, generate curated community candidate matches
       if (matchesMap.size === 0) {
         const myDims = ALL_DIMS.map((d) => getDim(myQuizRow, d));
-        const myCity = myProfile.location_city || "Milton";
+        const myCity = myProfile?.location_city ? sanitizeLocationCity(myProfile.location_city) : "Milton";
 
         const fallbackCandidates: MatchData[] = [
           {
@@ -864,17 +959,34 @@ export async function executeMatchAction(
     }
   }
 
-  if (res.match_id && typeof score === "number" && score > 0) {
-    // Ensure compatibility score is persisted on match record
-    supabase
-      .from("matches")
-      .update({ compatibility_score: score })
-      .eq("id", res.match_id)
-      .then(({ error: updateErr }) => {
-        if (updateErr) {
-          console.error("Error updating match compatibility score in background:", updateErr);
-        }
-      });
+  if (typeof score === "number" && score > 0) {
+    if (res.match_id) {
+      supabase
+        .from("matches")
+        .update({ compatibility_score: Math.round(score) })
+        .eq("id", res.match_id)
+        .then(({ error: updateErr }) => {
+          if (updateErr) {
+            console.error("Error updating match compatibility score in background:", updateErr);
+          }
+        });
+    } else if (activeUserId && otherUserId) {
+      supabase
+        .from("matches")
+        .select("id")
+        .or(`and(user_a_id.eq.${activeUserId},user_b_id.eq.${otherUserId}),and(user_a_id.eq.${otherUserId},user_b_id.eq.${activeUserId})`)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .then(({ data: foundMatches }) => {
+          if (foundMatches && foundMatches.length > 0) {
+            supabase
+              .from("matches")
+              .update({ compatibility_score: Math.round(score) })
+              .eq("id", foundMatches[0].id)
+              .then();
+          }
+        });
+    }
   }
 
   if (res.status === "mutual") {
@@ -941,6 +1053,20 @@ export async function executeMatchAction(
         tag: `match-${res.match_id}`,
       }),
     }).catch(console.warn);
+
+    // 5. Also trigger backend transactional email dispatcher for mutual match
+    fetch("/api/email/match-notification", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token || ""}`,
+      },
+      body: JSON.stringify({
+        matchId: res.match_id,
+        userAId: activeUserId,
+        userBId: otherUserId,
+      }),
+    }).catch(console.warn);
   } else if (res.status === "pending" && action === "accept") {
     // 1. Persist in-app notification for the recipient
     supabase
@@ -992,10 +1118,14 @@ export async function executeMatchAction(
     // 4. Trigger email notification to recipient
     fetch("/api/email/request-notification", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token || ""}`,
+      },
       body: JSON.stringify({
         targetUserId: otherUserId,
         senderUserId: activeUserId,
+        compatibilityScore: score,
       }),
     }).catch(console.warn);
   }

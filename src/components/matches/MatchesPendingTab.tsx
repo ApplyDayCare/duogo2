@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Sparkles, Lock } from "lucide-react";
 import { calculateDistanceKm } from "@/lib/postalCodeUtils";
-import { getTopSharedVibes, getCandidateDisplayName } from "@/lib/matchUtils";
+import { getTopSharedVibes, getCandidateDisplayName, sanitizeLocationCity } from "@/lib/matchUtils";
 import type { MatchData } from "@/lib/matchEngine";
 
 interface MatchesPendingTabProps {
@@ -95,7 +95,7 @@ export const MatchesPendingTab = ({
                 <div className="rounded-2xl bg-[#FAF7F2] p-3 text-xs text-muted-foreground space-y-1">
                   <div className="flex justify-between">
                     <span>Location</span>
-                    <span className="font-bold text-foreground">{m.location_city || "Local area"}</span>
+                    <span className="font-bold text-foreground">{sanitizeLocationCity(m.location_city)}</span>
                   </div>
                   {mDist !== null && (
                     <div className="flex justify-between">
