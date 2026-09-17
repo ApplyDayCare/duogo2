@@ -2,15 +2,17 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Register service worker for PWA
+// Unregister stale service worker to prevent caching old application states
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then((registration) => {
-        registration.update();
-      })
-      .catch(() => {});
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const registration of registrations) {
+      registration.unregister();
+    }
+  });
+}
+if ("caches" in window) {
+  caches.keys().then((keys) => {
+    keys.forEach((key) => caches.delete(key));
   });
 }
 

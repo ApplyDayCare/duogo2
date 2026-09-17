@@ -13,6 +13,16 @@ const app = express();
 
 app.use(express.json());
 
+// Anti-caching middleware for dev and preview to ensure browsers always load fresh code
+app.use((req, res, next) => {
+  if (req.path === "/" || req.path.endsWith(".html") || req.path === "/sw.js" || req.path.startsWith("/src/")) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  }
+  next();
+});
+
 // Configure Web Push VAPID
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
