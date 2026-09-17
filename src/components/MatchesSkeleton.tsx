@@ -35,7 +35,7 @@ export const MatchesSkeleton: React.FC = () => {
 
         {/* 2-Column Responsive Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 lg:min-h-0 lg:flex-1 items-stretch">
-          {/* LEFT COLUMN: Match Card Skeleton with Embedded Synergy */}
+          {/* LEFT COLUMN: Match Card Skeleton */}
           <div className="lg:col-span-5 flex flex-col lg:min-h-0 relative">
             <div className="h-full rounded-[28px] border border-[#EFE8DD] bg-white shadow-card p-6 sm:p-7 flex flex-col justify-between space-y-5">
               <div className="space-y-4">
@@ -62,21 +62,6 @@ export const MatchesSkeleton: React.FC = () => {
                 <div className="flex flex-wrap justify-center gap-2 pt-0.5">
                   <Skeleton className="h-6 w-24 rounded-full bg-[#FAF7F2] border border-[#E8E1D5]" />
                   <Skeleton className="h-6 w-24 rounded-full bg-[#FAF7F2] border border-[#E8E1D5]" />
-                </div>
-
-                {/* Embedded Synergy Breakdown Skeleton */}
-                <div className="rounded-2xl bg-gradient-to-br from-[#FFF9F6] to-[#FFF1EB] border border-[#FFD9CE] p-3.5 space-y-2.5">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-5 w-5 rounded bg-[#FFEBE5]" />
-                    <Skeleton className="h-4 w-32 rounded bg-[#EFE8DD]" />
-                  </div>
-                  <Skeleton className="h-5 w-40 rounded bg-white" />
-                  <Skeleton className="h-3 w-full rounded bg-[#EFE8DD]" />
-                  <Skeleton className="h-3 w-5/6 rounded bg-[#EFE8DD]" />
-                  <div className="rounded-xl bg-white/90 border border-[#FFD9CE] p-2 flex items-center gap-2">
-                    <Skeleton className="h-4 w-4 rounded bg-[#FFE4DC] shrink-0" />
-                    <Skeleton className="h-3 w-4/5 rounded bg-[#FFEDE8]" />
-                  </div>
                 </div>
               </div>
 

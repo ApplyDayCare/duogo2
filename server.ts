@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
@@ -81,140 +80,15 @@ async function requireAuth(req: express.Request, res: express.Response, next: ex
   }
 }
 
-// Rate Limiter middleware for AI endpoints (10 requests per user per minute)
-function aiRateLimiter(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const userId = (req as any).user?.id || req.ip || "unknown";
-  const { allowed, remaining } = checkRateLimit(`ai:${userId}`, 10, 60000);
-
-  res.setHeader("X-RateLimit-Limit", "10");
-  res.setHeader("X-RateLimit-Remaining", remaining.toString());
-
-  if (!allowed) {
-    return res.status(429).json({
-      error: "Rate limit exceeded. Please wait a minute before making more AI requests.",
-    });
-  }
-
-  next();
-}
-
-// Lazy-initialized Gemini AI client
-let aiClient: GoogleGenAI | null = null;
-function getAIClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-  if (!aiClient) {
-    aiClient = new GoogleGenAI({ apiKey });
-  }
-  return aiClient;
-}
-
 // Health check endpoint
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
-    hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
   });
 });
 
 /**
- * Endpoint 1: Match Synergy Summary ("Why You Two Click")
- * Generates an intelligent, personalized breakdown of compatibility
- */
-app.post("/api/ai/synergy", requireAuth, aiRateLimiter, async (req, res) => {
-  try {
-    const {
-      userName = "You",
-      matchName = "Your match",
-      sharedVibes = [],
-      city = "",
-      score = 85,
-      dimensionDetails = [],
-    } = req.body;
-
-    const ai = getAIClient();
-
-    if (ai) {
-      const prompt = `You are the lead friendship compatibility expert at 'duogo', an intentional adult friendship app.
-Analyze the mutual compatibility between two people based purely on their quiz responses and lifestyle traits:
-- User 1: You
-- User 2: Candidate Match
-- Compatibility Match Score: ${score}%
-${city ? `- Location: ${city}` : ""}
-${sharedVibes.length > 0 ? `- Top Shared Lifestyle Vibes: ${sharedVibes.join(", ")}` : ""}
-${dimensionDetails.length > 0 ? `- Shared Traits / Dimensions: ${dimensionDetails.join(", ")}` : ""}
-
-CRITICAL RULES:
-- STRICT ZERO-BIAS & GENDER-NEUTRAL: Never use names, gender, or gendered pronouns (no he/she/his/her). Always use gender-neutral phrasing (e.g., "you and your match", "both of you").
-- Focus 100% on shared lifestyle pacing, social battery, gathering preferences, and weekend rhythms from their quiz responses.
-
-Generate an insightful, uplifting, and realistic "Why You Two Click" breakdown:
-1. 'headline': A punchy 3 to 6 word theme summarizing their shared vibe (e.g. "Weekend Explorers & Deep Thinkers").
-2. 'summary': 2 warm, natural sentences explaining why their lifestyles and energy complement each other so well without mentioning names or genders.
-3. 'sharedStrengths': An array of 3 distinct, specific synergies (e.g. "Both favor relaxed coffee spots over high-volume venues", "Balanced blend of intellectual banter and outdoor curiosity").
-4. 'recommendedActivity': A specific, low-pressure first hangout idea tailored to their common interests.`;
-
-      try {
-        const response = await ai.models.generateContent({
-          model: "gemini-3.8-flash",
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                headline: { type: Type.STRING },
-                summary: { type: Type.STRING },
-                sharedStrengths: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING },
-                },
-                recommendedActivity: { type: Type.STRING },
-              },
-              required: ["headline", "summary", "sharedStrengths", "recommendedActivity"],
-            },
-          },
-        });
-
-        if (response.text) {
-          const parsed = JSON.parse(response.text);
-          return res.json({ success: true, source: "gemini", data: parsed });
-        }
-      } catch (geminiErr) {
-        console.warn("Gemini API call failed, falling back to algorithmic synthesis:", geminiErr);
-      }
-    }
-
-    // Algorithmic Fallback if Gemini key is missing or call encounters limit
-    const fallbackVibes = sharedVibes.length > 0 ? sharedVibes : ["Social Rhythm", "Weekend Pacing", "Shared Interests"];
-    const topVibe = fallbackVibes[0] || "Lifestyle Alignment";
-    const secondVibe = fallbackVibes[1] || "Social Battery";
-    const cleanCity = city ? city.split("·")[0].split("•")[0].trim() : "";
-
-    return res.json({
-      success: true,
-      source: "algorithmic_fallback",
-      data: {
-        headline: `${topVibe} & ${secondVibe}`,
-        summary: `Your quiz results show a strong ${score}% synergy. You both share a synchronized social pace and complementary routines for low-pressure get-togethers.`,
-        sharedStrengths: [
-          `Compatible tempo for ${topVibe.toLowerCase()}`,
-          `Complementary social energy for relaxed hangouts`,
-          `Similar balance between active socializing and quiet downtime`,
-        ],
-        recommendedActivity: cleanCity
-          ? `Casual coffee or neighborhood stroll in ${cleanCity}`
-          : "Grab a coffee or tea and take a relaxed neighborhood walk",
-      },
-    });
-  } catch (error) {
-    console.error("Error generating synergy summary:", error);
-    res.status(500).json({ error: "Failed to generate synergy breakdown" });
-  }
-});
-
-/**
- * Endpoint 2: Web Push Dispatcher
+ * Endpoint 1: Web Push Dispatcher
  * Sends encrypted push notifications to a device subscription or all subscriptions for a userId
  */
 app.post("/api/push/dispatch", async (req, res) => {

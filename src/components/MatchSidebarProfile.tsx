@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, MapPin, ShieldCheck, Heart, ExternalLink, Flag, Ban } from "lucide-react";
+import { MapPin, ShieldCheck, Heart, ExternalLink, Flag, Ban } from "lucide-react";
 import { calculateDistanceKm } from "@/lib/postalCodeUtils";
 import MatchActions from "@/components/MatchActions";
 

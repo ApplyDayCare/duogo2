@@ -3,7 +3,6 @@ import {
   Lock,
   Unlock,
   CheckCircle2,
-  Sparkles,
   MapPin,
   Users,
   User,
@@ -23,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { calculateDistanceKm } from "@/lib/postalCodeUtils";
-import { MatchSynergyCard } from "@/components/MatchSynergyCard";
 import { getCandidateDisplayName } from "@/lib/matchUtils";
 import MatchActions from "@/components/MatchActions";
 
@@ -230,7 +228,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
               </Badge>
             ) : match.has_incoming_request ? (
               <Badge className="bg-[#FFF0EB] text-primary border-[#FFD9CE] px-3 py-1 text-xs font-bold gap-1.5 animate-pulse">
-                <Sparkles className="h-3.5 w-3.5" />
+                <Heart className="h-3.5 w-3.5 fill-[#FF5436]" />
                 <span>Sent You a Connection Request</span>
               </Badge>
             ) : (
@@ -294,7 +292,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             <div className="space-y-3 flex flex-col items-center w-full">
               {/* Minimalist Aura Ring */}
               <div className="h-20 w-20 rounded-full bg-gradient-to-br from-[#FFF0EB] via-[#FFE4DC] to-[#FFD9CE] border-2 border-[#FFC8B8] flex items-center justify-center text-primary shadow-xs">
-                <Sparkles className="h-8 w-8 text-primary" />
+                <Heart className="h-8 w-8 fill-[#FF5436] text-[#FF5436]" />
               </div>
 
               <div className="space-y-1">
@@ -324,20 +322,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </span>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Why You Two Click (Integrated Synergy Breakdown) */}
-        {!isMutual && (
-          <div className="pt-2">
-            <MatchSynergyCard
-              userName={userName}
-              matchName={getCandidateDisplayName(match, vibes)}
-              sharedVibes={vibes.map((v) => v.label)}
-              city={match.location_city || myCity || undefined}
-              score={Math.round(match.score)}
-              compact={true}
-            />
           </div>
         )}
       </div>

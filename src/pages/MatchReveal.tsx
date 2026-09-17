@@ -9,7 +9,6 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, PartyPopper, MapPin, ExternalLink, Mail, Search, Home, Flag, MessageCircle, Ban } from "lucide-react";
 import { calculateDistanceKm } from "@/lib/postalCodeUtils";
-import { MatchSynergyCard } from "@/components/MatchSynergyCard";
 import { soloScore, QuizRow } from "@/lib/scoring";
 import MatchActions from "@/components/MatchActions";
 
@@ -262,18 +261,6 @@ const MatchReveal = () => {
                 </div>
               )}
             </div>
-
-            {/* Gemini AI Synergy Breakdown */}
-            <MatchSynergyCard
-              userName={myProfile?.first_name || "You"}
-              matchName={
-                isCouple
-                  ? `${otherProfile?.first_name || "Partner 1"} & ${partnerProfile?.first_name || "Partner 2"}`
-                  : otherProfile?.first_name || "Your Match"
-              }
-              city={otherProfile?.location_city || myProfile?.location_city || undefined}
-              score={Math.round(Number(score))}
-            />
 
             {/* In-App Chat Notice */}
             <div className="rounded-2xl bg-[#FFF8F5] border border-[#FFD9CE] p-4 text-center space-y-1">

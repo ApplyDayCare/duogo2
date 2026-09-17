@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import * as d3 from "d3";
-import { Sparkles, ShieldCheck, ChevronDown, ChevronUp, Zap, HeartHandshake, Compass } from "lucide-react";
+import { Heart, ShieldCheck, ChevronDown, ChevronUp, Zap, HeartHandshake, Compass } from "lucide-react";
 import { calculateQuizCompatibility } from "@/lib/quizScoring";
 
 export interface CompatibilityScoreMeterProps {
@@ -283,7 +283,7 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
       <div className="p-4 sm:p-5 pb-2 border-b border-[#F5EDE3] flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#FFF0EB] text-primary shrink-0 shadow-2xs">
-            <Sparkles className="h-4 w-4" />
+            <Heart className="h-4 w-4 fill-primary" />
           </div>
           <div>
             <h3 className="font-serif font-bold text-base text-[#1A1816] leading-tight">
@@ -327,7 +327,7 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
                 </span>
               </div>
               <span className="text-[10px] font-bold text-[#706A62] uppercase tracking-wider mt-1">
-                Authentic Synergy
+                Quiz Alignment
               </span>
               <span className="text-[10px] text-muted-foreground max-w-[130px] leading-snug text-center mt-0.5 line-clamp-2">
                 {tier.subtext}
@@ -411,7 +411,7 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
               className="w-full flex items-center justify-between text-xs font-semibold text-[#706A62] hover:text-[#1A1816] py-1.5 px-1 transition-colors"
             >
               <span className="flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <Compass className="h-3.5 w-3.5 text-primary" />
                 <span>
                   {showBreakdown
                     ? "Hide 10-Dimension Quiz Comparison"

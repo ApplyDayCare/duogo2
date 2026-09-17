@@ -146,7 +146,7 @@ export const MatchesDiscoverTab = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
-        {/* LEFT COLUMN: Modular MatchCard Component with Integrated Synergy & Action Controls */}
+        {/* LEFT COLUMN: Modular MatchCard Component & Action Controls */}
         <div className="lg:col-span-5 flex flex-col relative">
           <AnimatePresence mode="popLayout">
             <MatchCard

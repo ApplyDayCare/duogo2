@@ -1,4 +1,4 @@
-const CACHE_NAME = "duogo-pwa-v2";
+const CACHE_NAME = "duogo-pwa-v3";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE_ASSETS = [
   "/",
