@@ -1,23 +1,15 @@
 import { ComponentType, lazy } from "react";
 
 /**
- * Enhanced React.lazy wrapper that automatically catches Vite / Webpack dynamic import
- * chunk errors (e.g. when a new build is deployed and old hashes are invalidated on the server).
- * Automatically reloads the latest HTML bundle once to grab fresh chunk URLs.
+ * Enhanced React.lazy wrapper that attempts a single auto-refresh if a dynamic
+ * chunk fails to load due to a deployment hash change.
  */
 export function lazyWithRetry<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>
 ) {
   return lazy(async () => {
     try {
-      const module = await factory();
-      // On success, clear any previous retry flags for this path
-      try {
-        sessionStorage.removeItem(`duogo_reloaded_${window.location.pathname}`);
-      } catch {
-        // ignore storage errors
-      }
-      return module;
+      return await factory();
     } catch (error: any) {
       const msg = error?.message || "";
       const isDynamicImportError =
@@ -27,16 +19,17 @@ export function lazyWithRetry<T extends ComponentType<any>>(
         msg.includes("Failed to load module script");
 
       if (isDynamicImportError) {
-        const storageKey = `duogo_reloaded_${window.location.pathname}`;
-        const alreadyAttempted = sessionStorage.getItem(storageKey);
-        if (!alreadyAttempted) {
-          sessionStorage.setItem(storageKey, "true");
-          console.warn("[duogo] Dynamic import chunk failed. Reloading with cache-busting to get latest deployed assets...");
-          const url = new URL(window.location.href);
-          url.searchParams.set("_v", String(Date.now()));
-          window.location.replace(url.toString());
-          // Return a hanging promise while browser executes the page reload
-          return new Promise<{ default: T }>(() => {});
+        try {
+          const reloadKey = `duogo_reload_${window.location.pathname}`;
+          const alreadyAttempted = sessionStorage.getItem(reloadKey);
+          if (!alreadyAttempted) {
+            sessionStorage.setItem(reloadKey, "true");
+            console.warn("[duogo] Dynamic chunk failed, refreshing page once...");
+            window.location.reload();
+            return { default: (() => null) as unknown as T };
+          }
+        } catch {
+          // ignore storage errors
         }
       }
       throw error;

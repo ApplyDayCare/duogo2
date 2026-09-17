@@ -24,23 +24,6 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error in component tree:", error, errorInfo);
-
-    // If chunk loading failed (e.g. after a new deployment or network drop), attempt reload once with timestamp debounce
-    const msg = error.message || "";
-    if (
-      msg.includes("dynamically imported module") ||
-      msg.includes("Failed to fetch dynamically imported") ||
-      msg.includes("Loading chunk") ||
-      msg.includes("Failed to load module script")
-    ) {
-      const key = "duogo_chunk_reload_timestamp";
-      const lastReload = sessionStorage.getItem(key);
-      const now = Date.now();
-      if (!lastReload || now - Number(lastReload) > 8000) {
-        sessionStorage.setItem(key, String(now));
-        window.location.reload();
-      }
-    }
   }
 
   private handleReload = () => {
@@ -53,9 +36,7 @@ export class ErrorBoundary extends Component<Props, State> {
     } catch {
       // ignore
     }
-    const url = new URL(window.location.href);
-    url.searchParams.set("_v", String(Date.now()));
-    window.location.replace(url.toString());
+    window.location.reload();
   };
 
   private handleGoHome = () => {
@@ -68,7 +49,7 @@ export class ErrorBoundary extends Component<Props, State> {
     } catch {
       // ignore
     }
-    window.location.href = `/dashboard?_v=${Date.now()}`;
+    window.location.href = "/dashboard";
   };
 
   public render() {
