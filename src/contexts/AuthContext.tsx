@@ -28,7 +28,7 @@ interface AuthContextType {
   loading: boolean;
   profileLoading: boolean;
   isProfileComplete: boolean;
-  refreshProfile: () => Promise<UserProfile | null>;
+  refreshProfile: (targetUserId?: string) => Promise<UserProfile | null>;
   signOut: () => Promise<void>;
 }
 
@@ -159,12 +159,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const refreshProfile = useCallback(async (): Promise<UserProfile | null> => {
-    if (!session?.user?.id) {
+  const refreshProfile = useCallback(async (targetUserId?: string): Promise<UserProfile | null> => {
+    let id = targetUserId || session?.user?.id;
+    if (!id) {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (currentSession?.user?.id) {
+          id = currentSession.user.id;
+          setSession(currentSession);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    if (!id) {
       setProfile(null);
       return null;
     }
-    return await fetchProfile(session.user.id);
+    return await fetchProfile(id);
   }, [session?.user?.id, fetchProfile]);
 
   useEffect(() => {

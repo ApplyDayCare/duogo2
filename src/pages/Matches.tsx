@@ -43,8 +43,15 @@ const Matches = () => {
   );
   const hasAutoDefaultedTabRef = useRef(false);
 
-  // Optimistic queue removal state for instant, dynamic transitions
-  const [optimisticallyRemovedIds, setOptimisticallyRemovedIds] = useState<Set<string>>(new Set());
+  // Optimistic queue removal state for instant, dynamic transitions (persisted in session to prevent candidate bounce)
+  const [optimisticallyRemovedIds, setOptimisticallyRemovedIds] = useState<Set<string>>(() => {
+    try {
+      const stored = sessionStorage.getItem(`duogo_swiped_candidate_ids_${user?.id || "anon"}`);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
   const [optimisticPendingMatches, setOptimisticPendingMatches] = useState<MatchData[]>([]);
   const [optimisticConnectedMatches, setOptimisticConnectedMatches] = useState<MatchCardItem[]>([]);
 
@@ -266,6 +273,14 @@ const Matches = () => {
       const next = new Set(prev);
       next.add(match.user_id);
       if (match.pending_match_id) next.add(match.pending_match_id);
+      try {
+        sessionStorage.setItem(
+          `duogo_swiped_candidate_ids_${user.id}`,
+          JSON.stringify(Array.from(next))
+        );
+      } catch {
+        // sessionStorage safety
+      }
       return next;
     });
 
@@ -336,6 +351,14 @@ const Matches = () => {
           const next = new Set(prev);
           next.delete(match.user_id);
           if (match.pending_match_id) next.delete(match.pending_match_id);
+          try {
+            sessionStorage.setItem(
+              `duogo_swiped_candidate_ids_${user.id}`,
+              JSON.stringify(Array.from(next))
+            );
+          } catch {
+            // sessionStorage safety
+          }
           return next;
         });
         setOptimisticPendingMatches((prev) => prev.filter((p) => p.user_id !== match.user_id));
@@ -406,10 +429,10 @@ const Matches = () => {
     const fromServer = data?.pending_matches || [];
     const fromServerIds = new Set(fromServer.map((m) => m.user_id));
     const extra = optimisticPendingMatches.filter(
-      (m) => !fromServerIds.has(m.user_id) && !optimisticallyRemovedIds.has(m.user_id)
+      (m) => !fromServerIds.has(m.user_id)
     );
     return [...extra, ...fromServer];
-  }, [data?.pending_matches, optimisticPendingMatches, optimisticallyRemovedIds]);
+  }, [data?.pending_matches, optimisticPendingMatches]);
 
   const effectiveMutualMatches = useMemo(() => {
     const serverIds = new Set((mutualMatches || []).map((m) => m.user_id));
@@ -423,6 +446,8 @@ const Matches = () => {
 
     const incomingUserIds = new Set(incomingMatches.map((m) => m.user_id));
     const pendingUserIds = new Set(pendingMatches.map((m) => m.user_id));
+    const serverPendingIds = new Set((data?.pending_matches || []).map((m) => m.user_id));
+    const optimisticPendingIds = new Set(optimisticPendingMatches.map((m) => m.user_id));
     const mutualUserIds = new Set(effectiveMutualMatches.map((m) => m.user_id));
 
     if (data?.matches && data.matches.length > 0) {
@@ -433,6 +458,8 @@ const Matches = () => {
         if (m.has_incoming_request || m.pending_match_id) return false;
         if (incomingUserIds.has(m.user_id)) return false;
         if (pendingUserIds.has(m.user_id)) return false;
+        if (serverPendingIds.has(m.user_id)) return false;
+        if (optimisticPendingIds.has(m.user_id)) return false;
         if (mutualUserIds.has(m.user_id)) return false;
 
         // Couple vs solo filtering
@@ -474,7 +501,7 @@ const Matches = () => {
 
       return b.score - a.score;
     });
-  }, [incomingMatches, pendingMatches, effectiveMutualMatches, data?.matches, myProfile?.location_city, myProfile?.user_type, optimisticallyRemovedIds]);
+  }, [incomingMatches, pendingMatches, effectiveMutualMatches, data?.matches, data?.pending_matches, optimisticPendingMatches, myProfile?.location_city, myProfile?.user_type, optimisticallyRemovedIds]);
 
   const currentMatch = matchesList[0];
 
@@ -867,7 +894,16 @@ const Matches = () => {
             }}
             onResetPassed={async () => {
               if (user) {
-                setOptimisticallyRemovedIds(new Set());
+                const pendingIds = new Set(pendingMatches.map((m) => m.user_id));
+                setOptimisticallyRemovedIds(pendingIds);
+                try {
+                  sessionStorage.setItem(
+                    `duogo_swiped_candidate_ids_${user.id}`,
+                    JSON.stringify(Array.from(pendingIds))
+                  );
+                } catch {
+                  // ignore
+                }
                 await resetSwipedMatches(user.id);
                 queryClient.invalidateQueries({ queryKey: ["matches"] });
                 toast({

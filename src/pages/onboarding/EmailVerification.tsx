@@ -150,7 +150,7 @@ const EmailVerification = () => {
         description: "Welcome to duogo. Unlocking your friendship matches...",
       });
       await syncSignupDraftToSupabase(verifiedUser);
-      const updated = await refreshProfile();
+      const updated = await refreshProfile(verifiedUser.id);
       if (updated?.onboarding_completed) {
         clearSignupDraft();
       }

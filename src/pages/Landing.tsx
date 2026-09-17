@@ -198,13 +198,29 @@ export default function Landing() {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      // Fetch the updated profile via refreshProfile
-      const loadedProfile = await refreshProfile();
+      const verifiedUserId = data.session.user.id;
+
+      // Fetch the updated profile via refreshProfile with explicit verifiedUserId
+      let loadedProfile = await refreshProfile(verifiedUserId);
+
+      // Direct Supabase query fallback to guarantee profile recovery even before state propagation
+      if (!loadedProfile) {
+        const { data: directProfile } = await supabase
+          .from("profiles")
+          .select("id, email, first_name, user_type, location_city, age_group, gender, quality_score, quiz_completed, onboarding_completed, privacy_consented, matching_paused, is_suspended, avatar_url")
+          .eq("id", verifiedUserId)
+          .maybeSingle();
+        if (directProfile) {
+          loadedProfile = directProfile as UserProfile;
+        }
+      }
 
       const isComplete = Boolean(
         loadedProfile &&
         (
           Boolean(loadedProfile.onboarding_completed) ||
+          Boolean(loadedProfile.quiz_completed) ||
+          Boolean(loadedProfile.first_name && loadedProfile.first_name.trim().length > 0) ||
           (
             Boolean(loadedProfile.first_name && loadedProfile.first_name.trim().length > 0) &&
             Boolean(loadedProfile.user_type) &&
@@ -1467,7 +1483,7 @@ export default function Landing() {
                   }}
                   className="flex-1 py-1.5 px-3 rounded-full bg-[#FF5436] text-white font-bold text-xs hover:bg-[#e04427] transition-colors cursor-pointer text-center"
                 >
-                  {isProfileComplete ? "Go to Dashboard" : "Resume Setup"}
+                  {isProfileComplete || profile?.onboarding_completed || profile?.first_name ? "Go to Dashboard" : "Resume Setup"}
                 </button>
                 <button
                   type="button"
