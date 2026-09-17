@@ -15,8 +15,5 @@ verify_jwt = false
 [functions.send-match-intro]
 verify_jwt = false
 
-[functions.send-connection-request-email]
-verify_jwt = false
-
 [functions.send-push]
 verify_jwt = false

@@ -88,16 +88,16 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
     svg.selectAll("*").remove();
 
     const width = 280;
-    const height = 150;
+    const height = 180;
     const centerX = width / 2;
-    const centerY = 132;
-    const innerRadius = 88;
-    const outerRadius = 104;
+    const centerY = 138;
+    const innerRadius = 82;
+    const outerRadius = 98;
     const centerRadius = (innerRadius + outerRadius) / 2;
 
-    // 180-degree semi-circle gauge (-90° to +90°)
-    const minAngle = -Math.PI / 2;
-    const maxAngle = Math.PI / 2;
+    // Arc angles: 240 degrees radial gauge (-120° to +120°)
+    const minAngle = (-2 * Math.PI) / 3;
+    const maxAngle = (2 * Math.PI) / 3;
 
     // Scale from percentage [0, 100] to angle
     const angleScale = d3
@@ -116,7 +116,7 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
       .append("linearGradient")
       .attr("id", "compatScoreArcGradient")
       .attr("x1", "0%")
-      .attr("y1", "0%")
+      .attr("y1", "100%")
       .attr("x2", "100%")
       .attr("y2", "0%");
 
@@ -171,8 +171,8 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
 
     tickValues.forEach((tickVal) => {
       const angle = angleScale(tickVal);
-      const tickInner = innerRadius - 7;
-      const tickOuter = innerRadius - 2;
+      const tickInner = innerRadius - 6;
+      const tickOuter = innerRadius - 1;
       const x1 = tickInner * Math.sin(angle);
       const y1 = -tickInner * Math.cos(angle);
       const x2 = tickOuter * Math.sin(angle);
@@ -184,8 +184,8 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
         .attr("y1", y1)
         .attr("x2", x2)
         .attr("y2", y2)
-        .attr("stroke", tickVal === 50 || tickVal === 0 || tickVal === 100 ? "#B5ABA0" : "#DCD4CA")
-        .attr("stroke-width", tickVal === 50 || tickVal === 0 || tickVal === 100 ? 1.5 : 1)
+        .attr("stroke", tickVal === 50 || tickVal === 100 ? "#B5ABA0" : "#D4CCC3")
+        .attr("stroke-width", tickVal === 50 || tickVal === 100 ? 1.5 : 1)
         .attr("stroke-linecap", "round");
     });
 
@@ -208,7 +208,7 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
     // Indicator Bead at the arc tip
     const bead = g
       .append("circle")
-      .attr("r", 6.5)
+      .attr("r", 6)
       .attr("fill", "#FFFFFF")
       .attr("stroke", tier.gradientEnd)
       .attr("stroke-width", 3)
@@ -280,7 +280,7 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
       className={`rounded-[28px] border border-[#EFE8DD] shadow-card bg-white overflow-hidden transition-all ${className}`}
     >
       {/* Header bar */}
-      <div className="p-4 sm:p-5 pb-3 border-b border-[#F5EDE3] flex items-center justify-between flex-wrap gap-2">
+      <div className="p-4 sm:p-5 pb-2 border-b border-[#F5EDE3] flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#FFF0EB] text-primary shrink-0 shadow-2xs">
             <Sparkles className="h-4 w-4" />
@@ -305,39 +305,39 @@ export const CompatibilityScoreMeter: React.FC<CompatibilityScoreMeterProps> = (
       </div>
 
       {/* Main Radial Chart Section */}
-      <div className="p-4 sm:p-5 pt-4">
-        <div className="flex flex-col items-center justify-center">
-          {/* D3 SVG Canvas Container with Centered Score */}
-          <div className="relative w-full max-w-[280px] h-[155px] flex items-center justify-center mx-auto">
+      <div className="p-4 sm:p-5 pt-3">
+        <div className="relative flex flex-col items-center justify-center">
+          {/* D3 SVG Canvas */}
+          <div className="relative w-full max-w-[280px] h-[175px] flex items-center justify-center mx-auto">
             <svg
               ref={svgRef}
-              viewBox="0 0 280 150"
+              viewBox="0 0 280 180"
               className="w-full h-full overflow-visible"
               aria-label={`D3 compatibility radial meter showing ${overallScore}% compatibility`}
             />
 
-            {/* Cleanly Centered Score Info */}
-            <div className="absolute inset-x-0 bottom-3 flex flex-col items-center justify-center text-center pointer-events-none px-4">
+            {/* Centered Score Badge */}
+            <div className="absolute inset-x-0 top-[46px] flex flex-col items-center justify-center text-center pointer-events-none px-4">
               <div className="flex items-baseline justify-center">
-                <span className="font-serif text-4xl sm:text-5xl font-extrabold text-[#1A1816] tracking-tight leading-none">
+                <span className="font-serif text-3xl sm:text-4xl font-extrabold text-[#1A1816] tracking-tight leading-none">
                   {displayNumber}
                 </span>
-                <span className="text-xl sm:text-2xl font-bold text-primary font-serif ml-0.5">
+                <span className="text-lg sm:text-xl font-bold text-primary font-serif ml-0.5">
                   %
                 </span>
               </div>
-              <span className="text-[11px] font-bold text-[#706A62] uppercase tracking-wider mt-1.5">
+              <span className="text-[10px] font-bold text-[#706A62] uppercase tracking-wider mt-1">
                 Authentic Synergy
               </span>
-              <span className="text-xs text-muted-foreground max-w-[170px] leading-snug text-center mt-0.5">
+              <span className="text-[10px] text-muted-foreground max-w-[130px] leading-snug text-center mt-0.5 line-clamp-2">
                 {tier.subtext}
               </span>
             </div>
           </div>
 
-          {/* Scale range labels under the arc endpoints */}
-          <div className="w-full max-w-[250px] flex items-center justify-between text-[11px] font-semibold text-[#8C847B] px-2 pt-2">
-            <span>0%</span>
+          {/* Scale range labels */}
+          <div className="w-full max-w-[240px] flex items-center justify-between text-[11px] font-semibold text-[#8C847B] px-3 -mt-3">
+            <span>50%</span>
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
               Zero-Bias Quiz Score
             </span>

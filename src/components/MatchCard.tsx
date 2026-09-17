@@ -157,27 +157,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
   // Programmatic action triggers for button clicks
   const handleButtonPass = () => {
     if (acting) return;
-    if (isSwipeable) {
-      controls.start({
-        x: -450,
-        opacity: 0,
-        rotate: -16,
-        transition: { duration: 0.22, ease: "easeOut" },
-      });
-    }
     onPass?.(match);
   };
 
   const handleButtonConnect = () => {
     if (acting) return;
-    if (isSwipeable) {
-      controls.start({
-        x: 450,
-        opacity: 0,
-        rotate: 16,
-        transition: { duration: 0.22, ease: "easeOut" },
-      });
-    }
     onConnect?.(match);
   };
 

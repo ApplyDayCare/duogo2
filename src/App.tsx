@@ -7,7 +7,6 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { idbPersister } from "@/lib/queryPersister";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
@@ -81,68 +80,66 @@ const App = () => (
     }}
   >
     <AuthProvider>
-      <NotificationsProvider>
-        <TooltipProvider>
-          <BrowserRouter>
-            <Toaster />
-            <Sonner />
-            <OfflineIndicator />
-            <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                {/* Public Entry Points */}
-                <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<Navigate to="/?login=true" replace />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/join/:referralCode" element={<JoinReferral />} />
+      <TooltipProvider>
+        <BrowserRouter>
+          <Toaster />
+          <Sonner />
+          <OfflineIndicator />
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+              {/* Public Entry Points */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Navigate to="/?login=true" replace />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/join/:referralCode" element={<JoinReferral />} />
 
-                {/* Progressive Signup & Onboarding Flow */}
-                <Route path="/signup" element={<UserType />} />
-                <Route path="/onboarding/user-type" element={<UserType />} />
-                <Route path="/onboarding/age" element={<AgeGroup />} />
-                <Route path="/onboarding/gender" element={<Gender />} />
-                <Route path="/onboarding/kids" element={<Kids />} />
-                <Route path="/onboarding/looking-for" element={<LookingFor />} />
-                <Route path="/onboarding/couple-setup" element={<CoupleSetup />} />
-                <Route path="/onboarding/profile" element={<SoloProfile />} />
-                <Route path="/onboarding/location" element={<Location />} />
-                <Route path="/quiz" element={<Quiz />} />
-                <Route path="/onboarding/privacy-consent" element={<PrivacyConsent />} />
-                <Route path="/onboarding/verify" element={<EmailVerification />} />
+              {/* Progressive Signup & Onboarding Flow */}
+              <Route path="/signup" element={<UserType />} />
+              <Route path="/onboarding/user-type" element={<UserType />} />
+              <Route path="/onboarding/age" element={<AgeGroup />} />
+              <Route path="/onboarding/gender" element={<Gender />} />
+              <Route path="/onboarding/kids" element={<Kids />} />
+              <Route path="/onboarding/looking-for" element={<LookingFor />} />
+              <Route path="/onboarding/couple-setup" element={<CoupleSetup />} />
+              <Route path="/onboarding/profile" element={<SoloProfile />} />
+              <Route path="/onboarding/location" element={<Location />} />
+              <Route path="/quiz" element={<Quiz />} />
+              <Route path="/onboarding/privacy-consent" element={<PrivacyConsent />} />
+              <Route path="/onboarding/verify" element={<EmailVerification />} />
 
-                {/* App pages with persistent navigation */}
-                <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/matches" element={<Matches />} />
-                  <Route path="/chats" element={<Chats />} />
-                  <Route path="/match-reveal/:matchId" element={<MatchReveal />} />
-                  <Route path="/match/:matchId/chat" element={<MatchChat />} />
-                  <Route path="/referral" element={<Referral />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/history" element={<History />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/pulse/thank-you" element={<PulseThankYou />} />
-                  <Route path="/pulse/:matchId" element={<PulseFeedback />} />
-                  <Route path="/report/:matchId" element={<ReportMatch />} />
-                  <Route path="/safety" element={<Safety />} />
-                </Route>
+              {/* App pages with persistent navigation */}
+              <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/matches" element={<Matches />} />
+                <Route path="/chats" element={<Chats />} />
+                <Route path="/match-reveal/:matchId" element={<MatchReveal />} />
+                <Route path="/match/:matchId/chat" element={<MatchChat />} />
+                <Route path="/referral" element={<Referral />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/history" element={<History />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/pulse/thank-you" element={<PulseThankYou />} />
+                <Route path="/pulse/:matchId" element={<PulseFeedback />} />
+                <Route path="/report/:matchId" element={<ReportMatch />} />
+                <Route path="/safety" element={<Safety />} />
+              </Route>
 
-                {/* Admin (no app layout) */}
-                <Route path="/admin/reports" element={<AdminReports />} />
+              {/* Admin (no app layout) */}
+              <Route path="/admin/reports" element={<AdminReports />} />
 
-                {/* Public pages */}
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/contact" element={<Contact />} />
+              {/* Public pages */}
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </ErrorBoundary>
-        </BrowserRouter>
-        </TooltipProvider>
-      </NotificationsProvider>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
+      </BrowserRouter>
+      </TooltipProvider>
     </AuthProvider>
   </PersistQueryClientProvider>
 );

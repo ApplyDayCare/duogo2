@@ -841,25 +841,27 @@ export async function executeMatchAction(
 
   if (res.status === "mutual") {
     // 1. Persist in-app notifications in Supabase so Realtime listeners and notification bells trigger
-    supabase
-      .from("notifications")
-      .insert([
-        {
-          user_id: otherUserId,
-          message: "🎉 It's a Mutual Match! You both accepted each other.",
-          link: `/match-reveal/${res.match_id}`,
-          read: false,
-        },
-        {
-          user_id: user.id,
-          message: "🎉 It's a Mutual Match! You both accepted each other.",
-          link: `/match-reveal/${res.match_id}`,
-          read: false,
-        },
-      ])
-      .then(({ error: notifErr }) => {
-        if (notifErr) console.warn("Error creating match notification:", notifErr);
-      });
+    if (activeUserId) {
+      supabase
+        .from("notifications")
+        .insert([
+          {
+            user_id: otherUserId,
+            message: "🎉 It's a Mutual Match! You both accepted each other.",
+            link: `/match-reveal/${res.match_id}`,
+            read: false,
+          },
+          {
+            user_id: activeUserId,
+            message: "🎉 It's a Mutual Match! You both accepted each other.",
+            link: `/match-reveal/${res.match_id}`,
+            read: false,
+          },
+        ])
+        .then(({ error: notifErr }) => {
+          if (notifErr) console.warn("Error creating match notification:", notifErr);
+        });
+    }
 
     // 2. Notify edge function for intro email
     supabase.functions
@@ -929,32 +931,7 @@ export async function executeMatchAction(
       })
       .catch(console.warn);
 
-    // 3. Send Immediate Email Notification telling user to log into the app
-    const appOrigin = typeof window !== "undefined" ? window.location.origin : "https://duogo2.vercel.app";
-    supabase.functions
-      .invoke("send-connection-request-email", {
-        body: {
-          sender_id: user.id,
-          recipient_id: otherUserId,
-          score: typeof score === "number" ? score : undefined,
-          app_url: appOrigin,
-        },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      })
-      .catch(console.warn);
-
-    // 4. Also trigger backend web-push & email dispatchers fallback
-    fetch("/api/email/connection-request", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sender_id: user.id,
-        recipient_id: otherUserId,
-        score: typeof score === "number" ? score : undefined,
-        app_url: appOrigin,
-      }),
-    }).catch(console.warn);
-
+    // 3. Also trigger backend web-push dispatcher fallback
     fetch("/api/push/dispatch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

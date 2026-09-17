@@ -10,7 +10,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useChatSummary } from "@/hooks/useChatSummary";
-import { useNotifications } from "@/contexts/NotificationsContext";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -40,7 +39,6 @@ const AppLayout = () => {
   const isChatRoute = pathname.includes("/chat");
 
   const { totalChatAlerts, incomingRequestsCount, totalUnreadMessages } = useChatSummary();
-  const { unreadCount } = useNotifications();
   usePushNotifications();
 
   const { data: profile } = useQuery({
@@ -54,6 +52,28 @@ const AppLayout = () => {
       return data;
     },
     enabled: !!user,
+  });
+
+  const { data: unreadCount } = useQuery({
+    queryKey: ["unread-notifications", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { data, count, error } = await supabase
+        .from("notifications")
+        .select("id, message, link", { count: "exact" })
+        .eq("user_id", user.id)
+        .eq("read", false);
+
+      if (error || !data) return count ?? 0;
+
+      // Count unique unread notification messages
+      const uniqueNotifKeys = new Set(
+        data.map((n) => `${(n.message || "").trim().toLowerCase()}|${(n.link || "").trim().toLowerCase()}`)
+      );
+      return uniqueNotifKeys.size;
+    },
+    enabled: !!user,
+    refetchInterval: 30000,
   });
 
   const handleMatchesNav = () => {
@@ -249,7 +269,7 @@ const AppLayout = () => {
                     {totalChatAlerts}
                   </Badge>
                 )}
-                {item.label === "Notifications" && pathname !== "/notifications" && !!unreadCount && unreadCount > 0 && (
+                {item.label === "Notifications" && !!unreadCount && unreadCount > 0 && (
                   <Badge className="ml-auto h-5 min-w-5 px-1.5 text-[10px] bg-[#FF5436] text-white font-bold border-0">
                     {unreadCount}
                   </Badge>

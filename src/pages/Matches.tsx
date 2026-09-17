@@ -65,6 +65,8 @@ const Matches = () => {
 
   // Optimistic queue removal state for instant, dynamic transitions
   const [optimisticallyRemovedIds, setOptimisticallyRemovedIds] = useState<Set<string>>(new Set());
+  const [optimisticPendingMatches, setOptimisticPendingMatches] = useState<MatchData[]>([]);
+  const [optimisticConnectedMatches, setOptimisticConnectedMatches] = useState<MatchCardItem[]>([]);
 
   // Keep activeTab in sync whenever the URL tab query param changes (e.g. clicking Review Requests from Dashboard)
   useEffect(() => {
@@ -274,10 +276,12 @@ const Matches = () => {
     refetchIntervalInBackground: false,
   });
 
-  const handleAction = useCallback(async (match: MatchData, action: "accept" | "pass") => {
+  const handleAction = useCallback((match: MatchData, action: "accept" | "pass") => {
     if (!user) return;
 
-    // 1. Immediately remove candidate from queue optimistically for instantaneous, fluid UX
+    const isIncoming = Boolean(match.has_incoming_request || match.pending_match_id);
+
+    // 1. Immediately remove candidate from discovery queue and update respective list optimistically
     setOptimisticallyRemovedIds((prev) => {
       const next = new Set(prev);
       next.add(match.user_id);
@@ -285,52 +289,79 @@ const Matches = () => {
       return next;
     });
 
-    try {
-      const isIncoming = Boolean(match.has_incoming_request || match.pending_match_id);
-      const { match_id, status } = await executeMatchAction(
-        match.user_id,
-        action,
-        session,
-        match.score,
-        match.pending_match_id,
-        isIncoming
-      );
-
-      const resolvedMatchId = match_id || match.pending_match_id;
-
-      if (status === "mutual" || (action === "accept" && isIncoming)) {
-        toast({
-          title: "It's a Mutual Match! 🎉",
-          description: "You both connected! Unlocking your match reveal and chat...",
-        });
-        queryClient.invalidateQueries({ queryKey: ["matches"] });
-        queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
-        queryClient.invalidateQueries({ queryKey: ["mutual-matches-list"] });
-        queryClient.invalidateQueries({ queryKey: ["chat-summary"] });
-        if (resolvedMatchId) {
-          navigate(`/match-reveal/${resolvedMatchId}`);
-          return;
-        } else {
-          setActiveTab("connected");
-          return;
-        }
-      }
-
-      // Background query synchronization without waiting or blocking UI
-      queryClient.invalidateQueries({ queryKey: ["matches"] });
-      queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["mutual-matches-list"] });
-      queryClient.invalidateQueries({ queryKey: ["chat-summary"] });
-    } catch (err: any) {
-      // Revert optimistic removal on error
-      setOptimisticallyRemovedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(match.user_id);
-        if (match.pending_match_id) next.delete(match.pending_match_id);
-        return next;
+    if (action === "accept" && !isIncoming) {
+      setOptimisticPendingMatches((prev) => {
+        if (prev.some((p) => p.user_id === match.user_id)) return prev;
+        return [match, ...prev];
       });
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({
+        title: "Connection Request Sent! ✨",
+        description: "Names and profiles remain completely blind until they connect back too.",
+      });
+    } else if (action === "accept" && isIncoming) {
+      setOptimisticConnectedMatches((prev) => {
+        const item: MatchCardItem = {
+          match_id: match.pending_match_id || `optimistic_${Date.now()}`,
+          user_id: match.user_id,
+          first_name: match.first_name || "Match",
+          partner_first_name: null,
+          user_type: (match.user_type as "solo" | "couple") || "solo",
+          location_city: match.location_city || null,
+          avatar_url: null,
+          score: match.score || 90,
+          status: "mutual",
+        };
+        if (prev.some((p) => p.user_id === match.user_id)) return prev;
+        return [item, ...prev];
+      });
     }
+
+    // 2. Perform backend persistence silently in background without blocking UI thread
+    executeMatchAction(
+      match.user_id,
+      action,
+      session,
+      match.score,
+      match.pending_match_id,
+      isIncoming
+    )
+      .then(({ match_id, status }) => {
+        const resolvedMatchId = match_id || match.pending_match_id;
+
+        if (status === "mutual" || (action === "accept" && isIncoming)) {
+          toast({
+            title: "It's a Mutual Match! 🎉",
+            description: "You both connected! Unlocking your match reveal and chat...",
+          });
+          queryClient.invalidateQueries({ queryKey: ["matches"] });
+          queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
+          queryClient.invalidateQueries({ queryKey: ["mutual-matches-list"] });
+          queryClient.invalidateQueries({ queryKey: ["chat-summary"] });
+          if (resolvedMatchId) {
+            navigate(`/match-reveal/${resolvedMatchId}`);
+          } else {
+            setActiveTab("connected");
+          }
+        } else {
+          // Quiet background cache sync
+          queryClient.invalidateQueries({ queryKey: ["matches"] });
+          queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
+          queryClient.invalidateQueries({ queryKey: ["mutual-matches-list"] });
+          queryClient.invalidateQueries({ queryKey: ["chat-summary"] });
+        }
+      })
+      .catch((err: any) => {
+        // Revert optimistic state only on error
+        setOptimisticallyRemovedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(match.user_id);
+          if (match.pending_match_id) next.delete(match.pending_match_id);
+          return next;
+        });
+        setOptimisticPendingMatches((prev) => prev.filter((p) => p.user_id !== match.user_id));
+        setOptimisticConnectedMatches((prev) => prev.filter((p) => p.user_id !== match.user_id));
+        toast({ title: "Error", description: err.message || "Failed to update match", variant: "destructive" });
+      });
   }, [user, session, queryClient, navigate]);
 
   // Real-time listener: detects backend status transitions (e.g. pending -> mutual)
@@ -391,7 +422,20 @@ const Matches = () => {
     };
   }, [user, myCouplePartner, queryClient]);
 
-  const pendingMatches = useMemo(() => data?.pending_matches || [], [data?.pending_matches]);
+  const pendingMatches = useMemo(() => {
+    const fromServer = data?.pending_matches || [];
+    const fromServerIds = new Set(fromServer.map((m) => m.user_id));
+    const extra = optimisticPendingMatches.filter(
+      (m) => !fromServerIds.has(m.user_id) && !optimisticallyRemovedIds.has(m.user_id)
+    );
+    return [...extra, ...fromServer];
+  }, [data?.pending_matches, optimisticPendingMatches, optimisticallyRemovedIds]);
+
+  const effectiveMutualMatches = useMemo(() => {
+    const serverIds = new Set((mutualMatches || []).map((m) => m.user_id));
+    const extra = optimisticConnectedMatches.filter((m) => !serverIds.has(m.user_id));
+    return [...extra, ...(mutualMatches || [])];
+  }, [mutualMatches, optimisticConnectedMatches]);
 
   // Strictly for discovering new people who haven't connected or requested yet
   const matchesList = useMemo(() => {
@@ -399,7 +443,7 @@ const Matches = () => {
 
     const incomingUserIds = new Set(incomingMatches.map((m) => m.user_id));
     const pendingUserIds = new Set(pendingMatches.map((m) => m.user_id));
-    const mutualUserIds = new Set(mutualMatches.map((m) => m.user_id));
+    const mutualUserIds = new Set(effectiveMutualMatches.map((m) => m.user_id));
 
     if (data?.matches && data.matches.length > 0) {
       // Exclude any candidates with incoming requests, pending requests, or existing mutual connections
@@ -450,7 +494,7 @@ const Matches = () => {
 
       return b.score - a.score;
     });
-  }, [incomingMatches, pendingMatches, mutualMatches, data?.matches, myProfile?.location_city, myProfile?.user_type, optimisticallyRemovedIds]);
+  }, [incomingMatches, pendingMatches, effectiveMutualMatches, data?.matches, myProfile?.location_city, myProfile?.user_type, optimisticallyRemovedIds]);
 
   const currentMatch = matchesList[0];
 
@@ -724,6 +768,11 @@ const Matches = () => {
                 )}
               >
                 <span>Discover</span>
+                {matchesList.length > 0 && (
+                  <span className="h-4 min-w-4 px-1 rounded-full bg-[#FF5436] text-white text-[10px] font-bold inline-flex items-center justify-center">
+                    {matchesList.length}
+                  </span>
+                )}
               </button>
 
               <button
@@ -773,9 +822,9 @@ const Matches = () => {
                 )}
               >
                 <span>Connected</span>
-                {mutualMatches.length > 0 && (
+                {effectiveMutualMatches.length > 0 && (
                   <span className="h-4 min-w-4 px-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold inline-flex items-center justify-center">
-                    {mutualMatches.length}
+                    {effectiveMutualMatches.length}
                   </span>
                 )}
               </button>
@@ -786,7 +835,7 @@ const Matches = () => {
         {/* TAB 1: CONNECTED MATCHES - Explicitly display first names once connection is established */}
         {activeTab === "connected" && (
           <div className="flex-1 overflow-y-auto pt-2">
-            {mutualMatches.length === 0 ? (
+            {effectiveMutualMatches.length === 0 ? (
               <Card className="rounded-3xl border border-[#EFE8DD] shadow-card bg-white p-8 text-center max-w-md mx-auto my-8">
                 <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#ECFDF5] text-emerald-600 mb-3 mx-auto">
                   <Lock className="h-7 w-7" />
@@ -812,11 +861,11 @@ const Matches = () => {
                       <strong>Mutual Connections Established:</strong> First names and verified profiles are fully unlocked for your confirmed matches.
                     </span>
                   </div>
-                  <Badge className="bg-emerald-600 text-white font-bold">{mutualMatches.length} Connected</Badge>
+                  <Badge className="bg-emerald-600 text-white font-bold">{effectiveMutualMatches.length} Connected</Badge>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
-                  {mutualMatches.map((m) => (
+                  {effectiveMutualMatches.map((m) => (
                     <MatchCard
                       key={m.match_id || m.user_id}
                       match={m}
@@ -1164,7 +1213,7 @@ const Matches = () => {
                   <div className="flex items-center gap-2.5">
                     <span className="font-semibold text-foreground flex items-center gap-1.5">
                       <Sparkles className="h-3.5 w-3.5 text-primary" />
-                      <span>Curated Match</span>
+                      <span>Candidate 1 of {matchesList.length}</span>
                     </span>
                     {isOffline ? (
                       <span
