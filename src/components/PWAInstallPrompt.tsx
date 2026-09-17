@@ -16,7 +16,7 @@ import {
   ArrowDown,
   Globe
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import {
   isStandaloneMode,
   isInIframe,
@@ -103,7 +103,7 @@ export const PWAInstallPrompt = ({ variant = "banner", className = "" }: PWAInst
         (window as any).__pwaPrompt = null;
       }
       setActiveGuide(null);
-      toast.success("duogo installed successfully!");
+      toast({ title: "duogo installed successfully!" });
     };
 
     window.addEventListener("beforeinstallprompt", handler);
@@ -141,7 +141,7 @@ export const PWAInstallPrompt = ({ variant = "banner", className = "" }: PWAInst
         await activePrompt.prompt();
         const choice = await activePrompt.userChoice;
         if (choice.outcome === "accepted") {
-          toast.success("duogo is now installing!");
+          toast({ title: "duogo is now installing!" });
           setInstalled(true);
         }
         setDeferredPrompt(null);
@@ -197,10 +197,10 @@ export const PWAInstallPrompt = ({ variant = "banner", className = "" }: PWAInst
     try {
       await navigator.clipboard.writeText(directUrl);
       setCopied(true);
-      toast.success("App link copied to clipboard!");
+      toast({ title: "App link copied to clipboard!" });
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      toast.error("Failed to copy URL");
+      toast({ title: "Failed to copy URL", variant: "destructive" });
     }
   };
 

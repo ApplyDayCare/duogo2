@@ -1,6 +1,5 @@
 import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -83,7 +82,6 @@ const App = () => (
       <TooltipProvider>
         <BrowserRouter>
           <Toaster />
-          <Sonner />
           <OfflineIndicator />
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>

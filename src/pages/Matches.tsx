@@ -5,43 +5,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import {
-  X,
-  Check,
-  MapPin,
-  Navigation,
   Users,
-  User,
-  Loader2,
-  Share2,
   Sparkles,
-  Heart,
   Copy,
   Clock,
-  Lock,
-  Unlock,
-  CheckCircle2,
-  ShieldCheck,
-  MessageCircle,
-  ChevronLeft,
-  ChevronRight,
   WifiOff,
 } from "lucide-react";
-import {
-  Radar, RadarChart, PolarGrid, PolarAngleAxis,
-  PolarRadiusAxis, ResponsiveContainer,
-} from "recharts";
-import { DIMENSION_LABELS, getTopSharedVibes, getCandidateDisplayName } from "@/lib/matchUtils";
-import { calculateDistanceKm } from "@/lib/postalCodeUtils";
-import { AnimatePresence } from "framer-motion";
-import { getCouplePartnerId } from "@/lib/coupleUtils";
-import { MatchSynergyCard } from "@/components/MatchSynergyCard";
-import { MatchCard, MatchCardItem } from "@/components/MatchCard";
-import { CompatibilityScoreMeter } from "@/components/CompatibilityScoreMeter";
+import { DIMENSION_LABELS, getTopSharedVibes } from "@/lib/matchUtils";
 import { MatchesSkeleton } from "@/components/MatchesSkeleton";
 import { cn } from "@/lib/utils";
+import { MatchCardItem } from "@/components/MatchCard";
+import { MatchesDiscoverTab } from "@/components/matches/MatchesDiscoverTab";
+import { MatchesReceivedTab } from "@/components/matches/MatchesReceivedTab";
+import { MatchesPendingTab } from "@/components/matches/MatchesPendingTab";
+import { MatchesConnectedTab } from "@/components/matches/MatchesConnectedTab";
 import {
   fetchMatchesWithFallback,
   executeMatchAction,
@@ -832,510 +811,73 @@ const Matches = () => {
           </div>
         </div>
 
-        {/* TAB 1: CONNECTED MATCHES - Explicitly display first names once connection is established */}
+        {/* TAB 1: CONNECTED MATCHES */}
         {activeTab === "connected" && (
-          <div className="flex-1 overflow-y-auto pt-2">
-            {effectiveMutualMatches.length === 0 ? (
-              <Card className="rounded-3xl border border-[#EFE8DD] shadow-card bg-white p-8 text-center max-w-md mx-auto my-8">
-                <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#ECFDF5] text-emerald-600 mb-3 mx-auto">
-                  <Lock className="h-7 w-7" />
-                </div>
-                <h2 className="font-serif text-xl font-bold text-foreground mb-1.5">No Connected Matches Yet</h2>
-                <p className="text-xs text-muted-foreground leading-relaxed mb-5">
-                  When you and another member accept each other, the connection is established and their real first name, profile, and chat will unlock right here!
-                </p>
-                <Button
-                  onClick={() => setActiveTab("discover")}
-                  className="rounded-full font-bold bg-[#FF5436] hover:bg-[#E84326] text-white"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Discover Candidate Vibes
-                </Button>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                <div className="rounded-2xl bg-[#ECFDF5] border border-[#A7F3D0] p-4 text-xs text-[#065F46] flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                    <span>
-                      <strong>Mutual Connections Established:</strong> First names and verified profiles are fully unlocked for your confirmed matches.
-                    </span>
-                  </div>
-                  <Badge className="bg-emerald-600 text-white font-bold">{effectiveMutualMatches.length} Connected</Badge>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
-                  {effectiveMutualMatches.map((m) => (
-                    <MatchCard
-                      key={m.match_id || m.user_id}
-                      match={m}
-                      isConnected={true}
-                      myCity={myProfile?.location_city}
-                      onOpenChat={(mId) => navigate(`/match/${mId}/chat`)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <MatchesConnectedTab
+            connectedMatches={effectiveMutualMatches}
+            myCity={myProfile?.location_city}
+            onDiscoverClick={() => setActiveTab("discover")}
+            onOpenChat={(mId) => navigate(`/match/${mId}/chat`)}
+          />
         )}
 
-        {/* TAB: RECEIVED REQUESTS - Requests from other members waiting for you to connect back */}
+        {/* TAB 2: RECEIVED REQUESTS */}
         {activeTab === "received" && (
-          <div className="flex-1 pt-1 space-y-4">
-            {incomingMatches.length === 0 ? (
-              <Card className="rounded-3xl border border-[#EFE8DD] shadow-card bg-white p-8 text-center max-w-md mx-auto my-8">
-                <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFF0EB] text-primary mb-3 mx-auto">
-                  <Sparkles className="h-7 w-7" />
-                </div>
-                <h2 className="font-serif text-xl font-bold text-foreground mb-1.5">No Incoming Requests Right Now</h2>
-                <p className="text-xs text-muted-foreground leading-relaxed mb-5">
-                  When compatible members discover your profile and send a connection request, they will appear here so you can connect back with a single click.
-                </p>
-                <Button
-                  onClick={() => setActiveTab("discover")}
-                  className="rounded-full font-bold bg-[#FF5436] hover:bg-[#E84326] text-white"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Explore Discover Queue
-                </Button>
-              </Card>
-            ) : currentReceivedMatch ? (
-              <div className="space-y-4 pb-8 flex-1 flex flex-col min-h-0">
-                {/* Stepper Navigation Bar when reviewing incoming requests */}
-                <div className="flex items-center justify-between px-1 shrink-0 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-foreground text-sm flex items-center gap-1.5">
-                      <Heart className="h-4 w-4 text-primary fill-primary" />
-                      <span>Request {Math.min(receivedIndex + 1, incomingMatches.length)} of {incomingMatches.length}</span>
-                    </span>
-                    <Badge variant="outline" className="bg-[#FFF4F0] border-[#FFD9CE] text-primary font-semibold text-[10px] py-0.5">
-                      Awaiting Your Response
-                    </Badge>
-                  </div>
-
-                  {incomingMatches.length > 1 && (
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0 rounded-full border-[#EFE8DD] hover:bg-[#FFF0EB] text-foreground disabled:opacity-30"
-                        disabled={receivedIndex <= 0}
-                        onClick={() => setReceivedIndex((prev) => Math.max(0, prev - 1))}
-                        title="Previous request"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <span className="text-xs text-muted-foreground font-medium px-1">
-                        {receivedIndex + 1} / {incomingMatches.length}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0 rounded-full border-[#EFE8DD] hover:bg-[#FFF0EB] text-foreground disabled:opacity-30"
-                        disabled={receivedIndex >= incomingMatches.length - 1}
-                        onClick={() => setReceivedIndex((prev) => Math.min(incomingMatches.length - 1, prev + 1))}
-                        title="Next request"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Single Focused Request View with Compatibility Breakdown */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
-                  {/* LEFT COLUMN: Modular MatchCard with Connect Back & Pass */}
-                  <div className="lg:col-span-5 flex flex-col relative">
-                    <MatchCard
-                      key={currentReceivedMatch.pending_match_id || currentReceivedMatch.user_id}
-                      match={currentReceivedMatch}
-                      isConnected={false}
-                      myCity={myProfile?.location_city}
-                      candidatePartnerName={undefined}
-                      vibes={receivedVibes}
-                      userName={myProfile?.user_type === "couple" ? "Your Duo" : "You"}
-                      onConnect={() => {
-                        handleAction(currentReceivedMatch, "accept");
-                      }}
-                      onPass={() => {
-                        handleAction(currentReceivedMatch, "pass");
-                      }}
-                      acting={acting}
-                      enableSwipe={false}
-                      className="w-full"
-                    />
-                  </div>
-
-                  {/* RIGHT COLUMN: Compatibility Breakdown for this Candidate */}
-                  <div className="lg:col-span-7 flex flex-col gap-4">
-                    <CompatibilityScoreMeter
-                      key={`received-score-meter-${currentReceivedMatch.pending_match_id || currentReceivedMatch.user_id}`}
-                      myDimensions={currentReceivedMatch.my_dimensions}
-                      candidateDimensions={currentReceivedMatch.dimensions}
-                      fallbackScore={currentReceivedMatch.score}
-                    />
-
-                    {/* Compatibility Dimensions Radar Chart */}
-                    <div
-                      key={`received-radar-${currentReceivedMatch.pending_match_id || currentReceivedMatch.user_id}`}
-                      className="rounded-[28px] border border-[#EFE8DD] shadow-card bg-white p-4 sm:p-5"
-                    >
-                      <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
-                        <div>
-                          <h3 className="font-serif font-bold text-base text-[#1A1816]">Compatibility Dimensions</h3>
-                          <p className="text-[11px] text-muted-foreground">Overlap across 5 core social pacing dimensions</p>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs font-semibold">
-                          <div className="flex items-center gap-1.5">
-                            <span className="h-2.5 w-2.5 rounded-full bg-[#FF5436]" />
-                            <span className="text-[#1A1816]">{myProfile?.user_type === "couple" ? "Your Duo" : "You"}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="h-2.5 w-2.5 rounded-full bg-[#F59E0B]" />
-                            <span className="text-[#1A1816] flex items-center gap-1">
-                              <span>Candidate</span>
-                              <ShieldCheck className="h-2.5 w-2.5 text-primary" />
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="h-[220px] w-full mt-2">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RadarChart
-                            data={[
-                              { subject: "Social Energy", you: currentReceivedMatch.my_dimensions[0] || 3, candidate: currentReceivedMatch.dimensions[0] || 3 },
-                              { subject: "Budget", you: currentReceivedMatch.my_dimensions[1] || 3, candidate: currentReceivedMatch.dimensions[1] || 3 },
-                              { subject: "Spontaneity", you: currentReceivedMatch.my_dimensions[2] || 3, candidate: currentReceivedMatch.dimensions[2] || 3 },
-                              { subject: "Planning", you: currentReceivedMatch.my_dimensions[3] || 3, candidate: currentReceivedMatch.dimensions[3] || 3 },
-                              { subject: "Intellectual", you: currentReceivedMatch.my_dimensions[4] || 3, candidate: currentReceivedMatch.dimensions[4] || 3 },
-                              { subject: "Activity", you: currentReceivedMatch.my_dimensions[5] || 3, candidate: currentReceivedMatch.dimensions[5] || 3 },
-                              { subject: "Alcohol/Night", you: currentReceivedMatch.my_dimensions[6] || 3, candidate: currentReceivedMatch.dimensions[6] || 3 },
-                              { subject: "Humor", you: currentReceivedMatch.my_dimensions[7] || 3, candidate: currentReceivedMatch.dimensions[7] || 3 },
-                              { subject: "Commitment", you: currentReceivedMatch.my_dimensions[8] || 3, candidate: currentReceivedMatch.dimensions[8] || 3 },
-                              { subject: "Home/Private", you: currentReceivedMatch.my_dimensions[9] || 3, candidate: currentReceivedMatch.dimensions[9] || 3 },
-                            ]}
-                          >
-                            <PolarGrid stroke="#EFE8DD" />
-                            <PolarAngleAxis dataKey="subject" tick={{ fill: "#706A62", fontSize: 10 }} />
-                            <PolarRadiusAxis angle={30} domain={[0, 5]} tick={false} axisLine={false} />
-                            <Radar name="You" dataKey="you" stroke="#FF5436" fill="#FF5436" fillOpacity={0.25} />
-                            <Radar name="Candidate" dataKey="candidate" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.25} />
-                          </RadarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
+          <MatchesReceivedTab
+            incomingMatches={incomingMatches}
+            currentReceivedMatch={currentReceivedMatch}
+            receivedIndex={receivedIndex}
+            setReceivedIndex={setReceivedIndex}
+            receivedVibes={receivedVibes}
+            userType={myProfile?.user_type}
+            locationCity={myProfile?.location_city}
+            acting={acting}
+            handleAction={handleAction}
+            onDiscoverClick={() => setActiveTab("discover")}
+          />
         )}
 
-        {/* TAB 2: PENDING MATCHES (SENT) */}
+        {/* TAB 3: PENDING MATCHES (SENT) */}
         {activeTab === "pending" && (
-          <div className="flex-1 overflow-y-auto pt-2 space-y-4">
-            <div className="rounded-2xl bg-[#FFF9F6] border border-[#FFD9CE] p-3.5 text-xs text-[#7A3E2D] flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary shrink-0" />
-                <span>
-                  <strong>Pending Requests:</strong> Awaiting candidate response. First names and direct chat unlock upon mutual acceptance.
-                </span>
-              </div>
-              <Badge variant="outline" className="bg-white border-[#FFD9CE] text-primary font-bold text-xs">
-                {pendingMatches.length} Sent
-              </Badge>
-            </div>
-
-            {pendingMatches.length === 0 ? (
-              <Card className="rounded-3xl border border-[#EFE8DD] shadow-card bg-white p-8 text-center max-w-md mx-auto my-8">
-                <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFF0EB] text-primary mb-3 mx-auto">
-                  <Clock className="h-7 w-7" />
-                </div>
-                <h2 className="font-serif text-xl font-bold text-foreground mb-1.5">No Pending Requests</h2>
-                <p className="text-xs text-muted-foreground leading-relaxed mb-5">
-                  When you send a connection request to candidates in Discover, you can track candidate response status right here.
-                </p>
-                <Button
-                  onClick={() => setActiveTab("discover")}
-                  className="rounded-full font-bold bg-[#FF5436] hover:bg-[#E84326] text-white"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Discover Candidates
-                </Button>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-8">
-                {pendingMatches.map((m) => {
-                  const mDist = calculateDistanceKm(myProfile?.location_city, m.location_city);
-                  const mVibes = getTopSharedVibes(m.my_dimensions, m.dimensions);
-                  return (
-                    <Card key={m.user_id} className="rounded-3xl border border-[#EFE8DD] shadow-card bg-white p-5 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="bg-[#FFF9F6] border-[#FFD9CE] text-[#7A3E2D] font-bold text-xs flex items-center gap-1.5 py-1">
-                          <Clock className="h-3.5 w-3.5 text-primary animate-pulse" />
-                          <span>Awaiting Candidate Response</span>
-                        </Badge>
-                        <div className="inline-flex items-center rounded-2xl bg-[#FFF4F0] border border-[#FCD9CE] px-2.5 py-0.5">
-                          <span className="text-lg font-bold text-primary mr-1 font-serif">{Math.round(m.score)}%</span>
-                          <span className="text-[10px] font-semibold text-primary">Vibe</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#FFF0EB] to-[#FFE4DC] border border-[#FFC8B8] flex items-center justify-center text-primary shrink-0">
-                          <Sparkles className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <h3 className="font-serif font-bold text-base text-foreground">
-                            {getCandidateDisplayName(m, mVibes)}
-                          </h3>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Lock className="h-3 w-3 text-primary inline" />
-                            <span>Names unlock once candidate accepts</span>
-                          </p>
-                        </div>
-                      </div>
-
-                      {mVibes.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {mVibes.map((v, i) => (
-                            <span key={i} className="inline-flex items-center gap-1 rounded-full bg-[#FAF7F2] border border-[#EFE8DD] px-2.5 py-0.5 text-[11px] font-medium text-[#555]">
-                              <span>{v.emoji}</span>
-                              <span>{v.label}</span>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="rounded-2xl bg-[#FAF7F2] p-3 text-xs text-muted-foreground space-y-1">
-                        <div className="flex justify-between">
-                          <span>Location</span>
-                          <span className="font-bold text-foreground">{m.location_city || "Local area"}</span>
-                        </div>
-                        {mDist !== null && (
-                          <div className="flex justify-between">
-                            <span>Distance</span>
-                            <span className="font-bold text-foreground">~{mDist} km away</span>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <MatchesPendingTab
+            pendingMatches={pendingMatches}
+            myCity={myProfile?.location_city}
+            onDiscoverClick={() => setActiveTab("discover")}
+          />
         )}
 
-        {/* TAB 3: DISCOVER CANDIDATES (Zero-Bias Blind Candidate Discovery Queue) */}
+        {/* TAB 4: DISCOVER CANDIDATES */}
         {activeTab === "discover" && (
-          <>
-            {!currentMatch ? (
-              <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-8">
-                <Card className="w-full max-w-md rounded-3xl border border-[#EFE8DD] shadow-card bg-white overflow-hidden">
-                  <div className="bg-gradient-to-b from-[#FFF5F1] to-white p-8 text-center border-b border-[#F5EDE3]">
-                    <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFF0EB] text-3xl shadow-xs mb-3">
-                      {pendingMatches.length > 0 ? "🕒" : "✨"}
-                    </div>
-                    <h2 className="font-serif text-2xl font-bold text-foreground">
-                      {pendingMatches.length > 0 ? "All Caught Up in Discovery!" : "Curating Your Circle"}
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto leading-relaxed">
-                      {pendingMatches.length > 0
-                        ? `You've reviewed all available candidates. You currently have ${pendingMatches.length} pending connection request(s) awaiting response!`
-                        : "We match you based on deep compatibility, not an endless swipe stack. We'll notify you as new verified members join!"}
-                    </p>
-                  </div>
-                  <CardContent className="space-y-4 p-6 text-center">
-                    {pendingMatches.length > 0 && (
-                      <Button
-                        className="rounded-full h-11 w-full font-semibold bg-amber-500 hover:bg-amber-600 text-white text-xs"
-                        onClick={() => setActiveTab("pending")}
-                      >
-                        <Clock className="h-4 w-4 mr-2" />
-                        View Pending Requests ({pendingMatches.length})
-                      </Button>
-                    )}
-
-                    {mutualMatches.length > 0 && (
-                      <Button
-                        variant="outline"
-                        className="rounded-full h-11 w-full font-semibold border-emerald-300 text-emerald-800 bg-white hover:bg-emerald-50 text-xs"
-                        onClick={() => setActiveTab("connected")}
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-600" />
-                        View Connected Matches ({mutualMatches.length})
-                      </Button>
-                    )}
-
-                    <div className="rounded-2xl bg-[#FFF8F5] border border-[#FFD9CE] p-4 text-left">
-                      <p className="text-xs font-bold uppercase tracking-wider text-primary">Priority Match Booster</p>
-                      <p className="text-xs text-foreground mt-1 font-medium leading-relaxed">
-                        Invite a friend and unlock <strong>7 days of Priority Matching</strong> as soon as they sign up!
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col gap-2.5 pt-1">
-                      <Button
-                        variant="outline"
-                        className="rounded-full h-11 w-full font-bold border-[#FF5436]/40 text-[#FF5436] hover:bg-[#FFF0EB]"
-                        onClick={async () => {
-                          if (user) {
-                            setOptimisticallyRemovedIds(new Set());
-                            await resetSwipedMatches(user.id);
-                            queryClient.invalidateQueries({ queryKey: ["matches"] });
-                            toast({
-                              title: "✨ Discovery Queue Refilled",
-                              description: "Reset passed candidates so you can review them again.",
-                            });
-                          }
-                        }}
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" /> Re-review Passed Candidates
-                      </Button>
-                      <Button className="rounded-full h-12 w-full font-bold" onClick={() => navigate("/referral")}>
-                        <Share2 className="h-4 w-4 mr-2" /> Share Your Referral Link
-                      </Button>
-                      <Button variant="outline" className="rounded-full h-12 w-full font-semibold" onClick={() => navigate("/dashboard")}>
-                        Go to Dashboard
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ) : (
-              /* Responsive Layout: 2-Column Split on Desktop, Stack on Mobile */
-              <div className="space-y-3.5 flex-1 flex flex-col">
-                {/* Discovery status bar */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground px-1 shrink-0">
-                  <div className="flex items-center gap-2.5">
-                    <span className="font-semibold text-foreground flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-primary" />
-                      <span>Candidate 1 of {matchesList.length}</span>
-                    </span>
-                    {isOffline ? (
-                      <span
-                        id="offline-sync-indicator"
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50"
-                        title="Displaying cached compatibility queue"
-                      >
-                        <WifiOff className="h-2.5 w-2.5 text-amber-600" />
-                        <span>Offline Cache</span>
-                      </span>
-                    ) : (
-                      <span
-                        id="live-sync-indicator"
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50"
-                        title="Compatibility queue updated dynamically"
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span>Live Sync</span>
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[11px] hidden sm:inline">Swipe card or press C (Connect) / P (Pass)</span>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
-                  {/* LEFT COLUMN: Modular MatchCard Component with Integrated Synergy & Action Controls */}
-                  <div className="lg:col-span-5 flex flex-col relative">
-                    <AnimatePresence mode="popLayout">
-                      <MatchCard
-                        key={currentMatch.user_id}
-                        match={currentMatch}
-                        isConnected={false}
-                        myCity={myProfile?.location_city}
-                        candidatePartnerName={undefined}
-                        vibes={vibes}
-                        userName={myProfile?.user_type === "couple" ? "Your Duo" : "You"}
-                        onConnect={() => handleAction(currentMatch, "accept")}
-                        onPass={() => handleAction(currentMatch, "pass")}
-                        onBlocked={() => {
-                          queryClient.invalidateQueries({ queryKey: ["matches"] });
-                          queryClient.invalidateQueries({ queryKey: ["chat-summary"] });
-                        }}
-                        acting={acting}
-                        className="w-full"
-                      />
-                    </AnimatePresence>
-                  </div>
-
-                  {/* RIGHT COLUMN: CompatibilityScoreMeter on Top + Dimensions Radar Below */}
-                  <div className="lg:col-span-7 flex flex-col gap-4">
-                    {/* Primary Decision Element: Visual D3 Compatibility Score Meter */}
-                    <CompatibilityScoreMeter
-                      key={`score-meter-${currentMatch.user_id}`}
-                      myDimensions={currentMatch.my_dimensions}
-                      candidateDimensions={currentMatch.dimensions}
-                      fallbackScore={currentMatch.score}
-                    />
-
-                    {/* Compatibility Dimensions Radar Chart (Beneath Score Meter) */}
-                    <div
-                      key={`radar-${currentMatch.user_id}`}
-                      className="rounded-[28px] border border-[#EFE8DD] shadow-card bg-white p-4 sm:p-5"
-                    >
-                      <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
-                        <div>
-                          <h3 className="font-serif font-bold text-base text-[#1A1816]">Compatibility Dimensions</h3>
-                          <p className="text-[11px] text-muted-foreground">Overlap across 5 core social pacing dimensions</p>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs font-semibold">
-                          <div className="flex items-center gap-1.5">
-                            <span className="h-2.5 w-2.5 rounded-full bg-[#FF5436]" />
-                            <span className="text-[#1A1816]">{myProfile?.user_type === "couple" ? "Your Duo" : "You"}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="h-2.5 w-2.5 rounded-full bg-[#F59E0B]" />
-                            <span className="text-[#1A1816] flex items-center gap-1">
-                              <span>Candidate</span>
-                              <ShieldCheck className="h-2.5 w-2.5 text-primary" />
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="h-[200px] sm:h-[220px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="72%">
-                            <PolarGrid stroke="#E0D6CA" />
-                            <PolarAngleAxis
-                              dataKey="dimension"
-                              tick={{ fontSize: 11, fill: "#5C5752", fontWeight: 600 }}
-                            />
-                            <PolarRadiusAxis
-                              angle={90}
-                              domain={[0, 5]}
-                              tick={{ fontSize: 8, fill: "#8C847B" }}
-                            />
-                            <Radar
-                              name="You"
-                              dataKey="You"
-                              stroke="#FF5436"
-                              fill="#FF5436"
-                              fillOpacity={0.25}
-                              strokeWidth={2}
-                            />
-                            <Radar
-                              name="Match"
-                              dataKey="Match"
-                              stroke="#F59E0B"
-                              fill="#F59E0B"
-                              fillOpacity={0.2}
-                              strokeWidth={2}
-                            />
-                          </RadarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-          </>
+          <MatchesDiscoverTab
+            currentMatch={currentMatch}
+            matchesListCount={matchesList.length}
+            pendingCount={pendingMatches.length}
+            connectedCount={mutualMatches.length}
+            isOffline={isOffline}
+            userType={myProfile?.user_type}
+            locationCity={myProfile?.location_city}
+            vibes={vibes}
+            radarData={radarData}
+            acting={acting}
+            handleAction={handleAction}
+            onBlocked={() => {
+              queryClient.invalidateQueries({ queryKey: ["matches"] });
+              queryClient.invalidateQueries({ queryKey: ["chat-summary"] });
+            }}
+            onResetPassed={async () => {
+              if (user) {
+                setOptimisticallyRemovedIds(new Set());
+                await resetSwipedMatches(user.id);
+                queryClient.invalidateQueries({ queryKey: ["matches"] });
+                toast({
+                  title: "✨ Discovery Queue Refilled",
+                  description: "Reset passed candidates so you can review them again.",
+                });
+              }
+            }}
+            onNavigate={navigate}
+            onSwitchTab={(tab) => setActiveTab(tab)}
+          />
         )}
       </div>
     </div>

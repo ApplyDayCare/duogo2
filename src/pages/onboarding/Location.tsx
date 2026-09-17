@@ -56,7 +56,7 @@ const Location = () => {
   }, [profile?.location_city]);
 
   // Auto-detect city whenever postal code changes
-  const handlePostalChange = async (rawVal: string) => {
+  const handlePostalChange = useCallback(async (rawVal: string) => {
     const formatted = formatCanadianPostalCode(rawVal);
     setPostalCode(formatted);
     setValidationNote(null);
@@ -82,14 +82,14 @@ const Location = () => {
       setCity("");
       setNeighborhood("");
     }
-  };
+  }, [manualCityMode]);
 
   // Initial detection if postal code was already present
   useEffect(() => {
     if (initialPostal) {
       handlePostalChange(initialPostal);
     }
-  }, [initialPostal]);
+  }, [initialPostal, handlePostalChange]);
 
   // Browser Geolocation 1-tap detector
   const handleGpsDetect = () => {

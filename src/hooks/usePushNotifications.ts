@@ -303,7 +303,7 @@ export function usePushNotifications(): PushNotificationState {
         description: "If the tab is minimized or your phone is locked, check your notifications.",
       });
     }
-  }, [permission, requestPermission, dispatchBackgroundNotification, toast]);
+  }, [permission, requestPermission, dispatchBackgroundNotification, toast, user?.id]);
 
   // Listen for Realtime incoming messages and notifications when user is authenticated
   useEffect(() => {
