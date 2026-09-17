@@ -44,15 +44,31 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReload = () => {
-    sessionStorage.removeItem("duogo_chunk_reload_timestamp");
-    sessionStorage.removeItem("duogo_chunk_reload_attempted");
-    window.location.reload();
+    try {
+      Object.keys(sessionStorage).forEach((k) => {
+        if (k.startsWith("duogo_")) {
+          sessionStorage.removeItem(k);
+        }
+      });
+    } catch {
+      // ignore
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set("_v", String(Date.now()));
+    window.location.replace(url.toString());
   };
 
   private handleGoHome = () => {
-    sessionStorage.removeItem("duogo_chunk_reload_timestamp");
-    sessionStorage.removeItem("duogo_chunk_reload_attempted");
-    window.location.href = "/dashboard";
+    try {
+      Object.keys(sessionStorage).forEach((k) => {
+        if (k.startsWith("duogo_")) {
+          sessionStorage.removeItem(k);
+        }
+      });
+    } catch {
+      // ignore
+    }
+    window.location.href = `/dashboard?_v=${Date.now()}`;
   };
 
   public render() {

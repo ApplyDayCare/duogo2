@@ -10,7 +10,14 @@ export function lazyWithRetry<T extends ComponentType<any>>(
 ) {
   return lazy(async () => {
     try {
-      return await factory();
+      const module = await factory();
+      // On success, clear any previous retry flags for this path
+      try {
+        sessionStorage.removeItem(`duogo_reloaded_${window.location.pathname}`);
+      } catch {
+        // ignore storage errors
+      }
+      return module;
     } catch (error: any) {
       const msg = error?.message || "";
       const isDynamicImportError =
@@ -20,14 +27,14 @@ export function lazyWithRetry<T extends ComponentType<any>>(
         msg.includes("Failed to load module script");
 
       if (isDynamicImportError) {
-        const key = "duogo_chunk_reload_timestamp";
-        const lastReload = sessionStorage.getItem(key);
-        const now = Date.now();
-        // Prevent infinite reload loops: allow reload if at least 8 seconds have passed
-        if (!lastReload || now - Number(lastReload) > 8000) {
-          sessionStorage.setItem(key, String(now));
-          console.warn("[duogo] Dynamic import chunk failed. Reloading to get latest deployed assets...");
-          window.location.reload();
+        const storageKey = `duogo_reloaded_${window.location.pathname}`;
+        const alreadyAttempted = sessionStorage.getItem(storageKey);
+        if (!alreadyAttempted) {
+          sessionStorage.setItem(storageKey, "true");
+          console.warn("[duogo] Dynamic import chunk failed. Reloading with cache-busting to get latest deployed assets...");
+          const url = new URL(window.location.href);
+          url.searchParams.set("_v", String(Date.now()));
+          window.location.replace(url.toString());
           // Return a hanging promise while browser executes the page reload
           return new Promise<{ default: T }>(() => {});
         }
