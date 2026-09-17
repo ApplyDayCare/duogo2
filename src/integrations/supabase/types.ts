@@ -334,16 +334,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age_group: string | null
           avatar_url: string | null
+          bio: string | null
           created_at: string
           email: string
           first_name: string | null
+          gender: string | null
           id: string
           is_suspended: boolean
           last_active: string
           location_city: string | null
+          looking_for: string[] | null
           matching_paused: boolean
           onboarding_completed: boolean
+          privacy_consented: boolean
           quality_score: number
           quiz_completed: boolean
           referral_code: string | null
@@ -355,16 +360,21 @@ export type Database = {
           user_type: string | null
         }
         Insert: {
+          age_group?: string | null
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           email: string
           first_name?: string | null
+          gender?: string | null
           id: string
           is_suspended?: boolean
           last_active?: string
           location_city?: string | null
+          looking_for?: string[] | null
           matching_paused?: boolean
           onboarding_completed?: boolean
+          privacy_consented?: boolean
           quality_score?: number
           quiz_completed?: boolean
           referral_code?: string | null
@@ -376,16 +386,21 @@ export type Database = {
           user_type?: string | null
         }
         Update: {
+          age_group?: string | null
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           email?: string
           first_name?: string | null
+          gender?: string | null
           id?: string
           is_suspended?: boolean
           last_active?: string
           location_city?: string | null
+          looking_for?: string[] | null
           matching_paused?: boolean
           onboarding_completed?: boolean
+          privacy_consented?: boolean
           quality_score?: number
           quiz_completed?: boolean
           referral_code?: string | null
