@@ -316,6 +316,141 @@ app.post("/api/push/dispatch", async (req, res) => {
   }
 });
 
+/**
+ * Endpoint 4: Immediate Connection Request Email Dispatcher
+ * Dispatches an email notification alerting the user of an incoming connection request
+ */
+app.post("/api/email/connection-request", async (req, res) => {
+  try {
+    const { sender_id, recipient_id, score, app_url } = req.body;
+
+    if (!recipient_id) {
+      return res.status(400).json({ error: "Missing required recipient_id" });
+    }
+
+    const supabaseUrl =
+      process.env.SUPABASE_URL ||
+      process.env.VITE_SUPABASE_URL ||
+      "https://hdbobqzqsmmsnzbjtzbn.supabase.co";
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkYm9icXpxc21tc256Ymp0emJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTY3NDQsImV4cCI6MjA4NzY5Mjc0NH0.U_lS4-1zpd36SR4xxGDdXSBfM3408wv4pRbfDGUbQ4k";
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // 1. Fetch recipient profile
+    const { data: recipientProfile, error: recipientErr } = await supabase
+      .from("profiles")
+      .select("id, first_name, email, is_suspended")
+      .eq("id", recipient_id)
+      .single();
+
+    if (recipientErr || !recipientProfile?.email) {
+      return res.status(404).json({ error: "Recipient email not found" });
+    }
+
+    if (recipientProfile.is_suspended) {
+      return res.json({ success: true, skipped: true, reason: "Account suspended" });
+    }
+
+    // 2. Fetch sender profile
+    let senderName = "Someone nearby";
+    let senderLocation = "";
+    if (sender_id) {
+      const { data: senderProfile } = await supabase
+        .from("profiles")
+        .select("id, first_name, user_type, location_city")
+        .eq("id", sender_id)
+        .maybeSingle();
+
+      if (senderProfile) {
+        senderLocation = senderProfile.location_city || "";
+        senderName = senderProfile.first_name?.trim() || "A member";
+      }
+    }
+
+    const recipientName = recipientProfile.first_name?.trim() || "Friend";
+    const parsedScore = typeof score === "number" && score > 0 ? Math.round(score) : null;
+    const baseUrl = (app_url || process.env.APP_URL || "https://duogo2.vercel.app").replace(/\/+$/, "");
+    const loginUrl = `${baseUrl}/matches?tab=received`;
+
+    const BREVO_API_KEY = process.env.BREVO_API_KEY;
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    const SENDER_EMAIL = process.env.BREVO_FROM_EMAIL || "hello@duogo.app";
+    const SENDER_NAME = process.env.BREVO_FROM_NAME || "duogo";
+
+    const emailSubject = `✨ ${senderName} sent you a connection request on duogo!`;
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <body style="margin:0;padding:32px 16px;background-color:#FAF7F2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1A1816;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;background:#fff;border-radius:24px;border:1px solid #EFE8DD;overflow:hidden;">
+          <tr>
+            <td style="padding:32px 28px;text-align:center;background:linear-gradient(180deg,#FFF5F0 0%,#fff 100%);border-bottom:1px solid #F5EDE3;">
+              <span style="font-size:12px;font-weight:700;color:#FF5436;background:#FFF0EB;padding:5px 12px;border-radius:999px;text-transform:uppercase;">✨ Connection Request</span>
+              <h1 style="font-size:24px;font-weight:800;color:#1A1816;margin:14px 0 6px 0;">Someone wants to connect with you!</h1>
+              ${parsedScore ? `<p style="margin:0;font-size:15px;font-weight:700;color:#FF5436;">🎯 ${parsedScore}% Authentic Synergy Match</p>` : ""}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 28px 20px 28px;">
+              <p style="font-size:16px;color:#1A1816;margin:0 0 14px 0;">Hi <strong>${recipientName}</strong>,</p>
+              <p style="font-size:15px;line-height:1.6;color:#4A443D;margin:0 0 20px 0;">
+                <strong>${senderName}</strong> ${senderLocation ? `in ${senderLocation} ` : ""}reviewed your profile and sent you a connection request on duogo.
+              </p>
+              <div style="background:#FAF7F2;border:1px solid #EFE8DD;border-radius:16px;padding:18px;margin:20px 0;text-align:center;">
+                <p style="font-size:14px;font-weight:600;color:#1A1816;margin:0 0 4px 0;">Log into duogo to review their connection request</p>
+                <p style="font-size:13px;color:#706A62;margin:0;">See your shared lifestyle dimensions, common vibe traits, and connect back to start chatting.</p>
+              </div>
+              <div style="text-align:center;margin:28px 0 16px 0;">
+                <a href="${loginUrl}" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#FF7A59 0%,#FF5436 100%);color:#fff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 30px;border-radius:999px;box-shadow:0 4px 12px rgba(255,84,54,0.3);">
+                  Log in to View Connection Request &rarr;
+                </a>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 28px;background:#FAF7F2;border-top:1px solid #EFE8DD;text-align:center;font-size:12px;color:#8C847B;">
+              duogo · friendship, matched properly
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    if (BREVO_API_KEY) {
+      await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: { "api-key": BREVO_API_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+          to: [{ email: recipientProfile.email, name: recipientName }],
+          subject: emailSubject,
+          htmlContent: emailHtml,
+        }),
+      }).catch(console.warn);
+    } else if (RESEND_API_KEY) {
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: `${SENDER_NAME} <${SENDER_EMAIL}>`,
+          to: [recipientProfile.email],
+          subject: emailSubject,
+          html: emailHtml,
+        }),
+      }).catch(console.warn);
+    }
+
+    return res.json({ success: true, recipient: recipientProfile.email });
+  } catch (err: any) {
+    console.error("Connection request email error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Vite middleware & Static serving
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
