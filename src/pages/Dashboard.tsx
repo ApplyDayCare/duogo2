@@ -99,7 +99,7 @@ interface ActiveConnection {
 }
 
 const Dashboard = () => {
-  const { user, session, refreshProfile, signOut } = useAuth();
+  const { user, session, profileLoading, refreshProfile, signOut } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [checked, setChecked] = useState(false);
@@ -261,7 +261,7 @@ const Dashboard = () => {
         supabase.from("matches").select("id, status, user_a_id, user_b_id, user_a_action, user_b_action, compatibility_score").or(matchFilter),
         supabase.from("pulse_feedback").select("id, met_in_person").eq("user_id", user.id),
         supabase.from("referrals").select("successful_signups, priority_boost_expiry").eq("referrer_id", user.id).maybeSingle(),
-        activeProfile.user_type === "couple"
+        p.user_type === "couple"
           ? supabase.from("couples").select("id, partner_a_id, partner_b_id, both_verified, invite_code").or(`partner_a_id.eq.${user.id},partner_b_id.eq.${user.id}`).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
@@ -333,7 +333,7 @@ const Dashboard = () => {
       });
 
       // Couple info
-      if (activeProfile.user_type === "couple") {
+      if (p.user_type === "couple") {
         let coupleRecord = coupleRes.data;
         if (!coupleRecord) {
           const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
