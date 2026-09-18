@@ -127,20 +127,19 @@ export async function syncSignupDraftToSupabase(user: { id: string; email?: stri
       ...profileUpdates,
     };
 
-    const { error: updateErr } = await supabase
+    const { data: updatedRows, error: updateErr } = await supabase
       .from("profiles")
       .update(profilePayload)
-      .eq("id", user.id);
+      .eq("id", user.id)
+      .select("id");
 
-    if (updateErr) {
-      console.warn("Profile update notice, attempting upsert fallback:", updateErr.message);
-      // Fallback to upsert if profile record does not exist yet
+    if (updateErr || !updatedRows || updatedRows.length === 0) {
+      if (updateErr) {
+        console.warn("Profile update notice, attempting upsert fallback:", updateErr.message);
+      }
       const { error: upsertErr } = await supabase
         .from("profiles")
-        .upsert({
-          id: user.id,
-          ...profilePayload,
-        } as any, { onConflict: "id" });
+        .upsert({ id: user.id, ...profilePayload } as any, { onConflict: "id" });
 
       if (upsertErr) {
         console.warn("Profile sync notice:", upsertErr.message);
