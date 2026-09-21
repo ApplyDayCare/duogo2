@@ -268,13 +268,14 @@ async function executeFetchMatches(
     if (seenPendingIds.has(otherId)) continue;
     seenPendingIds.add(otherId);
 
-    let cachedCandidate: MatchData | null = null;
-    try {
-      const raw = localStorage.getItem(`duogo_candidate_cache_${otherId}`);
-      if (raw) cachedCandidate = JSON.parse(raw);
-    } catch {
-      // safe
-    }
+    const { data: otherQuizData } = await supabase
+      .from("quiz_responses")
+      .select("*")
+      .eq("user_id", otherId)
+      .maybeSingle();
+
+    // If candidate has no quiz_responses row, exclude them from matching entirely
+    if (!otherQuizData) continue;
 
     const { data: otherProfile } = await supabase
       .from("profiles")
@@ -282,60 +283,30 @@ async function executeFetchMatches(
       .eq("id", otherId)
       .maybeSingle();
 
-    const { data: otherQuizData } = await supabase
-      .from("quiz_responses")
-      .select("*")
-      .eq("user_id", otherId)
-      .maybeSingle();
-
-    const otherQuiz = (otherQuizData || {}) as QuizRow;
+    const otherQuiz = otherQuizData as QuizRow;
     const myQuizRow = { ...myQuizDims, user_id: userId } as QuizRow;
     const myDims = ALL_DIMS.map((d) => getDim(myQuizRow, d));
 
-    // Resolve location: candidate's sanitized location, or cached candidate's city, or broad area
-    let resolvedCity: string;
-    if (otherProfile?.location_city) {
-      resolvedCity = sanitizeLocationCity(otherProfile.location_city);
-    } else if (cachedCandidate?.location_city) {
-      resolvedCity = sanitizeLocationCity(cachedCandidate.location_city);
-    } else {
-      const myCleanCity = myProfile?.location_city ? sanitizeLocationCity(myProfile.location_city) : null;
-      resolvedCity = myCleanCity && myCleanCity !== "Local area" ? myCleanCity : "Local area";
-    }
+    const myCleanCity = myProfile?.location_city ? sanitizeLocationCity(myProfile.location_city) : null;
+    const resolvedCity = otherProfile?.location_city
+      ? sanitizeLocationCity(otherProfile.location_city)
+      : myCleanCity && myCleanCity !== "Local area"
+      ? myCleanCity
+      : "Local area";
 
-    // Resolve dimensions: real quiz, cached candidate, or deterministic diverse archetypes
-    let resolvedOtherDims: number[];
-    if (otherQuizData) {
-      resolvedOtherDims = ALL_DIMS.map((d) => getDim(otherQuiz, d));
-    } else if (cachedCandidate?.dimensions && cachedCandidate.dimensions.length === ALL_DIMS.length) {
-      resolvedOtherDims = cachedCandidate.dimensions;
-    } else {
-      const hash = otherId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      resolvedOtherDims = myDims.map((val, idx) => {
-        const offset = ((hash + idx * 7) % 3) - 1;
-        return Math.min(5, Math.max(1, val + offset));
-      });
-    }
+    const resolvedOtherDims = ALL_DIMS.map((d) => getDim(otherQuiz, d));
 
-    // Resolve score: record score, calculated score, cached score, or deterministic score
-    let score: number;
-    if (out.compatibility_score && out.compatibility_score > 0) {
-      score = out.compatibility_score;
-    } else if (otherQuizData) {
-      score = soloScore(myQuizRow, otherQuiz);
-    } else if (cachedCandidate?.score && cachedCandidate.score > 0) {
-      score = cachedCandidate.score;
-    } else {
-      const hash = otherId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      score = 84 + (hash % 11);
-    }
+    const score: number =
+      out.compatibility_score && out.compatibility_score > 0
+        ? out.compatibility_score
+        : soloScore(myQuizRow, otherQuiz);
 
     const resolvedProfile = otherProfile || {
       id: otherId,
-      first_name: cachedCandidate?.first_name || "Community Member",
-      user_type: cachedCandidate?.user_type || userType || "solo",
+      first_name: "Community Member",
+      user_type: userType || "solo",
       location_city: resolvedCity,
-      travel_radius_km: cachedCandidate?.travel_radius_km || 15,
+      travel_radius_km: 15,
     };
 
     pendingMatchesList.push({
@@ -361,24 +332,6 @@ async function executeFetchMatches(
     return false;
   });
 
-  // Load local storage demo swipes and add to exclusion list (merging user-specific and anonymous fallback keys)
-  let demoSwipes: Record<string, "accept" | "pass"> = {};
-  try {
-    const storedUser = localStorage.getItem(`duogo_demo_swipes_${userId}`);
-    const storedAnon = localStorage.getItem(`duogo_demo_swipes_anonymous`);
-    const swipesUser = storedUser ? JSON.parse(storedUser) : {};
-    const swipesAnon = storedAnon ? JSON.parse(storedAnon) : {};
-    demoSwipes = { ...swipesAnon, ...swipesUser };
-  } catch (e) {
-    console.warn("Error reading local demo swipes", e);
-  }
-  Object.entries(demoSwipes).forEach(([id, act]) => {
-    excludeIds.add(id);
-    if (act === "accept") {
-      sentRequestRecipientIds.add(id);
-    }
-  });
-
   const matchesMap = new Map<string, MatchData>();
   const incomingMatchesList: MatchData[] = [];
 
@@ -388,13 +341,14 @@ async function executeFetchMatches(
     const otherId = isUserA ? inc.user_b_id : inc.user_a_id;
     if (excludeIds.has(otherId) && inc.status === "blocked") continue;
 
-    let cachedCandidate: MatchData | null = null;
-    try {
-      const raw = localStorage.getItem(`duogo_candidate_cache_${otherId}`);
-      if (raw) cachedCandidate = JSON.parse(raw);
-    } catch {
-      // safe
-    }
+    const { data: otherQuizData } = await supabase
+      .from("quiz_responses")
+      .select("*")
+      .eq("user_id", otherId)
+      .maybeSingle();
+
+    // If candidate has no quiz_responses row, exclude them from matching entirely
+    if (!otherQuizData) continue;
 
     const { data: otherProfile } = await supabase
       .from("profiles")
@@ -402,57 +356,30 @@ async function executeFetchMatches(
       .eq("id", otherId)
       .maybeSingle();
 
-    const { data: otherQuizData } = await supabase
-      .from("quiz_responses")
-      .select("*")
-      .eq("user_id", otherId)
-      .maybeSingle();
-
-    const otherQuiz = (otherQuizData || {}) as QuizRow;
+    const otherQuiz = otherQuizData as QuizRow;
     const myQuizRow = { ...myQuizDims, user_id: userId } as QuizRow;
     const myDims = ALL_DIMS.map((d) => getDim(myQuizRow, d));
 
-    let resolvedCity: string;
-    if (otherProfile?.location_city) {
-      resolvedCity = sanitizeLocationCity(otherProfile.location_city);
-    } else if (cachedCandidate?.location_city) {
-      resolvedCity = sanitizeLocationCity(cachedCandidate.location_city);
-    } else {
-      const myCleanCity = myProfile?.location_city ? sanitizeLocationCity(myProfile.location_city) : null;
-      resolvedCity = myCleanCity && myCleanCity !== "Local area" ? myCleanCity : "Local area";
-    }
+    const myCleanCity = myProfile?.location_city ? sanitizeLocationCity(myProfile.location_city) : null;
+    const resolvedCity = otherProfile?.location_city
+      ? sanitizeLocationCity(otherProfile.location_city)
+      : myCleanCity && myCleanCity !== "Local area"
+      ? myCleanCity
+      : "Local area";
 
-    let resolvedOtherDims: number[];
-    if (otherQuizData) {
-      resolvedOtherDims = ALL_DIMS.map((d) => getDim(otherQuiz, d));
-    } else if (cachedCandidate?.dimensions && cachedCandidate.dimensions.length === ALL_DIMS.length) {
-      resolvedOtherDims = cachedCandidate.dimensions;
-    } else {
-      const hash = otherId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      resolvedOtherDims = myDims.map((val, idx) => {
-        const offset = ((hash + idx * 7) % 3) - 1;
-        return Math.min(5, Math.max(1, val + offset));
-      });
-    }
+    const resolvedOtherDims = ALL_DIMS.map((d) => getDim(otherQuiz, d));
 
-    let score: number;
-    if (inc.compatibility_score && inc.compatibility_score > 0) {
-      score = inc.compatibility_score;
-    } else if (otherQuizData) {
-      score = soloScore(myQuizRow, otherQuiz);
-    } else if (cachedCandidate?.score && cachedCandidate.score > 0) {
-      score = cachedCandidate.score;
-    } else {
-      const hash = otherId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      score = 84 + (hash % 11);
-    }
+    const score: number =
+      inc.compatibility_score && inc.compatibility_score > 0
+        ? inc.compatibility_score
+        : soloScore(myQuizRow, otherQuiz);
 
     const resolvedProfile = otherProfile || {
       id: otherId,
-      first_name: cachedCandidate?.first_name || "Match Candidate",
-      user_type: cachedCandidate?.user_type || userType || "solo",
+      first_name: "Match Candidate",
+      user_type: userType || "solo",
       location_city: resolvedCity,
-      travel_radius_km: cachedCandidate?.travel_radius_km || 15,
+      travel_radius_km: 15,
     };
 
     const matchObj: MatchData = {
@@ -494,56 +421,6 @@ async function executeFetchMatches(
 
   // 5. Candidate discovery (RPC or direct query) to ensure fresh discovery matches are always populated
   try {
-    // Append accepted demo candidates to pendingMatchesList so they appear in the Pending tab
-    try {
-      const myDims = ALL_DIMS.map((d) => getDim(myQuizRow, d));
-      const myCity = myProfile?.location_city ? sanitizeLocationCity(myProfile.location_city) : "Milton";
-      const demoFallbacks = [
-        {
-          user_id: "demo_candidate_1",
-          first_name: userType === "couple" ? "Jordan & Casey" : "Jordan M.",
-          user_type: userType,
-          location_city: myCity,
-          travel_radius_km: 12,
-          score: 93,
-          dimensions: myDims.map((val) => Math.min(5, Math.max(1, val + (val > 3 ? -1 : 1)))),
-          my_dimensions: myDims,
-        },
-        {
-          user_id: "demo_candidate_2",
-          first_name: userType === "couple" ? "Taylor & Sam" : "Taylor R.",
-          user_type: userType,
-          location_city: myCity,
-          travel_radius_km: 8,
-          score: 89,
-          dimensions: myDims.map((val, idx) => (idx % 2 === 0 ? val : Math.min(5, val + 1))),
-          my_dimensions: myDims,
-        },
-        {
-          user_id: "demo_candidate_3",
-          first_name: userType === "couple" ? "Morgan & Riley" : "Morgan S.",
-          user_type: userType,
-          location_city: myCity,
-          travel_radius_km: 18,
-          score: 85,
-          dimensions: myDims.map((val, idx) => (idx % 3 === 0 ? val : Math.max(1, val - 1))),
-          my_dimensions: myDims,
-        },
-      ];
-
-      Object.entries(demoSwipes).forEach(([id, act]) => {
-        if (act === "accept") {
-          const found = demoFallbacks.find((f) => f.user_id === id);
-          if (found && !seenPendingIds.has(found.user_id)) {
-            seenPendingIds.add(found.user_id);
-            pendingMatchesList.push(found);
-          }
-        }
-      });
-    } catch (e) {
-      console.warn("Error appending demo swipes to pendingMatchesList", e);
-    }
-
     const myQuizRow = { ...myQuizDims, user_id: userId } as QuizRow;
 
       // 5a. First try dedicated security-definer RPC function
@@ -682,18 +559,8 @@ async function executeFetchMatches(
                 }
               }
 
-              const otherQuiz = cQuizMap.get(c.id) || ({
-                dimension_1_social: 3,
-                dimension_2_budget: 3,
-                dimension_3_spontaneity: 3,
-                dimension_4_planning: 3,
-                dimension_5_intellectual: 3,
-                dimension_6_activity: 3,
-                dimension_7_night: 3,
-                dimension_8_humor: 3,
-                dimension_9_commitment: 3,
-                dimension_10_home: 3,
-              } as QuizRow);
+              const otherQuiz = cQuizMap.get(c.id);
+              if (!otherQuiz) continue;
 
               const score = soloScore(myQuizRow, otherQuiz);
               matchesMap.set(c.id, {
@@ -707,51 +574,6 @@ async function executeFetchMatches(
                 my_dimensions: ALL_DIMS.map((d) => getDim(myQuizRow, d)),
               });
             }
-          }
-        }
-      }
-
-      // 5c. If no unswiped candidates exist in database, generate curated community candidate matches
-      if (matchesMap.size === 0) {
-        const myDims = ALL_DIMS.map((d) => getDim(myQuizRow, d));
-        const myCity = myProfile?.location_city ? sanitizeLocationCity(myProfile.location_city) : "Milton";
-
-        const fallbackCandidates: MatchData[] = [
-          {
-            user_id: "demo_candidate_1",
-            first_name: userType === "couple" ? "Jordan & Casey" : "Jordan M.",
-            user_type: userType,
-            location_city: myCity,
-            travel_radius_km: 12,
-            score: 93,
-            dimensions: myDims.map((val) => Math.min(5, Math.max(1, val + (val > 3 ? -1 : 1)))),
-            my_dimensions: myDims,
-          },
-          {
-            user_id: "demo_candidate_2",
-            first_name: userType === "couple" ? "Taylor & Sam" : "Taylor R.",
-            user_type: userType,
-            location_city: myCity,
-            travel_radius_km: 8,
-            score: 89,
-            dimensions: myDims.map((val, idx) => (idx % 2 === 0 ? val : Math.min(5, val + 1))),
-            my_dimensions: myDims,
-          },
-          {
-            user_id: "demo_candidate_3",
-            first_name: userType === "couple" ? "Morgan & Riley" : "Morgan S.",
-            user_type: userType,
-            location_city: myCity,
-            travel_radius_km: 18,
-            score: 85,
-            dimensions: myDims.map((val, idx) => (idx % 3 === 0 ? val : Math.max(1, val - 1))),
-            my_dimensions: myDims,
-          },
-        ];
-
-        for (const f of fallbackCandidates) {
-          if (!excludeIds.has(f.user_id)) {
-            matchesMap.set(f.user_id, f);
           }
         }
       }
@@ -800,27 +622,6 @@ export async function resetSwipedMatches(userId: string): Promise<void> {
     .delete()
     .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`)
     .in("status", ["passed_by_a", "passed_by_b"]);
-
-  // Also reset passed demo swipes
-  try {
-    const keysToReset = [`duogo_demo_swipes_${userId}`, "duogo_demo_swipes_anonymous"];
-    for (const key of keysToReset) {
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        const swipes = JSON.parse(stored);
-        // Remove any 'pass' actions, keep 'accept' actions
-        const newSwipes: Record<string, string> = {};
-        Object.entries(swipes).forEach(([id, act]) => {
-          if (act === "accept") {
-            newSwipes[id] = "accept";
-          }
-        });
-        localStorage.setItem(key, JSON.stringify(newSwipes));
-      }
-    }
-  } catch (e) {
-    console.warn("Error resetting demo swipes in localStorage:", e);
-  }
 }
 
 export async function executeMatchAction(
@@ -831,31 +632,6 @@ export async function executeMatchAction(
   pendingMatchId?: string,
   hasIncomingRequest?: boolean
 ): Promise<{ status: string; match_id: string }> {
-  if (otherUserId.startsWith("demo_")) {
-    // Save to localStorage so they are excluded from the Discovery queue and added to Pending or Passed
-    try {
-      const activeUser = session?.user?.id || "anonymous";
-      const keysToSave = [`duogo_demo_swipes_${activeUser}`];
-      if (activeUser !== "anonymous") {
-        keysToSave.push("duogo_demo_swipes_anonymous");
-      }
-
-      for (const key of keysToSave) {
-        const stored = localStorage.getItem(key);
-        const swipes = stored ? JSON.parse(stored) : {};
-        swipes[otherUserId] = action;
-        localStorage.setItem(key, JSON.stringify(swipes));
-      }
-    } catch (e) {
-      console.warn("Error saving demo swipe to localStorage:", e);
-    }
-
-    return {
-      status: (action === "accept" && hasIncomingRequest) ? "mutual" : (action === "accept" ? "pending" : "passed"),
-      match_id: pendingMatchId || `demo_match_${Date.now()}`,
-    };
-  }
-
   const { data: result, error } = await supabase.rpc("handle_match_action", {
     _other_user_id: otherUserId,
     _action: action,
