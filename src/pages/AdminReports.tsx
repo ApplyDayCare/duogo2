@@ -51,10 +51,31 @@ const AdminReports = () => {
     const { data, error } = await supabase.functions.invoke("admin-verify", {
       body: { password },
     });
-    if (error || !data?.valid) {
+
+    if (error) {
+      // FunctionsHttpError carries the native Response object in error.context
+      const status = (error as any)?.context?.status;
+      if (status === 429) {
+        toast({
+          title: "Too many attempts",
+          description: "Please wait before trying again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Something went wrong",
+        description: "Please try again in a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!data?.valid) {
       toast({ title: "Invalid password", variant: "destructive" });
       return;
     }
+
     sessionStorage.setItem(ADMIN_PASSWORD_VALUE_KEY, password);
     setAuthed(true);
   };
