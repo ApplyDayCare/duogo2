@@ -1,5 +1,21 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { escapeHtml, safeName } from "../_shared/sanitize.ts";
+
+// Inlined sanitization helpers
+function escapeHtml(input: unknown): string {
+  if (input === null || input === undefined) return "";
+  return String(input)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function safeName(input: unknown, fallback = "User"): string {
+  const raw = (input ?? "").toString().replace(/[<>&"'`\u0000-\u001F\u007F]/g, "").trim();
+  const cleaned = raw.slice(0, 60).trim();
+  return cleaned.length > 0 ? cleaned : fallback;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

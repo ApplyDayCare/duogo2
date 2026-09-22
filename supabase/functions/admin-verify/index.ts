@@ -3,20 +3,30 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Simple in-memory rate limiter (resets on cold start, but sufficient for brute-force protection)
-const attempts = new Map<string, { count: number; resetAt: number }>();
-const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 60 * 60 * 1000; // 1 hour
+// Inlined timing-safe string comparison
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
 
-function isRateLimited(ip: string): boolean {
+// Simple in-memory rate limiter with namespaced keys
+const attempts = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(
+  key: string,
+  maxAttempts: number = 5,
+  windowMs: number = 60 * 60 * 1000 // 1 hour default
+): boolean {
   const now = Date.now();
-  const record = attempts.get(ip);
+  const record = attempts.get(key);
   if (!record || now > record.resetAt) {
-    attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    attempts.set(key, { count: 1, resetAt: now + windowMs });
     return false;
   }
   record.count++;
-  return record.count > MAX_ATTEMPTS;
+  return record.count > maxAttempts;
 }
 
 Deno.serve(async (req) => {
@@ -28,7 +38,7 @@ Deno.serve(async (req) => {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
                req.headers.get("cf-connecting-ip") || "unknown";
 
-    if (isRateLimited(ip)) {
+    if (isRateLimited(`admin-verify:${ip}`)) {
       console.warn(`Rate limited admin login attempt from IP: ${ip}`);
       return new Response(JSON.stringify({ valid: false, error: "Too many attempts. Try again later." }), {
         status: 429,
@@ -46,7 +56,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const valid = password === adminPassword;
+    const valid = typeof password === "string" && timingSafeEqual(password, adminPassword);
 
     if (!valid) {
       console.warn(`Failed admin login attempt from IP: ${ip}`);
