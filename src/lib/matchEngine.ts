@@ -779,19 +779,17 @@ export async function executeMatchAction(
       }),
     }).catch(console.warn);
 
-    // 4. Trigger email notification to recipient
-    fetch("/api/email/request-notification", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.access_token || ""}`,
-      },
-      body: JSON.stringify({
-        targetUserId: otherUserId,
-        senderUserId: activeUserId,
-        compatibilityScore: score,
-      }),
-    }).catch(console.warn);
+    // 4. Trigger email notification to recipient via Supabase Edge Function
+    supabase.functions
+      .invoke("send-request-notification", {
+        body: {
+          targetUserId: otherUserId,
+          senderUserId: activeUserId,
+          compatibilityScore: score,
+        },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      })
+      .catch(console.warn);
   }
 
   return res;
