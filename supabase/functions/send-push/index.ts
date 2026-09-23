@@ -6,6 +6,11 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 import webpush from "https://esm.sh/web-push@3.6.7";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") || "";
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") || "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@duogo.app";
@@ -18,12 +23,7 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -34,7 +34,7 @@ serve(async (req) => {
     if (!targetUserId || !title) {
       return new Response(JSON.stringify({ error: "Missing required fields: userId/user_id, title" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -44,7 +44,7 @@ serve(async (req) => {
     if (!token) {
       return new Response(JSON.stringify({ error: "Unauthorized: Missing Authorization header" }), {
         status: 401,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -55,7 +55,7 @@ serve(async (req) => {
     if (authError || !callerUser) {
       return new Response(JSON.stringify({ error: "Unauthorized: Invalid or expired authentication token" }), {
         status: 401,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -84,7 +84,7 @@ serve(async (req) => {
           JSON.stringify({ error: "Forbidden: You are not authorized to send push notifications to this user" }),
           {
             status: 403,
-            headers: { "Content-Type": "application/json" },
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
         );
       }
@@ -99,7 +99,7 @@ serve(async (req) => {
     if (error || !subscriptions || subscriptions.length === 0) {
       return new Response(
         JSON.stringify({ message: "No active push subscriptions found for user", sentCount: 0 }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -147,13 +147,13 @@ serve(async (req) => {
       }),
       {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

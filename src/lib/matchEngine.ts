@@ -472,34 +472,7 @@ async function executeFetchMatches(
         }
       }
 
-      // 5b. If primary RPC returned no candidates, try secondary secure RPC endpoints before direct querying
-      if (matchesMap.size === 0) {
-        const { data: secCandidates, error: secErr } = await supabase.rpc("get_matches_for_user" as any, { p_user_id: userId });
-        if (!secErr && Array.isArray(secCandidates) && secCandidates.length > 0) {
-          for (const c of secCandidates) {
-            const candId = c.id || c.user_id;
-            if (!candId || excludeIds.has(candId)) continue;
-            const candType = c.user_type || "solo";
-            if (userType === "solo" && candType !== "solo") continue;
-            if (userType === "couple" && candType !== "couple") continue;
-
-            const dimsObj = (c.dimensions || {}) as QuizRow;
-            const score = c.compatibility_score || soloScore(myQuizRow, dimsObj);
-            matchesMap.set(candId, {
-              user_id: candId,
-              first_name: c.first_name || "Community Member",
-              user_type: candType,
-              location_city: sanitizeLocationCity(c.location_city),
-              travel_radius_km: c.travel_radius_km,
-              score,
-              dimensions: ALL_DIMS.map((d) => getDim(dimsObj, d)),
-              my_dimensions: ALL_DIMS.map((d) => getDim(myQuizRow, d)),
-            });
-          }
-        }
-      }
-
-      // 5c. Direct query fallback (Note: under strict RLS, direct SELECT on other profiles is locked; secure RPCs are preferred)
+      // 5b. Direct query fallback (Note: under strict RLS, direct SELECT on other profiles is locked; secure RPCs are preferred)
       if (matchesMap.size === 0) {
         const { data: candidates, error: candErr } = await supabase
           .from("profiles")
@@ -652,6 +625,16 @@ export async function executeMatchAction(
   }) as { match_id: string; status: string };
 
   const activeUserId = session?.user?.id;
+
+  console.log("[executeMatchAction] Result resolved:", {
+    rawRpcResult: result,
+    resStatus: res?.status,
+    action,
+    activeUserId,
+    otherUserId,
+    score,
+    isPendingAndAccept: res?.status === "pending" && action === "accept",
+  });
 
   if (res.status === "mutual") {
     // 1. Persist in-app notifications in Supabase so Realtime listeners and notification bells trigger
