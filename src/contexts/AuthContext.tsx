@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSavedQuizAnswers, ensureUserQuizResponse } from "@/lib/quizSync";
 import { saveOfflineProfile, getOfflineProfile } from "@/lib/queryPersister";
 import { clearSignupDraft } from "@/lib/signupState";
+import { identifyUser, resetUser } from "@/lib/posthog";
 
 export interface UserProfile {
   id: string;
@@ -93,6 +94,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (data.onboarding_completed && data.quiz_completed) {
           clearSignupDraft();
         }
+        identifyUser(userId, {
+          email: data.email,
+          first_name: data.first_name,
+          user_type: data.user_type,
+          location_city: data.location_city,
+          onboarding_completed: data.onboarding_completed,
+          quiz_completed: data.quiz_completed,
+        });
       }
 
       setProfile(data);
@@ -160,6 +169,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchProfile]);
 
   const signOut = async () => {
+    resetUser();
     await supabase.auth.signOut();
     setProfile(null);
   };

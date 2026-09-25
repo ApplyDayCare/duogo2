@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +12,8 @@ import { OnboardingStepGuard } from "@/components/OnboardingStepGuard";
 import AppLayout from "@/components/AppLayout";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { initPostHog } from "@/lib/posthog";
+import { PostHogPageView } from "@/components/PostHogPageView";
 
 // Resilient lazy loaded page components
 const Landing = lazyWithRetry(() => import("./pages/Landing"));
@@ -71,23 +73,29 @@ const PageLoader = () => (
   </div>
 );
 
-const App = () => (
-  <PersistQueryClientProvider
-    client={queryClient}
-    persistOptions={{
-      persister: idbPersister,
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days persistence
-      buster: "duogo_cache_v1",
-    }}
-  >
-    <AuthProvider>
-      <TooltipProvider>
-        <BrowserRouter>
-          <Toaster />
-          <OfflineIndicator />
-          <ErrorBoundary>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
+const App = () => {
+  useEffect(() => {
+    initPostHog();
+  }, []);
+
+  return (
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: idbPersister,
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days persistence
+        buster: "duogo_cache_v1",
+      }}
+    >
+      <AuthProvider>
+        <TooltipProvider>
+          <BrowserRouter>
+            <PostHogPageView />
+            <Toaster />
+            <OfflineIndicator />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
               {/* Public Entry Points */}
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Navigate to="/?login=true" replace />} />
@@ -142,6 +150,7 @@ const App = () => (
       </TooltipProvider>
     </AuthProvider>
   </PersistQueryClientProvider>
-);
+  );
+};
 
 export default App;
