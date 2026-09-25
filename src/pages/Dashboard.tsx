@@ -96,6 +96,7 @@ interface ActiveConnection {
   name: string;
   avatarUrl: string | null;
   city: string | null;
+  expiresAt?: string | null;
 }
 
 const Dashboard = () => {
@@ -126,6 +127,30 @@ const Dashboard = () => {
     totalChatAlerts,
     refetch: refetchChatSummary,
   } = useChatSummary();
+
+  const renderExpiryBadge = (expiresAtStr?: string | null) => {
+    if (!expiresAtStr) return null;
+    const expiresAt = new Date(expiresAtStr);
+    const nowMs = Date.now();
+    const msLeft = expiresAt.getTime() - nowMs;
+    if (msLeft <= 0) return null;
+    const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+    const isUrgent = daysLeft <= 3;
+
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 text-[10px] font-semibold rounded-full px-2 py-0.5 shrink-0",
+          isUrgent
+            ? "bg-amber-100 text-amber-900 border border-amber-300 font-bold"
+            : "bg-[#FAF7F2] text-[#666059] border border-[#EFE8DD]"
+        )}
+      >
+        <Clock className={cn("h-3 w-3", isUrgent ? "text-amber-700" : "text-[#888177]")} />
+        {daysLeft} {daysLeft === 1 ? "day left" : "days left"}
+      </span>
+    );
+  };
 
   const handleCopyCoupleCode = () => {
     if (!coupleInfo?.inviteCode) return;
@@ -258,7 +283,7 @@ const Dashboard = () => {
 
       // Fetch stats in parallel
       const [matchesRes, feedbackRes, referralRes, coupleRes] = await Promise.all([
-        supabase.from("matches").select("id, status, user_a_id, user_b_id, user_a_action, user_b_action, compatibility_score").or(matchFilter),
+        supabase.from("matches").select("id, status, user_a_id, user_b_id, user_a_action, user_b_action, compatibility_score, expires_at").or(matchFilter),
         supabase.from("pulse_feedback").select("id, met_in_person").eq("user_id", user.id),
         supabase.from("referrals").select("successful_signups, priority_boost_expiry").eq("referrer_id", user.id).maybeSingle(),
         p.user_type === "couple"
@@ -293,6 +318,7 @@ const Dashboard = () => {
             name: pr?.first_name || "Match",
             avatarUrl: pr?.avatar_url || null,
             city: pr?.location_city || null,
+            expiresAt: m.expires_at || null,
           };
         });
         setActiveConnections(conns);
@@ -954,8 +980,9 @@ const Dashboard = () => {
                         <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-bold text-foreground truncate">{displayName}</p>
+                          {renderExpiryBadge(c.expiresAt)}
                           <Badge variant="secondary" className="bg-[#FFF0EB] text-[#FF5436] border-0 text-[10px] font-bold px-1.5 py-0 rounded-full">
                             {c.compatibilityScore}%
                           </Badge>
@@ -1010,8 +1037,9 @@ const Dashboard = () => {
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-bold text-foreground truncate">{conn.name}</p>
+                        {renderExpiryBadge(conn.expiresAt)}
                         <Badge variant="secondary" className="bg-[#FFF0EB] text-[#FF5436] border-0 text-[10px] font-bold px-1.5 py-0 rounded-full">
                           {conn.score}%
                         </Badge>

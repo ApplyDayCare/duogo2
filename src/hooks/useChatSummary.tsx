@@ -13,6 +13,7 @@ export interface ChatConversation {
   compatibilityScore: number;
   revealedAt: string | null;
   createdAt: string;
+  expiresAt?: string | null;
   otherUser: {
     id: string;
     first_name: string;
@@ -121,7 +122,7 @@ export function useChatSummary() {
         .from("matches")
         .select("*")
         .or(filterParts.join(","))
-        .in("status", ["mutual", "pending"])
+        .in("status", ["mutual", "pending", "archived"])
         .order("created_at", { ascending: false });
 
       if (!rawMatches || rawMatches.length === 0) {
@@ -144,7 +145,7 @@ export function useChatSummary() {
         return true;
       });
 
-      const mutualMatches = matches.filter((m) => m.status === "mutual");
+      const mutualMatches = matches.filter((m) => m.status === "mutual" || m.status === "archived");
       const incomingMatchRecords = matches.filter((m) => {
         if (m.status !== "pending") return false;
         const isA = m.user_a_id === user.id || (partnerId && m.user_a_id === partnerId);
@@ -284,6 +285,7 @@ export function useChatSummary() {
           compatibilityScore: m.compatibility_score || 91,
           revealedAt: m.revealed_at,
           createdAt: m.created_at,
+          expiresAt: m.expires_at || null,
           otherUser: otherProf,
           partnerUser: partnerProf,
           lastMessage: lastMsg

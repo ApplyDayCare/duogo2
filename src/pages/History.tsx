@@ -63,7 +63,7 @@ const History = () => {
         uniqueMatches.map(async (m) => {
           const otherId = resolveOtherId(m, user.id, partnerId);
           const [profileRes, feedbackRes] = await Promise.all([
-            m.status === "mutual"
+            m.status === "mutual" || m.status === "archived" || m.status === "expired"
               ? supabase.from("profiles").select("first_name").eq("id", otherId).single()
               : Promise.resolve({ data: null }),
             supabase.from("pulse_feedback").select("met_in_person, rating").eq("match_id", m.id).eq("user_id", user.id).maybeSingle(),
@@ -125,7 +125,7 @@ const History = () => {
     const isA = m.user_a_id === user!.id;
     return isA ? m.user_a_action === "accept" : m.user_b_action === "accept";
   });
-  const past = matches.filter((m) => m.status === "mutual" && m.feedback);
+  const past = matches.filter((m) => (m.status === "mutual" && m.feedback) || m.status === "archived" || m.status === "expired");
   const passedCount = matches.filter((m) => m.status?.startsWith("passed")).length;
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -219,7 +219,11 @@ const History = () => {
                 <p className="text-xs text-muted-foreground">Connected {formatDate(m.created_at)}</p>
                 <div className="flex items-center gap-3 mt-2">
                   <Badge variant="secondary" className="rounded-full text-xs font-semibold">
-                    {m.feedback?.met_in_person === "yes" ? "☕ Met in person" : "Didn't meet"}
+                    {m.status === "archived" || m.feedback?.met_in_person === "yes"
+                      ? "☕ Met in person"
+                      : m.status === "expired"
+                      ? "⏰ Expired"
+                      : "Didn't meet"}
                   </Badge>
                   {m.feedback?.rating && (
                     <span className="flex items-center gap-0.5 text-xs text-muted-foreground">

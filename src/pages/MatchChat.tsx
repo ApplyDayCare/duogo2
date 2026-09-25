@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Send, MessageCircle, Info, MapPin, Sparkles, Handshake, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Info, MapPin, Sparkles, Handshake, Check, CheckCheck, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -50,6 +50,8 @@ const MatchChat = () => {
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
   const [viewportTop, setViewportTop] = useState<number>(0);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [submittingMet, setSubmittingMet] = useState(false);
+  const [submittingExtension, setSubmittingExtension] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -124,7 +126,7 @@ const MatchChat = () => {
   };
 
   // Fetch other user's profile and match details
-  const { data: matchData } = useQuery({
+  const { data: matchData, refetch: refetchMatch } = useQuery({
     queryKey: ["match-chat-header", matchId],
     queryFn: async () => {
       const { data: match } = await supabase
@@ -137,9 +139,11 @@ const MatchChat = () => {
       // Determine "other side": could be current user's couple partner scenario
       const isDirectParticipant = match.user_a_id === user!.id || match.user_b_id === user!.id;
       let otherId: string;
+      let isSideA: boolean;
 
       if (isDirectParticipant) {
-        otherId = match.user_a_id === user!.id ? match.user_b_id : match.user_a_id;
+        isSideA = match.user_a_id === user!.id;
+        otherId = isSideA ? match.user_b_id : match.user_a_id;
       } else {
         const { data: couple } = await supabase
           .from("couples")
@@ -151,11 +155,8 @@ const MatchChat = () => {
           ? couple.partner_a_id === user!.id ? couple.partner_b_id : couple.partner_a_id
           : null;
 
-        if (myPartnerId === match.user_a_id) {
-          otherId = match.user_b_id;
-        } else {
-          otherId = match.user_a_id;
-        }
+        isSideA = myPartnerId === match.user_a_id;
+        otherId = isSideA ? match.user_b_id : match.user_a_id;
       }
 
       const { data: profile } = await supabase
@@ -191,10 +192,80 @@ const MatchChat = () => {
         }
       }
 
-      return { match, otherProfile: profile, partnerProfile, otherId, myProfile };
+      return { match, otherProfile: profile, partnerProfile, otherId, myProfile, isSideA };
     },
     enabled: !!user && !!matchId,
   });
+
+  // Participant side & in-person confirmation checks
+  const match = matchData?.match;
+  const isSideA = matchData?.isSideA ?? (matchData?.otherId ? matchData.otherId === match?.user_b_id : match?.user_a_id === user?.id);
+  const myMetConfirmed = isSideA ? match?.met_confirmed_a : match?.met_confirmed_b;
+  const expiresAt = match?.expires_at ? new Date(match.expires_at) : null;
+  const nowMs = Date.now();
+  const msLeft = expiresAt ? expiresAt.getTime() - nowMs : null;
+  const hoursLeft = msLeft !== null ? msLeft / (1000 * 60 * 60) : null;
+  const daysLeft = msLeft !== null ? Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24))) : null;
+  const isExpiringSoon = hoursLeft !== null && hoursLeft <= 72 && hoursLeft > 0;
+  const isExpired = match?.status === "expired" || (hoursLeft !== null && hoursLeft <= 0 && match?.status !== "archived");
+  const isArchived = match?.status === "archived";
+
+  const handleConfirmMet = async (confirmed: boolean) => {
+    if (!match?.id) return;
+    setSubmittingMet(true);
+    try {
+      const { error } = await supabase.rpc("confirm_met_in_person", {
+        _match_id: match.id,
+        _confirmed: confirmed,
+      });
+      if (error) throw error;
+      toast({
+        title: confirmed ? "Awesome! Connection archived 🎉" : "Got it!",
+        description: confirmed
+          ? "You both confirmed you met in person! Chat will remain saved."
+          : "Keep connecting and let us know if you meet before the deadline.",
+      });
+      await refetchMatch();
+    } catch (err: any) {
+      toast({
+        title: "Could not record meetup",
+        description: err.message || "An error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingMet(false);
+    }
+  };
+
+  const handleRequestExtension = async () => {
+    if (!match?.id) return;
+    setSubmittingExtension(true);
+    try {
+      const { error } = await supabase.rpc("request_match_extension", { _match_id: match.id });
+      if (error) throw error;
+      toast({ title: "Extension requested", description: `Waiting for ${otherProfile?.first_name || "match"} to confirm.` });
+      await refetchMatch();
+    } catch (err: any) {
+      toast({ title: "Could not request extension", description: err.message || "An error occurred.", variant: "destructive" });
+    } finally {
+      setSubmittingExtension(false);
+    }
+  };
+
+  const handleConfirmExtension = async () => {
+    if (!match?.id) return;
+    setSubmittingExtension(true);
+    try {
+      const { error } = await supabase.rpc("confirm_match_extension", { _match_id: match.id });
+      if (error) throw error;
+      toast({ title: "Extension confirmed! 🎉", description: "5 days have been added to your connection." });
+      await refetchMatch();
+    } catch (err: any) {
+      toast({ title: "Could not confirm extension", description: err.message || "An error occurred.", variant: "destructive" });
+    } finally {
+      setSubmittingExtension(false);
+    }
+  };
 
   const fetchMessages = useCallback(async () => {
     if (!matchId) return;
@@ -580,6 +651,105 @@ const MatchChat = () => {
           </div>
         </header>
 
+        {/* Expiry / Archived Banners & In-Person Prompts */}
+        {isArchived ? (
+          <div className="bg-emerald-50 border-b border-emerald-200 px-3 sm:px-4 py-2 text-xs text-emerald-800 flex items-center gap-2 font-medium shrink-0">
+            <CheckCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>This connection has been archived - you both confirmed you met!</span>
+          </div>
+        ) : isExpired ? (
+          <div className="bg-stone-100 border-b border-stone-200 px-3 sm:px-4 py-2 text-xs text-stone-700 flex items-center gap-2 font-medium shrink-0">
+            <Clock className="h-4 w-4 text-stone-500 shrink-0" />
+            <span>This connection has expired and is now closed.</span>
+          </div>
+        ) : expiresAt && match?.status === "mutual" ? (
+          <div
+            className={`border-b px-3 sm:px-4 shrink-0 transition-colors ${
+              isExpiringSoon
+                ? "bg-[#FFF4EE] border-[#FFD5CC] py-2 text-xs text-[#8A2B14] space-y-2"
+                : "bg-[#FAF7F2] border-[#EFE8DD] py-1.5 text-[11px] sm:text-xs text-[#666059]"
+            }`}
+          >
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className={`flex items-center gap-1.5 ${isExpiringSoon ? "font-bold" : ""}`}>
+                <Clock className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isExpiringSoon ? "text-[#FF5436]" : "text-[#888177]"}`} />
+                <span>
+                  {isExpiringSoon
+                    ? daysLeft === 1
+                      ? "1 day left to connect"
+                      : `${daysLeft} days left to connect`
+                    : `${daysLeft} days left to connect`}
+                </span>
+              </span>
+
+              {/* Extension Controls: rendered if a request is pending OR (in 3-day window & not yet used) */}
+              {!match.extension_used && (match.extension_requested_by !== null || isExpiringSoon) && (
+                <div className="flex items-center gap-2">
+                  {!match.extension_requested_by && isExpiringSoon && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleRequestExtension}
+                      disabled={submittingExtension}
+                      className="h-6 px-2.5 text-[11px] font-bold rounded-full border-[#FFB2A3] bg-white hover:bg-[#FFEAE5] text-[#FF5436]"
+                    >
+                      Request 5-day extension
+                    </Button>
+                  )}
+
+                  {match.extension_requested_by === user?.id && (
+                    <span className="text-[11px] text-[#A33D22] font-medium italic">
+                      Extension requested · waiting for {otherProfile?.first_name || "match"} to confirm
+                    </span>
+                  )}
+
+                  {match.extension_requested_by && match.extension_requested_by !== user?.id && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-medium text-[#8A2B14]">
+                        {otherProfile?.first_name || "Match"} requested a 5-day extension
+                      </span>
+                      <Button
+                        size="sm"
+                        onClick={handleConfirmExtension}
+                        disabled={submittingExtension}
+                        className="h-6 px-2.5 text-[11px] font-bold rounded-full bg-[#FF5436] hover:bg-[#EE3F20] text-white"
+                      >
+                        Confirm
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Have you met in person prompt: only shown when expiring soon and user hasn't confirmed yet */}
+            {isExpiringSoon && myMetConfirmed === null && (
+              <div className="pt-1.5 border-t border-[#FFD5CC]/60 flex items-center justify-between flex-wrap gap-2">
+                <span className="font-semibold text-[#73220E]">Have you met in person?</span>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    onClick={() => handleConfirmMet(true)}
+                    disabled={submittingMet}
+                    className="h-6 px-2.5 text-[11px] font-bold rounded-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    Yes, we met!
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleConfirmMet(false)}
+                    disabled={submittingMet}
+                    className="h-6 px-2.5 text-[11px] font-semibold rounded-full border-[#FFC2B4] bg-white hover:bg-[#FFF5F2] text-[#8A2B14]"
+                  >
+                    Not yet
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
+
         {/* Message Feed Area (Scrolls independently taking all remaining height) */}
         <div
           className="flex-1 min-h-0 overflow-y-auto px-2.5 sm:px-4 py-2 sm:py-3 bg-[#FAF7F2]/40 overscroll-contain"
@@ -747,33 +917,43 @@ const MatchChat = () => {
 
         {/* Fixed Input Area (Fixed at bottom) */}
         <div className="shrink-0 bg-white border-t border-[#EFE8DD] z-20">
-          {/* Bottom Input Field Bar */}
-          <div className="p-2.5 sm:p-3 max-w-3xl mx-auto flex items-end gap-2 sm:gap-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]">
-            <div className="flex-1 min-w-0 relative rounded-2xl bg-[#FAF7F2] border border-[#E0D8CB] focus-within:border-[#FF5436] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#FF5436]/15 transition-all shadow-2xs">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={handleTextareaChange}
-                onKeyDown={handleKeyDown}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                placeholder="Type a message…"
-                rows={1}
-                className="w-full resize-none bg-transparent px-3.5 py-2.5 sm:px-4 sm:py-3 text-[15px] sm:text-base text-[#181513] placeholder:text-[#888177] focus:outline-none min-h-[44px] max-h-32 leading-relaxed"
-              />
+          {isArchived ? (
+            <div className="p-3.5 max-w-3xl mx-auto text-center text-xs text-[#666059] bg-[#FAF7F2] rounded-2xl border border-[#EFE8DD] m-2.5">
+              This connection has been archived - you both confirmed you met! Chat is read-only.
             </div>
+          ) : isExpired ? (
+            <div className="p-3.5 max-w-3xl mx-auto text-center text-xs text-[#888177] bg-[#FAF7F2] rounded-2xl border border-[#EFE8DD] m-2.5">
+              This connection has expired and is now closed.
+            </div>
+          ) : (
+            /* Bottom Input Field Bar */
+            <div className="p-2.5 sm:p-3 max-w-3xl mx-auto flex items-end gap-2 sm:gap-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]">
+              <div className="flex-1 min-w-0 relative rounded-2xl bg-[#FAF7F2] border border-[#E0D8CB] focus-within:border-[#FF5436] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#FF5436]/15 transition-all shadow-2xs">
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={handleTextareaChange}
+                  onKeyDown={handleKeyDown}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  placeholder="Type a message…"
+                  rows={1}
+                  className="w-full resize-none bg-transparent px-3.5 py-2.5 sm:px-4 sm:py-3 text-[15px] sm:text-base text-[#181513] placeholder:text-[#888177] focus:outline-none min-h-[44px] max-h-32 leading-relaxed"
+                />
+              </div>
 
-            <Button
-              id="btn-chat-send"
-              size="icon"
-              className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-[#FF5436] hover:bg-[#E03E22] text-white shrink-0 shadow-[0_4px_14px_rgba(255,84,54,0.3)] transition-all active:scale-95 disabled:opacity-40"
-              onClick={() => sendMessage(input)}
-              disabled={!input.trim()}
-              aria-label="Send message"
-            >
-              <Send className="h-5 w-5 stroke-[2.2]" />
-            </Button>
-          </div>
+              <Button
+                id="btn-chat-send"
+                size="icon"
+                className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-[#FF5436] hover:bg-[#E03E22] text-white shrink-0 shadow-[0_4px_14px_rgba(255,84,54,0.3)] transition-all active:scale-95 disabled:opacity-40"
+                onClick={() => sendMessage(input)}
+                disabled={!input.trim()}
+                aria-label="Send message"
+              >
+                <Send className="h-5 w-5 stroke-[2.2]" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
