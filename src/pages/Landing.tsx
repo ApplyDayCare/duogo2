@@ -716,7 +716,7 @@ export default function Landing() {
                 3. Turn a match into a real friendship
               </h3>
               <p className="mt-3 text-[var(--ink-soft)] text-[15px] leading-relaxed">
-                Start a conversation, meet up, and see where the friendship takes you.
+                You have 15 days to take the conversation offline. Start a chat, suggest a coffee or a walk, and meet in person. If you don&apos;t meet within 15 days, the connection quietly expires. No endless texting, no wasted time.
               </p>
               <div className="flex items-center mt-auto pt-5 gap-2">
                 <div className="flex -space-x-2.5">
@@ -762,6 +762,26 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ---------- THE 15-DAY RULE ---------- */}
+      <section className="py-20 sm:py-24 bg-[var(--cream)] border-b border-[var(--line)]">
+        <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
+          <div className="max-w-[66ch] mx-auto text-center">
+            <div className="text-[13px] font-bold uppercase tracking-widest text-[var(--coral-2)] mb-2.5">
+              The 15-Day Rule
+            </div>
+            <h2 className="font-['Fraunces',serif] font-semibold text-[30px] sm:text-[38px] text-[var(--ink)] tracking-[-0.01em] leading-tight">
+              From Screen to Street in 15 Days.
+            </h2>
+            <p className="mt-4 font-['Fraunces',serif] text-[19px] sm:text-[21px] text-[var(--ink)] font-normal">
+              We don&apos;t do endless pen pals. We do real-life meetups.
+            </p>
+            <p className="mt-4 text-[var(--ink-soft)] text-[16px] sm:text-[17px] leading-relaxed">
+              The biggest enemy of adult friendship isn&apos;t rejection—it&apos;s inertia. The endless &ldquo;we should totally hang out sometime&rdquo; that never actually happens. That’s why duogo has a built-in 15-day meeting window. Once you match, the clock starts. We give you two weeks to move from chatting to a real-world meetup. If you don&apos;t meet, the connection expires, and you won&apos;t be matched again. It&apos;s not a threat; it&apos;s a gentle push. It protects your time, filters out time-wasters, and ensures that every connection on duogo is serious about actually showing up.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ---------- 4. DIFFERENTIATION (PLACED IMMEDIATELY AFTER HOW IT WORKS) ---------- */}
       <section className="py-20 sm:py-24 bg-[var(--cream-dim)] border-b border-[var(--line)]">
         <div className="max-w-[1180px] mx-auto px-6 sm:px-8">
@@ -780,7 +800,7 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white rounded-[22px] p-7 border border-[var(--line)] shadow-2xs">
               <div className="w-10 h-10 rounded-full bg-[var(--cream)] flex items-center justify-center text-[var(--coral-2)] font-bold mb-4">
                 01
@@ -816,6 +836,18 @@ export default function Landing() {
                 Decisions are double-blind. If both people don&apos;t connect, the introduction quietly expires without awkward notifications or hurt feelings.
               </p>
             </div>
+
+            <div className="bg-white rounded-[22px] p-7 border border-[var(--line)] shadow-2xs">
+              <div className="w-10 h-10 rounded-full bg-[var(--cream)] flex items-center justify-center text-[var(--coral-2)] font-bold mb-4">
+                04
+              </div>
+              <h3 className="font-['Fraunces',serif] font-semibold text-[19px] text-[var(--ink)]">
+                Time-Respecting Design
+              </h3>
+              <p className="mt-2 text-[var(--ink-soft)] text-[14.5px] leading-relaxed">
+                We cap connections at 15 days. This isn&apos;t a place to collect matches or build a roster of pen pals. It&apos;s a launchpad for real-world friendships. If you aren&apos;t ready to meet in person, you aren&apos;t ready for duogo.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -828,10 +860,10 @@ export default function Landing() {
               Flexible Formats
             </div>
             <h2 className="font-['Fraunces',serif] font-semibold text-[30px] sm:text-[38px] text-[var(--ink)] tracking-[-0.01em]">
-              Connect in the way that feels natural
+              One-on-one or small groups, matched properly.
             </h2>
             <p className="mt-3.5 text-[var(--ink-soft)] text-[16px] sm:text-[17px] leading-relaxed">
-              Whether you prefer one-on-one coffee chats, outdoor adventures, group activities, or virtual conversations, duogo helps you connect in a way that fits your lifestyle.
+              Whether you prefer one-on-one coffee chats, outdoor adventures, or group activities, duogo helps you connect. Choose Solo mode for individual matches, or Couples Mode for two friends or couples looking to expand their social circle platonically.
             </p>
           </div>
 
@@ -1173,7 +1205,7 @@ export default function Landing() {
               <div className="flex items-center gap-2.5 mb-2.5 text-[#FBBF24]">
                 <Users className="h-5 w-5" />
                 <h3 className="font-['Fraunces',serif] font-semibold text-[19px] text-[var(--cream)]">
-                  Strictly Platonic Code
+                  Strictly Non-Romantic Code
                 </h3>
               </div>
               <p className="text-[var(--cream)]/75 text-[15px] leading-relaxed">
@@ -1188,7 +1220,7 @@ export default function Landing() {
                 </h3>
               </div>
               <p className="text-[var(--cream)]/75 text-[15px] leading-relaxed">
-                After meeting up, members complete a brief in-app pulse check to verify safety, punctuality, and mutual respect, continually rewarding reliable, high-trust community members.
+                After meeting up, members complete a brief in-app pulse check to verify safety, punctuality, and mutual respect, continually rewarding reliable and respectful community members.
               </p>
             </div>
           </div>
@@ -1276,12 +1308,30 @@ export default function Landing() {
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="item-8" className="border-none py-2">
+              <AccordionItem value="item-8" className="border-b border-[var(--line)] py-2">
                 <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline text-left">
                   Can I pause matching if I get busy?
                 </AccordionTrigger>
                 <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
                   Yes! You can pause matching with a single click from your dashboard or profile settings at any time. When you&apos;re ready for new friends, resume with one tap to begin receiving active match notifications again.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-9" className="border-b border-[var(--line)] py-2">
+                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline text-left">
+                  What happens if I don&apos;t meet my match in 15 days?
+                </AccordionTrigger>
+                <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
+                  If you haven&apos;t met in person within 15 days, the connection will expire and the chat will be closed. Because our goal is real-life connection, we don&apos;t allow matches to linger in limbo. You will not be rematched with this person, which encourages both of you to take that first step. If life gets in the way, you can always message them to plan a meetup for the future before the 15 days are up!
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-10" className="border-none py-2">
+                <AccordionTrigger className="font-['Fraunces',serif] font-semibold text-[17.5px] text-[var(--ink)] hover:text-[var(--coral-2)] hover:no-underline text-left">
+                  What counts as &ldquo;meeting in person&rdquo;?
+                </AccordionTrigger>
+                <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
+                  Any real-world interaction! Grabbing a coffee, going for a walk, attending a local event together, or joining a small group hangout. Once you&apos;ve met, the connection stays active indefinitely.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
