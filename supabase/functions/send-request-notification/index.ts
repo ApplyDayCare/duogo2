@@ -78,6 +78,8 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log(`[send-request-notification] Request from ${senderUserId} to ${targetUserId}`);
+
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // 4. Verify match record exists and sender has actively sent 'accept'
@@ -90,6 +92,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (matchErr || !matchRecord) {
+      console.warn(`[send-request-notification] No match record found between ${senderUserId} and ${targetUserId}`);
       return new Response(
         JSON.stringify({ error: "Forbidden: No match request found between sender and target" }),
         {
@@ -103,6 +106,7 @@ Deno.serve(async (req) => {
     const senderAction = isSenderUserA ? matchRecord.user_a_action : matchRecord.user_b_action;
 
     if (senderAction !== "accept") {
+      console.warn(`[send-request-notification] Sender action is not accept: ${senderAction}`);
       return new Response(
         JSON.stringify({ error: "Forbidden: Sender has not sent an accept connection request" }),
         {
@@ -119,7 +123,21 @@ Deno.serve(async (req) => {
       .eq("id", targetUserId)
       .maybeSingle();
 
-    if (targetErr || !targetProfile || !targetProfile.email) {
+    let targetEmail = targetProfile?.email;
+    if (!targetEmail) {
+      try {
+        const { data: authUserData } = await adminClient.auth.admin.getUserById(targetUserId);
+        if (authUserData?.user?.email) {
+          targetEmail = authUserData.user.email;
+          console.log("[send-request-notification] Resolved email from auth.users:", targetEmail);
+        }
+      } catch (authLookErr) {
+        console.warn("[send-request-notification] Could not retrieve target user from auth.users:", authLookErr);
+      }
+    }
+
+    if (!targetEmail) {
+      console.warn(`[send-request-notification] Target email could not be resolved for ${targetUserId}`);
       return new Response(
         JSON.stringify({ success: false, reason: "Target user profile or email could not be resolved" }),
         {
@@ -161,8 +179,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    const recipientFirstName = safeName(targetProfile.first_name, "Friend");
-    const appUrl = Deno.env.get("APP_URL") || "https://duogo.app";
+    const recipientFirstName = safeName(targetProfile?.first_name, "Friend");
+    const appUrl = Deno.env.get("APP_URL") || "https://duogo.space";
 
     const resolvedScore =
       typeof compatibilityScore === "number" && compatibilityScore > 0
@@ -210,12 +228,11 @@ Deno.serve(async (req) => {
 
     const subject = `✨ ${senderDisplayName} sent you a connection request on duogo!`;
 
-    // 7. Send email via Resend or Brevo
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    // 7. Send email via Brevo
     const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
 
-    if (!RESEND_API_KEY && !BREVO_API_KEY) {
-      console.log("Neither RESEND_API_KEY nor BREVO_API_KEY configured: skipping email send");
+    if (!BREVO_API_KEY) {
+      console.warn("[send-request-notification] No BREVO_API_KEY configured: skipping email send");
       return new Response(
         JSON.stringify({ success: true, skipped: true, reason: "No email provider configured" }),
         {
@@ -224,58 +241,51 @@ Deno.serve(async (req) => {
       );
     }
 
-    const SENDER_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || Deno.env.get("BREVO_FROM_EMAIL") || "hello@duogo.app";
-    const SENDER_NAME = Deno.env.get("BREVO_FROM_NAME") || Deno.env.get("RESEND_FROM_NAME") || "duogo";
+    const SENDER_EMAIL = Deno.env.get("BREVO_FROM_EMAIL") || "sayhello@duogo.space";
+    const SENDER_NAME = Deno.env.get("BREVO_FROM_NAME") || "Duogo";
 
-    let emailResult: any = null;
+    console.log(`[send-request-notification] Dispatching via Brevo to ${targetEmail} from ${SENDER_EMAIL} (${SENDER_NAME})`);
 
-    if (RESEND_API_KEY) {
-      try {
-        const from = SENDER_EMAIL.includes("<") ? SENDER_EMAIL : `${SENDER_NAME} <${SENDER_EMAIL}>`;
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${RESEND_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from,
-            to: [targetProfile.email],
-            subject,
-            html: htmlContent,
-          }),
-        });
-        emailResult = await res.json();
-      } catch (e) {
-        console.error("Resend API error:", e);
-      }
-    } else if (BREVO_API_KEY) {
-      try {
-        const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-          method: "POST",
-          headers: {
-            "api-key": BREVO_API_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-            to: [{ email: targetProfile.email, name: recipientFirstName }],
-            subject,
-            htmlContent,
-          }),
-        });
-        emailResult = await res.json();
-      } catch (e) {
-        console.error("Brevo API error:", e);
-      }
+    const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": BREVO_API_KEY,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+        to: [{ email: targetEmail, name: recipientFirstName }],
+        subject,
+        htmlContent,
+      }),
+    });
+
+    const brevoResult = await brevoRes.json().catch(() => null);
+    console.log("[send-request-notification] Brevo response status:", brevoRes.status, "body:", brevoResult);
+
+    if (!brevoRes.ok) {
+      console.error("[send-request-notification] Brevo error:", brevoResult);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Brevo rejected email",
+          status: brevoRes.status,
+          details: brevoResult,
+        }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         emailSent: true,
-        recipient: targetProfile.email,
-        result: emailResult,
+        recipient: targetEmail,
+        result: brevoResult,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

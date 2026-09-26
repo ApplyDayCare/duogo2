@@ -358,10 +358,10 @@ const Privacy = () => {
 
                 <div className="p-4 rounded-2xl bg-white border border-[#EBE3D5] space-y-1.5">
                   <p className="text-xs font-bold text-[#181513] flex items-center gap-1.5">
-                    <Lock className="h-3.5 w-3.5 text-[#FF5436]" /> Resend (Transactional Email)
+                    <Lock className="h-3.5 w-3.5 text-[#FF5436]" /> Brevo (Transactional Email)
                   </p>
                   <p className="text-[12px] text-[#666059] leading-relaxed">
-                    Delivers one-time magic links and instant notification emails. We never send spam marketing.
+                    Delivers connection request alerts, match introductions, and instant notifications. We never send spam marketing.
                   </p>
                 </div>
               </div>

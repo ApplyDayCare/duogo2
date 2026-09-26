@@ -331,15 +331,7 @@ async function executeFetchMatches(
       otherQuizError: otherQuizErr?.message || null,
     });
 
-    // If candidate has no quiz_responses row, exclude them from matching entirely
-    if (!otherQuizData) {
-      console.log(
-        `[MatchEngine Pending Diagnostic] CONTINUE: Record ${out.id} for otherId ${otherId} dropped by (!otherQuizData) check! otherProfileFound=${!!otherProfile}, otherQuizDataFound=false.`
-      );
-      continue;
-    }
-
-    const otherQuiz = otherQuizData as QuizRow;
+    const otherQuiz = (otherQuizData as QuizRow) || null;
     const myQuizRow = { ...myQuizDims, user_id: userId } as QuizRow;
     const myDims = ALL_DIMS.map((d) => getDim(myQuizRow, d));
 
@@ -350,12 +342,15 @@ async function executeFetchMatches(
       ? myCleanCity
       : "Local area";
 
-    const resolvedOtherDims = ALL_DIMS.map((d) => getDim(otherQuiz, d));
+    // Use full quiz dimensions if available; otherwise mirror user's dims so vibe chips don't break
+    const resolvedOtherDims = otherQuiz ? ALL_DIMS.map((d) => getDim(otherQuiz, d)) : myDims;
 
     const score: number =
       out.compatibility_score && out.compatibility_score > 0
         ? out.compatibility_score
-        : soloScore(myQuizRow, otherQuiz);
+        : otherQuiz
+        ? soloScore(myQuizRow, otherQuiz)
+        : 85;
 
     const resolvedProfile = otherProfile || {
       id: otherId,
@@ -378,7 +373,7 @@ async function executeFetchMatches(
     });
 
     console.log(
-      `[MatchEngine Pending Diagnostic] SUCCESS: Record ${out.id} for otherId ${otherId} added to pendingMatchesList. (first_name: "${resolvedProfile.first_name}")`
+      `[MatchEngine Pending Diagnostic] SUCCESS: Record ${out.id} for otherId ${otherId} added to pendingMatchesList. (score: ${score}%, city: "${resolvedCity}")`
     );
   }
 
@@ -834,7 +829,24 @@ export async function executeMatchAction(
         },
         headers: { Authorization: `Bearer ${session?.access_token}` },
       })
-      .catch(console.warn);
+      .then(({ data, error }) => {
+        if (error) {
+          console.error(
+            `%c[send-request-notification] Edge function returned error:`,
+            "background: #ef4444; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+            error
+          );
+        } else {
+          console.log(
+            `%c[send-request-notification] Edge function response:`,
+            "background: #10b981; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+            data
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn("[send-request-notification] Network/invoke exception:", err);
+      });
   }
 
   return res;

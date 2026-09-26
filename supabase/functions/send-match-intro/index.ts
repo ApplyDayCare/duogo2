@@ -172,17 +172,16 @@ Deno.serve(async (req) => {
     `;
 
     const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
-    if (!BREVO_API_KEY && !RESEND_API_KEY) {
-      console.log("Neither BREVO_API_KEY nor RESEND_API_KEY configured: skipping email send");
+    if (!BREVO_API_KEY) {
+      console.warn("No BREVO_API_KEY configured: skipping email send");
       return new Response(JSON.stringify({ success: true, skipped: true, reason: "No email API key" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const SENDER_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || Deno.env.get("BREVO_FROM_EMAIL") || "hello@duogo.app";
-    const SENDER_NAME = Deno.env.get("BREVO_FROM_NAME") || Deno.env.get("RESEND_FROM_NAME") || "duogo";
+    const SENDER_EMAIL = Deno.env.get("BREVO_FROM_EMAIL") || "sayhello@duogo.space";
+    const SENDER_NAME = Deno.env.get("BREVO_FROM_NAME") || "Duogo";
 
     const contactBlockForA = buildContactBlock(profileB, partnerB);
     const contactBlockForB = buildContactBlock(profileA, partnerA);
@@ -191,46 +190,28 @@ Deno.serve(async (req) => {
       const subject = `Your duogo Match: ${recipientName} ↔ ${matchName}`;
       const content = emailHtml(recipientName, matchName, contactBlock);
 
-      if (RESEND_API_KEY) {
-        try {
-          const from = SENDER_EMAIL.includes("<") ? SENDER_EMAIL : `${SENDER_NAME} <${SENDER_EMAIL}>`;
-          const res = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${RESEND_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from,
-              to: [to],
-              subject,
-              html: content,
-            }),
-          });
-          return res.json();
-        } catch (e) {
-          console.error("Resend API error:", e);
-        }
-      }
-
-      if (BREVO_API_KEY) {
+      try {
         const res = await fetch("https://api.brevo.com/v3/smtp/email", {
           method: "POST",
           headers: {
             "api-key": BREVO_API_KEY,
             "Content-Type": "application/json",
+            Accept: "application/json",
           },
           body: JSON.stringify({
             sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-            to: [{ email: to }],
+            to: [{ email: to, name: recipientName }],
             subject,
             htmlContent: content,
           }),
         });
-        return res.json();
+        const json = await res.json().catch(() => null);
+        console.log(`[send-match-intro] Brevo response for ${to}: status ${res.status}`, json);
+        return { ok: res.ok, status: res.status, json };
+      } catch (err) {
+        console.error(`[send-match-intro] Brevo error for ${to}:`, err);
+        return { ok: false, error: String(err) };
       }
-
-      return { error: "No provider" };
     };
 
     const [resultA, resultB] = await Promise.all([

@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const SENDER_EMAIL = Deno.env.get("BREVO_FROM_EMAIL") || "hello@duogo.app";
-    const SENDER_NAME = Deno.env.get("BREVO_FROM_NAME") || "duogo";
+    const SENDER_EMAIL = Deno.env.get("BREVO_FROM_EMAIL") || "sayhello@duogo.space";
+    const SENDER_NAME = Deno.env.get("BREVO_FROM_NAME") || "Duogo";
     const APP_URL = Deno.env.get("APP_URL") || "https://duogo.space";
 
     // Find users who haven't been active in the last 3+ days and aren't suspended/paused
