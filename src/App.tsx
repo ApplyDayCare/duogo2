@@ -14,6 +14,7 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { initPostHog } from "@/lib/posthog";
 import { PostHogPageView } from "@/components/PostHogPageView";
+import { initClarity } from "@/lib/clarity";
 
 // Resilient lazy loaded page components
 const Landing = lazyWithRetry(() => import("./pages/Landing"));
@@ -76,6 +77,7 @@ const PageLoader = () => (
 const App = () => {
   useEffect(() => {
     initPostHog();
+    initClarity();
   }, []);
 
   return (

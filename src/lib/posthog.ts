@@ -53,4 +53,15 @@ export const trackEvent = (eventName: string, properties?: Record<string, unknow
   }
 };
 
+export const getActiveSurveys = (callback: (surveys: unknown[]) => void) => {
+  if (!posthogInitialized) return;
+  try {
+    posthog.getActiveMatchingSurveys((surveys) => {
+      callback(surveys);
+    });
+  } catch (err) {
+    console.warn("Failed to get active PostHog surveys:", err);
+  }
+};
+
 export { posthog };

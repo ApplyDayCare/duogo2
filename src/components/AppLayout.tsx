@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, Users, Share2, UserCircle, LogOut, Bell, Clock, MessageCircle, Sparkles } from "lucide-react";
+import { Home, Users, Share2, UserCircle, LogOut, Bell, Clock, MessageCircle, Sparkles, MessageSquarePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,8 @@ import { useChatSummary } from "@/hooks/useChatSummary";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { deduplicateNotifications } from "@/lib/notificationDeduplication";
+import { toast } from "@/hooks/use-toast";
+import { trackEvent } from "@/lib/posthog";
 
 const DESKTOP_NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: Home },
@@ -118,6 +120,32 @@ const AppLayout = () => {
     }
   };
 
+  const handleGiveFeedback = () => {
+    trackEvent("open_feedback_survey", { source: "header", path: pathname });
+    trackEvent("give_feedback_clicked", { source: "header", path: pathname });
+    trackEvent("feedback_clicked", { source: "header", path: pathname });
+
+    if (typeof window !== "undefined" && (window as unknown as { posthog?: { getActiveMatchingSurveys?: (cb: (surveys: unknown[]) => void, reload?: boolean) => void } }).posthog) {
+      const ph = (window as unknown as { posthog: { getActiveMatchingSurveys?: (cb: (surveys: unknown[]) => void, reload?: boolean) => void } }).posthog;
+      if (typeof ph.getActiveMatchingSurveys === "function") {
+        ph.getActiveMatchingSurveys((surveys) => {
+          if (!surveys || surveys.length === 0) {
+            toast({
+              title: "Feedback Survey",
+              description: "Thank you! If your PostHog survey is set to Active, it will display here.",
+            });
+          }
+        }, true);
+        return;
+      }
+    }
+
+    toast({
+      title: "Feedback Survey",
+      description: "Thank you for helping us improve duogo!",
+    });
+  };
+
   if (isMobile) {
     // If in single active chat room, give full-screen native app viewport without double header or tab bar
     if (isSingleChatRoom) {
@@ -133,7 +161,7 @@ const AppLayout = () => {
     return (
       <div className="flex h-[100dvh] flex-col bg-[#FAF7F2] font-sans text-[#181513] overflow-hidden">
         {/* Top bar */}
-        <header className="shrink-0 z-40 flex h-16 items-center justify-between border-b border-[#EBE3D5] bg-[#FAF7F2]/90 backdrop-blur-md px-4 sm:px-6">
+        <header className="shrink-0 z-40 flex h-16 items-center justify-between border-b border-[#EBE3D5] bg-[#FAF7F2]/90 backdrop-blur-md px-3 sm:px-6">
           <button
             onClick={() => navigate("/dashboard")}
             className="flex items-center gap-1.5 font-serif text-2xl font-bold tracking-tight text-[#181513] transition-opacity hover:opacity-90"
@@ -144,7 +172,18 @@ const AppLayout = () => {
           
           <div className="flex items-center gap-2">
             <button
-              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white border border-[#EBE3D5] text-[#181513] transition-all active:scale-95 shadow-2xs hover:bg-[#FDFBF8]"
+              id="give-feedback-btn"
+              data-attr="give-feedback-btn"
+              onClick={handleGiveFeedback}
+              className="feedback-btn give-feedback-btn flex items-center gap-1.5 rounded-full bg-white border border-[#EBE3D5] px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-[#181513] shadow-2xs transition-all active:scale-95 hover:bg-[#FFF5F2] hover:border-[#FF5436]/40 hover:text-[#FF5436]"
+              title="Give Feedback"
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5 text-[#FF5436]" />
+              <span className="text-[11px] sm:text-xs font-medium">Feedback</span>
+            </button>
+
+            <button
+              className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-white border border-[#EBE3D5] text-[#181513] transition-all active:scale-95 shadow-2xs hover:bg-[#FDFBF8]"
               onClick={() => navigate("/notifications")}
               aria-label="Notifications"
             >
@@ -351,10 +390,62 @@ const AppLayout = () => {
         </div>
       </aside>
 
-      <main className={cn("flex-1", isSingleChatRoom ? "h-screen overflow-hidden" : "h-screen overflow-y-auto")}>
-        <ErrorBoundary>
-          <Outlet />
-        </ErrorBoundary>
+      <main className={cn("flex-1 flex flex-col min-w-0 bg-[#FAF7F2]", isSingleChatRoom ? "h-screen overflow-hidden" : "h-screen overflow-hidden")}>
+        {!isSingleChatRoom && (
+          <header className="hidden md:flex shrink-0 z-30 h-16 items-center justify-between border-b border-[#EBE3D5] bg-[#FAF7F2]/90 backdrop-blur-md px-8">
+            <div className="flex items-center gap-2">
+              <span className="font-serif text-lg font-bold text-[#181513]">
+                {pathname === "/dashboard"
+                  ? "Dashboard"
+                  : pathname === "/matches"
+                  ? "Matches"
+                  : pathname === "/chats"
+                  ? "Messages"
+                  : pathname === "/notifications"
+                  ? "Notifications"
+                  : pathname === "/history"
+                  ? "Connection History"
+                  : pathname === "/referral"
+                  ? "Invite Friends"
+                  : pathname === "/profile"
+                  ? "My Profile"
+                  : "duogo"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                id="give-feedback-btn-desktop"
+                data-attr="give-feedback-btn"
+                onClick={handleGiveFeedback}
+                className="feedback-btn give-feedback-btn flex items-center gap-1.5 rounded-full bg-white border border-[#EBE3D5] px-3.5 py-1.5 text-xs font-semibold text-[#181513] shadow-2xs transition-all active:scale-95 hover:bg-[#FFF5F2] hover:border-[#FF5436]/40 hover:text-[#FF5436]"
+                title="Give Feedback"
+              >
+                <MessageSquarePlus className="h-4 w-4 text-[#FF5436]" />
+                <span>Feedback</span>
+              </button>
+
+              <button
+                className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white border border-[#EBE3D5] text-[#181513] transition-all active:scale-95 shadow-2xs hover:bg-[#FDFBF8]"
+                onClick={() => navigate("/notifications")}
+                aria-label="Notifications"
+              >
+                <Bell className="h-4 w-4 text-[#666059]" />
+                {pathname !== "/notifications" && !!unreadCount && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#FF5436] px-1 text-[10px] font-bold text-white shadow-xs">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </header>
+        )}
+
+        <div className={cn("flex-1", isSingleChatRoom ? "h-full overflow-hidden" : "overflow-y-auto")}>
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
+        </div>
       </main>
     </div>
   );

@@ -29,7 +29,9 @@ import {
   Handshake,
   KeyRound,
   Loader2,
+  MessageSquarePlus,
 } from "lucide-react";
+import { trackEvent } from "@/lib/posthog";
 import {
   InputOTP,
   InputOTPGroup,
@@ -270,6 +272,31 @@ export default function Landing() {
     });
   };
 
+  const handleGiveFeedback = () => {
+    trackEvent("open_feedback_survey", { source: "landing_header" });
+    trackEvent("give_feedback_clicked", { source: "landing_header" });
+
+    if (typeof window !== "undefined" && (window as unknown as { posthog?: { getActiveMatchingSurveys?: (cb: (surveys: unknown[]) => void, reload?: boolean) => void } }).posthog) {
+      const ph = (window as unknown as { posthog: { getActiveMatchingSurveys?: (cb: (surveys: unknown[]) => void, reload?: boolean) => void } }).posthog;
+      if (typeof ph.getActiveMatchingSurveys === "function") {
+        ph.getActiveMatchingSurveys((surveys) => {
+          if (!surveys || surveys.length === 0) {
+            toast({
+              title: "Feedback Survey",
+              description: "Survey signal sent! If your PostHog survey is set to Active, it will display now.",
+            });
+          }
+        }, true);
+        return;
+      }
+    }
+
+    toast({
+      title: "Feedback Survey",
+      description: "Thank you for helping us improve duogo!",
+    });
+  };
+
   return (
     <div
       style={{
@@ -330,9 +357,19 @@ export default function Landing() {
           </div>
 
           {/* Nav right actions */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-4">
             {session ? (
               <>
+                <button
+                  id="give-feedback-btn-landing"
+                  data-attr="give-feedback-btn"
+                  onClick={handleGiveFeedback}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--line)] bg-white/80 hover:bg-white text-[13px] font-semibold text-[var(--ink)] hover:text-[#FF5436] hover:border-[#FF5436]/40 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                  title="Give Feedback"
+                >
+                  <MessageSquarePlus className="h-3.5 w-3.5 text-[#FF5436]" />
+                  <span>Feedback</span>
+                </button>
                 <button
                   onClick={() => signOut()}
                   className="font-medium text-[14px] text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors cursor-pointer"

@@ -5,6 +5,7 @@ import { getSavedQuizAnswers, ensureUserQuizResponse } from "@/lib/quizSync";
 import { saveOfflineProfile, getOfflineProfile } from "@/lib/queryPersister";
 import { clearSignupDraft } from "@/lib/signupState";
 import { identifyUser, resetUser } from "@/lib/posthog";
+import { identifyClarityUser, setClarityTag } from "@/lib/clarity";
 
 export interface UserProfile {
   id: string;
@@ -102,6 +103,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           onboarding_completed: data.onboarding_completed,
           quiz_completed: data.quiz_completed,
         });
+        identifyClarityUser(userId, data.first_name || undefined);
+        if (data.user_type) setClarityTag("user_type", data.user_type);
+        if (data.location_city) setClarityTag("city", data.location_city);
       }
 
       setProfile(data);
