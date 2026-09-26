@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSavedQuizAnswers, ensureUserQuizResponse } from "@/lib/quizSync";
 import { saveOfflineProfile, getOfflineProfile } from "@/lib/queryPersister";
 import { clearSignupDraft } from "@/lib/signupState";
+import { runAuthDiagnostic } from "@/lib/authDiagnostics";
 import { identifyUser, resetUser } from "@/lib/posthog";
 import { identifyClarityUser, setClarityTag } from "@/lib/clarity";
 
@@ -94,6 +95,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         saveOfflineProfile(userId, data);
         if (data.onboarding_completed && data.quiz_completed) {
           clearSignupDraft();
+        } else if (!data.user_type && !data.first_name && !data.onboarding_completed) {
+          // Uninitialized profile stub detected for authenticated user
+          runAuthDiagnostic({ source: "auth_context_stub_profile_detected" }).catch(() => {});
         }
         identifyUser(userId, {
           email: data.email,

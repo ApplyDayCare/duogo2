@@ -3,6 +3,7 @@ import { Navigate, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateSignupDraft } from "@/lib/signupState";
+import { runAuthDiagnostic } from "@/lib/authDiagnostics";
 import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -199,6 +200,9 @@ export default function Landing() {
       }
 
       const verifiedUserId = data.session.user.id;
+
+      // Run diagnostic to evaluate auth session metadata against profiles table
+      runAuthDiagnostic({ source: "landing_login_otp_verified" }).catch(() => {});
 
       // Fetch the updated profile via refreshProfile with explicit verifiedUserId
       let loadedProfile = await refreshProfile(verifiedUserId);

@@ -6,6 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import OnboardingProgress from "@/components/OnboardingProgress";
 import { User, Users, ArrowLeft, ArrowRight, LogIn } from "lucide-react";
 import { getSignupDraft, updateSignupDraft } from "@/lib/signupState";
+import { runAuthDiagnostic } from "@/lib/authDiagnostics";
 
 const UserType = () => {
   const { user, profile, isProfileComplete, profileLoading } = useAuth();
@@ -16,22 +17,25 @@ const UserType = () => {
 
   // Pre-check: If user already has a complete profile in database, bypass signup steps
   useEffect(() => {
-    if (
-      !profileLoading &&
-      user &&
-      (
+    if (user && !profileLoading) {
+      if (
         profile?.onboarding_completed ||
         profile?.quiz_completed ||
         isProfileComplete ||
         Boolean(profile?.first_name && profile.first_name.trim().length > 0)
-      )
-    ) {
-      console.info("[AuthGuard:UserType] User already has an active profile. Redirecting to dashboard.", {
-        userId: user.id,
-        onboardingCompleted: profile?.onboarding_completed,
-        isProfileComplete,
-      });
-      navigate("/dashboard", { replace: true });
+      ) {
+        console.info("[AuthGuard:UserType] User already has an active profile. Redirecting to dashboard.", {
+          userId: user.id,
+          onboardingCompleted: profile?.onboarding_completed,
+          isProfileComplete,
+        });
+        navigate("/dashboard", { replace: true });
+      } else {
+        // Authenticated user arrived at step 1 of onboarding: run diagnostic to check why they are re-entering
+        runAuthDiagnostic({ source: "user_type_onboarding_entry" }).catch((e) =>
+          console.warn("[UserType] Diagnostic error:", e)
+        );
+      }
     }
   }, [user, profile?.onboarding_completed, profile?.quiz_completed, profile?.first_name, isProfileComplete, profileLoading, navigate]);
 

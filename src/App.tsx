@@ -11,6 +11,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { OnboardingStepGuard } from "@/components/OnboardingStepGuard";
 import AppLayout from "@/components/AppLayout";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { AuthDiagnosticGlobalTrigger } from "@/components/AuthDiagnosticGlobalTrigger";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { initPostHog } from "@/lib/posthog";
 import { PostHogPageView } from "@/components/PostHogPageView";
@@ -95,6 +96,7 @@ const App = () => {
             <PostHogPageView />
             <Toaster />
             <OfflineIndicator />
+            <AuthDiagnosticGlobalTrigger />
             <ErrorBoundary>
               <Suspense fallback={<PageLoader />}>
                 <Routes>

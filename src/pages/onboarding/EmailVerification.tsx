@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/input-otp";
 import { toast } from "@/hooks/use-toast";
 import { getSignupDraft, updateSignupDraft, syncSignupDraftToSupabase, clearSignupDraft } from "@/lib/signupState";
+import { runAuthDiagnostic } from "@/lib/authDiagnostics";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Mail,
@@ -177,8 +178,24 @@ const EmailVerification = () => {
         title: "Email verified! ✦",
         description: "Welcome to duogo. Unlocking your friendship matches...",
       });
+
+      // Run diagnostic to evaluate auth user metadata vs profiles table
+      try {
+        await runAuthDiagnostic({ source: "email_verification_pre_sync", verbose: true });
+      } catch (diagErr) {
+        console.warn("[EmailVerification] Pre-sync diagnostic notice:", diagErr);
+      }
+
       await syncSignupDraftToSupabase(verifiedUser);
       const updated = await refreshProfile(verifiedUser.id);
+
+      // Run diagnostic post-sync to verify final profile state
+      try {
+        await runAuthDiagnostic({ source: "email_verification_post_sync" });
+      } catch (diagErr) {
+        console.warn("[EmailVerification] Post-sync diagnostic notice:", diagErr);
+      }
+
       const draftData = getSignupDraft();
       if (updated?.onboarding_completed && updated?.quiz_completed) {
         clearSignupDraft();

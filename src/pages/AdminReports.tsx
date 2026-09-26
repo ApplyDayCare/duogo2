@@ -148,10 +148,20 @@ const AdminReports = () => {
         <ArrowLeft className="h-4 w-4 mr-1" /> Back
       </Button>
 
-      <div className="flex items-center gap-3">
-        <ShieldAlert className="h-8 w-8 text-destructive" />
-        <h1 className="text-2xl font-bold text-foreground">User Reports</h1>
-        <Badge variant="secondary">{reports.length}</Badge>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <ShieldAlert className="h-8 w-8 text-destructive" />
+          <h1 className="text-2xl font-bold text-foreground">User Reports</h1>
+          <Badge variant="secondary">{reports.length}</Badge>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.dispatchEvent(new CustomEvent("duogo:open-auth-diagnostics"))}
+          className="rounded-xl border-[#EFE8DD] bg-white hover:bg-stone-50 text-xs font-semibold gap-1.5"
+        >
+          🔍 Auth &amp; Profile Diagnostic
+        </Button>
       </div>
 
       {reports.length === 0 && (
