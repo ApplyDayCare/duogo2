@@ -1,5 +1,53 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { escapeHtml, safeName, safeSocialUrl } from "../_shared/sanitize.ts";
+
+// Inlined sanitization helpers for standalone web editor deployment
+function escapeHtml(input: unknown): string {
+  if (input === null || input === undefined) return "";
+  return String(input)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function safeName(input: unknown, fallback = "User"): string {
+  const raw = (input ?? "").toString().replace(/[<>&"'`\u0000-\u001F\u007F]/g, "").trim();
+  const cleaned = raw.slice(0, 60).trim();
+  return cleaned.length > 0 ? cleaned : fallback;
+}
+
+const ALLOWED_SOCIAL_HOSTS = [
+  "instagram.com",
+  "www.instagram.com",
+  "linkedin.com",
+  "www.linkedin.com",
+];
+
+function safeSocialUrl(input: unknown): string | null {
+  if (!input) return null;
+  let value = String(input).trim();
+  if (value.length === 0 || value.length > 300) return null;
+  if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  if (!ALLOWED_SOCIAL_HOSTS.includes(url.hostname.toLowerCase())) return null;
+  if (!/^[A-Za-z0-9/\-._~%]*$/.test(url.pathname)) return null;
+
+  url.protocol = "https:";
+  url.username = "";
+  url.password = "";
+  url.hash = "";
+  url.search = "";
+  return url.toString();
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,14 +74,18 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
+    const {
+      data: { user: callerUser },
+      error: userErr,
+    } = await userClient.auth.getUser();
+
+    if (userErr || !callerUser) {
+      console.warn("[send-match-intro] Caller token invalid or expired:", userErr);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub;
+    const userId = callerUser.id;
 
     const { match_id } = await req.json();
     if (!match_id) {
@@ -41,6 +93,8 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log(`[send-match-intro] Invoked for match ${match_id} by user ${userId}`);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -55,6 +109,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (matchErr || !match || match.status !== "mutual") {
+      console.warn(`[send-match-intro] Match ${match_id} not found or status is not mutual (status: ${match?.status})`);
       return new Response(JSON.stringify({ error: "Match not found or not mutual" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -62,6 +117,7 @@ Deno.serve(async (req) => {
 
     // Verify caller is part of the match
     if (match.user_a_id !== userId && match.user_b_id !== userId) {
+      console.warn(`[send-match-intro] Caller ${userId} is neither user_a nor user_b of match ${match_id}`);
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -70,20 +126,39 @@ Deno.serve(async (req) => {
     // Get both profiles
     const { data: profileA } = await supabase
       .from("profiles")
-      .select("first_name, email, social_link, user_type, location_city")
+      .select("id, first_name, email, social_link, user_type, location_city")
       .eq("id", match.user_a_id)
       .single();
 
     const { data: profileB } = await supabase
       .from("profiles")
-      .select("first_name, email, social_link, user_type, location_city")
+      .select("id, first_name, email, social_link, user_type, location_city")
       .eq("id", match.user_b_id)
       .single();
 
     if (!profileA || !profileB) {
+      console.warn(`[send-match-intro] Profiles not found for match ${match_id}`);
       return new Response(JSON.stringify({ error: "Profiles not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Fallback: fetch email from auth.users if missing from profiles
+    if (!profileA.email) {
+      try {
+        const { data: authA } = await supabase.auth.admin.getUserById(match.user_a_id);
+        if (authA?.user?.email) profileA.email = authA.user.email;
+      } catch (e) {
+        console.warn("[send-match-intro] Could not resolve email for user A:", e);
+      }
+    }
+    if (!profileB.email) {
+      try {
+        const { data: authB } = await supabase.auth.admin.getUserById(match.user_b_id);
+        if (authB?.user?.email) profileB.email = authB.user.email;
+      } catch (e) {
+        console.warn("[send-match-intro] Could not resolve email for user B:", e);
+      }
     }
 
     // For couple users, get partner info

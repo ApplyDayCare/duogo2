@@ -718,12 +718,22 @@ export async function executeMatchAction(
     }
 
     // 2. Notify edge function for intro email
+    console.log("[executeMatchAction] Triggering send-match-intro for match:", res.match_id);
     supabase.functions
       .invoke("send-match-intro", {
         body: { match_id: res.match_id },
         headers: { Authorization: `Bearer ${session?.access_token}` },
       })
-      .catch(console.warn);
+      .then((introRes) => {
+        if (introRes.error) {
+          console.warn("[send-match-intro] Edge function returned error:", introRes.error);
+        } else {
+          console.log("[send-match-intro] Edge function response:", introRes.data);
+        }
+      })
+      .catch((err) => {
+        console.warn("[send-match-intro] Failed to invoke:", err);
+      });
 
     // 3. Send push notification via Supabase Edge Function (supports both userId and user_id)
     supabase.functions

@@ -179,7 +179,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    const recipientFirstName = safeName(targetProfile?.first_name, "Friend");
     const appUrl = Deno.env.get("APP_URL") || "https://duogo.space";
 
     const resolvedScore =
@@ -202,10 +201,10 @@ Deno.serve(async (req) => {
 
         <div style="background-color: #FAF7F2; border-radius: 16px; padding: 24px; margin: 24px 0; border: 1px solid #EDE8E1; text-align: center;">
           <p style="font-size: 17px; color: #1A1816; line-height: 1.5; margin: 0 0 8px 0;">
-            Hi <strong>${escapeHtml(recipientFirstName)}</strong>,
+            Hi there,
           </p>
           <p style="font-size: 16px; color: #403B35; line-height: 1.6; margin: 0;">
-            <strong>${escapeHtml(senderDisplayName)}</strong> reviewed your profile and sent you a connection request!
+            Someone reviewed your profile and sent you a connection request!
           </p>
           ${scoreBadge}
           <div style="margin-top: 24px;">
@@ -226,7 +225,7 @@ Deno.serve(async (req) => {
       </div>
     `;
 
-    const subject = `✨ ${senderDisplayName} sent you a connection request on duogo!`;
+    const subject = `✨ You have a new connection request on duogo!`;
 
     // 7. Send email via Brevo
     const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
@@ -255,7 +254,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-        to: [{ email: targetEmail, name: recipientFirstName }],
+        to: [{ email: targetEmail }],
         subject,
         htmlContent,
       }),
