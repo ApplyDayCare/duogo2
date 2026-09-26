@@ -159,10 +159,10 @@ const AppLayout = () => {
               data-attr="give-feedback-btn"
               onClick={handleGiveFeedback}
               className="feedback-btn give-feedback-btn flex items-center gap-1.5 rounded-full bg-white border border-[#EBE3D5] px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-[#181513] shadow-2xs transition-all active:scale-95 hover:bg-[#FFF5F2] hover:border-[#FF5436]/40 hover:text-[#FF5436]"
-              title="Feedback & Issue Report"
+              title="Feedback"
             >
               <MessageSquarePlus className="h-3.5 w-3.5 text-[#FF5436]" />
-              <span className="text-[11px] sm:text-xs font-medium">Feedback & Issues</span>
+              <span className="text-[11px] sm:text-xs font-medium">Feedback</span>
             </button>
 
             <button
@@ -242,6 +242,11 @@ const AppLayout = () => {
             })}
           </div>
         </nav>
+
+        <FeedbackIssueDialog
+          open={feedbackDialogOpen}
+          onOpenChange={setFeedbackDialogOpen}
+        />
       </div>
     );
   }
@@ -402,10 +407,10 @@ const AppLayout = () => {
                 data-attr="give-feedback-btn"
                 onClick={handleGiveFeedback}
                 className="feedback-btn give-feedback-btn flex items-center gap-1.5 rounded-full bg-white border border-[#EBE3D5] px-3.5 py-1.5 text-xs font-semibold text-[#181513] shadow-2xs transition-all active:scale-95 hover:bg-[#FFF5F2] hover:border-[#FF5436]/40 hover:text-[#FF5436]"
-                title="Feedback & Issue Report"
+                title="Feedback"
               >
                 <MessageSquarePlus className="h-4 w-4 text-[#FF5436]" />
-                <span>Feedback & Issue Report</span>
+                <span>Feedback</span>
               </button>
 
               <button

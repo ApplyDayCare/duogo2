@@ -151,10 +151,6 @@ export const FeedbackIssueDialog: React.FC<FeedbackIssueDialogProps> = ({
       }
 
       setIsSubmitted(true);
-      toast({
-        title: "Thank you for your feedback!",
-        description: "Your report has been sent to our team.",
-      });
 
       // Auto-close dialog after 1.8 seconds
       setTimeout(() => {
@@ -179,7 +175,7 @@ export const FeedbackIssueDialog: React.FC<FeedbackIssueDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] p-6 bg-[#FAF7F2] border-[#EBE3D5] rounded-3xl shadow-xl">
+      <DialogContent className="w-[94vw] max-w-[480px] max-h-[90dvh] overflow-y-auto p-5 sm:p-6 bg-[#FAF7F2] border-[#EBE3D5] rounded-3xl shadow-xl">
         {isSubmitted ? (
           <div className="py-8 flex flex-col items-center justify-center text-center space-y-4">
             <div className="h-16 w-16 rounded-full bg-[#E8F8F0] border border-[#2EC4B6]/30 flex items-center justify-center text-[#2EC4B6] animate-in zoom-in-75 duration-300">
