@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,6 +16,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { deduplicateNotifications } from "@/lib/notificationDeduplication";
 import { toast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/posthog";
+import { FeedbackIssueDialog } from "@/components/FeedbackIssueDialog";
 
 const DESKTOP_NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: Home },
@@ -42,6 +43,7 @@ const AppLayout = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const isSingleChatRoom = pathname !== "/chats" && pathname.includes("/chat");
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
 
   const { totalChatAlerts, incomingRequestsCount, totalUnreadMessages } = useChatSummary();
   usePushNotifications();
@@ -124,26 +126,7 @@ const AppLayout = () => {
     trackEvent("open_feedback_survey", { source: "header", path: pathname });
     trackEvent("give_feedback_clicked", { source: "header", path: pathname });
     trackEvent("feedback_clicked", { source: "header", path: pathname });
-
-    if (typeof window !== "undefined" && (window as unknown as { posthog?: { getActiveMatchingSurveys?: (cb: (surveys: unknown[]) => void, reload?: boolean) => void } }).posthog) {
-      const ph = (window as unknown as { posthog: { getActiveMatchingSurveys?: (cb: (surveys: unknown[]) => void, reload?: boolean) => void } }).posthog;
-      if (typeof ph.getActiveMatchingSurveys === "function") {
-        ph.getActiveMatchingSurveys((surveys) => {
-          if (!surveys || surveys.length === 0) {
-            toast({
-              title: "Feedback Survey",
-              description: "Thank you! If your PostHog survey is set to Active, it will display here.",
-            });
-          }
-        }, true);
-        return;
-      }
-    }
-
-    toast({
-      title: "Feedback Survey",
-      description: "Thank you for helping us improve duogo!",
-    });
+    setFeedbackDialogOpen(true);
   };
 
   if (isMobile) {
@@ -176,10 +159,10 @@ const AppLayout = () => {
               data-attr="give-feedback-btn"
               onClick={handleGiveFeedback}
               className="feedback-btn give-feedback-btn flex items-center gap-1.5 rounded-full bg-white border border-[#EBE3D5] px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-[#181513] shadow-2xs transition-all active:scale-95 hover:bg-[#FFF5F2] hover:border-[#FF5436]/40 hover:text-[#FF5436]"
-              title="Give Feedback"
+              title="Feedback & Issue Report"
             >
               <MessageSquarePlus className="h-3.5 w-3.5 text-[#FF5436]" />
-              <span className="text-[11px] sm:text-xs font-medium">Feedback</span>
+              <span className="text-[11px] sm:text-xs font-medium">Feedback & Issues</span>
             </button>
 
             <button
@@ -419,10 +402,10 @@ const AppLayout = () => {
                 data-attr="give-feedback-btn"
                 onClick={handleGiveFeedback}
                 className="feedback-btn give-feedback-btn flex items-center gap-1.5 rounded-full bg-white border border-[#EBE3D5] px-3.5 py-1.5 text-xs font-semibold text-[#181513] shadow-2xs transition-all active:scale-95 hover:bg-[#FFF5F2] hover:border-[#FF5436]/40 hover:text-[#FF5436]"
-                title="Give Feedback"
+                title="Feedback & Issue Report"
               >
                 <MessageSquarePlus className="h-4 w-4 text-[#FF5436]" />
-                <span>Feedback</span>
+                <span>Feedback & Issue Report</span>
               </button>
 
               <button
@@ -447,6 +430,11 @@ const AppLayout = () => {
           </ErrorBoundary>
         </div>
       </main>
+
+      <FeedbackIssueDialog
+        open={feedbackDialogOpen}
+        onOpenChange={setFeedbackDialogOpen}
+      />
     </div>
   );
 };
