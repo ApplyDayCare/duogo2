@@ -63,6 +63,16 @@ const Matches = () => {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    console.log(`%c[Matches.tsx] Tab is now: "${activeTab}" | Current pending count: ${pendingMatches.length}`, "background: #10b981; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;", {
+      activeTab,
+      pendingMatchesCount: pendingMatches.length,
+      serverPendingMatchesCount: data?.pending_matches?.length ?? 0,
+      userAuthId: user?.id,
+      isLoading,
+    });
+  }, [activeTab, pendingMatches.length, data?.pending_matches, user?.id, isLoading]);
+
   // Hook into useChatSummary to guarantee 100% synchronization with the sidebar badge and dashboard alert banner
   const { incomingRequests } = useChatSummary();
 

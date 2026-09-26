@@ -17,6 +17,8 @@ export const MatchesPendingTab = ({
   myCity,
   onDiscoverClick,
 }: MatchesPendingTabProps) => {
+  console.log(`%c[MatchesPendingTab] Rendered! Received ${pendingMatches.length} pending matches:`, "background: #f59e0b; color: black; font-weight: bold; padding: 2px 6px; border-radius: 4px;", pendingMatches);
+
   return (
     <div className="flex-1 overflow-y-auto pt-2 space-y-4">
       <div className="rounded-2xl bg-[#FFF9F6] border border-[#FFD9CE] p-3.5 text-xs text-[#7A3E2D] flex items-center justify-between flex-wrap gap-2">

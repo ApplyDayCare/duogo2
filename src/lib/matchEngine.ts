@@ -40,6 +40,8 @@ export async function fetchMatchesWithFallback(
   userId: string,
   session: any
 ): Promise<MatchesResult> {
+  console.log(`%c[MatchEngine] fetchMatchesWithFallback invoked for userId: ${userId}`, "background: #2563eb; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;");
+
   // If device is offline, immediately return cached matches from IndexedDB
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     const cachedMatches = await getOfflineMatches(userId);
@@ -98,8 +100,23 @@ async function executeFetchMatches(
     await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", userId);
   }
 
+  console.log("[MatchEngine] Profile status check:", {
+    userId,
+    profileFound: !!myProfile,
+    firstName: myProfile?.first_name,
+    userType: myProfile?.user_type,
+    isQuizCompleted,
+    isOnboardingCompleted,
+  });
+
   // If user profile is not complete or quiz not finished, DO NOT generate any match suggestions
   if (!myProfile || !myProfile.first_name || !isQuizCompleted || !isOnboardingCompleted) {
+    console.warn("[MatchEngine] EARLY EXIT: User profile or quiz incomplete. Matches aborted.", {
+      hasProfile: !!myProfile,
+      hasFirstName: !!myProfile?.first_name,
+      isQuizCompleted,
+      isOnboardingCompleted,
+    });
     return {
       matches: [],
       pending_match: null,
@@ -118,6 +135,7 @@ async function executeFetchMatches(
     .maybeSingle();
 
   if (!myQuizData || myQuizData.dimension_1_social === null) {
+    console.warn("[MatchEngine] EARLY EXIT: Missing user's own quiz_responses row.");
     return {
       matches: [],
       pending_match: null,
@@ -146,6 +164,7 @@ async function executeFetchMatches(
 
     // If no couple record exists or partner has not joined yet (partner_b_id is null), PAUSE matching
     if (!couple || !partnerId || !couple.partner_b_id) {
+      console.warn("[MatchEngine] EARLY EXIT: Couple user without joined partner.", { couple, partnerId });
       return {
         matches: [],
         pending_match: null,
@@ -171,6 +190,7 @@ async function executeFetchMatches(
       .maybeSingle();
 
     if (!partnerProfile?.quiz_completed || !partnerQuiz) {
+      console.warn("[MatchEngine] EARLY EXIT: Partner has not completed quiz.", { partnerProfile, partnerQuiz });
       return {
         matches: [],
         pending_match: null,
