@@ -258,30 +258,66 @@ async function executeFetchMatches(
     return false;
   });
 
+  console.log(
+    `[MatchEngine Pending Diagnostic] Found ${outgoingPendingRecords.length} outgoingPendingRecords for user ${userId}:`,
+    outgoingPendingRecords.map((m) => ({
+      matchId: m.id,
+      user_a_id: m.user_a_id,
+      user_b_id: m.user_b_id,
+      status: m.status,
+      user_a_action: m.user_a_action,
+      user_b_action: m.user_b_action,
+    }))
+  );
+
   const pendingMatchesList: MatchData[] = [];
   const seenPendingIds = new Set<string>();
 
   for (const out of outgoingPendingRecords) {
     const isUserA = out.user_a_id === userId || (partnerId && out.user_a_id === partnerId);
     const otherId = isUserA ? out.user_b_id : out.user_a_id;
-    if (excludeIds.has(otherId) && out.status === "blocked") continue;
-    if (seenPendingIds.has(otherId)) continue;
+
+    if (excludeIds.has(otherId) && out.status === "blocked") {
+      console.log(
+        `[MatchEngine Pending Diagnostic] CONTINUE: Record ${out.id} for otherId ${otherId} dropped because match is blocked and otherId is in excludeIds.`
+      );
+      continue;
+    }
+    if (seenPendingIds.has(otherId)) {
+      console.log(
+        `[MatchEngine Pending Diagnostic] CONTINUE: Record ${out.id} for otherId ${otherId} dropped because of duplicate otherId in seenPendingIds.`
+      );
+      continue;
+    }
     seenPendingIds.add(otherId);
 
-    const { data: otherQuizData } = await supabase
+    const { data: otherQuizData, error: otherQuizErr } = await supabase
       .from("quiz_responses")
       .select("*")
       .eq("user_id", otherId)
       .maybeSingle();
 
-    // If candidate has no quiz_responses row, exclude them from matching entirely
-    if (!otherQuizData) continue;
-
-    const { data: otherProfile } = await supabase
+    const { data: otherProfile, error: otherProfileErr } = await supabase
       .from("profiles")
       .select("id, first_name, user_type, location_city, travel_radius_km")
       .eq("id", otherId)
       .maybeSingle();
+
+    console.log(`[MatchEngine Pending Diagnostic] Checking record ${out.id} for otherId ${otherId}:`, {
+      otherId,
+      otherProfileFound: !!otherProfile,
+      otherProfileError: otherProfileErr?.message || null,
+      otherQuizDataFound: !!otherQuizData,
+      otherQuizError: otherQuizErr?.message || null,
+    });
+
+    // If candidate has no quiz_responses row, exclude them from matching entirely
+    if (!otherQuizData) {
+      console.log(
+        `[MatchEngine Pending Diagnostic] CONTINUE: Record ${out.id} for otherId ${otherId} dropped by (!otherQuizData) check! otherProfileFound=${!!otherProfile}, otherQuizDataFound=false.`
+      );
+      continue;
+    }
 
     const otherQuiz = otherQuizData as QuizRow;
     const myQuizRow = { ...myQuizDims, user_id: userId } as QuizRow;
@@ -320,7 +356,13 @@ async function executeFetchMatches(
       my_dimensions: myDims,
       pending_match_id: out.id,
     });
+
+    console.log(
+      `[MatchEngine Pending Diagnostic] SUCCESS: Record ${out.id} for otherId ${otherId} added to pendingMatchesList. (first_name: "${resolvedProfile.first_name}")`
+    );
   }
+
+  console.log(`[MatchEngine Pending Diagnostic] Resulting pendingMatchesList count: ${pendingMatchesList.length}`);
 
   // Check incoming match requests (where other party accepted, current user hasn't acted yet)
   const incomingMatchRecords = (existingMatches || []).filter((m) => {
