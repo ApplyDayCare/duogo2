@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateSignupDraft } from "@/lib/signupState";
@@ -1423,7 +1423,7 @@ export default function Landing() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-[var(--line)] pt-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 border-t border-[var(--line)] pt-10">
             <div>
               <h4 className="text-[12px] font-bold tracking-[0.05em] uppercase text-[var(--ink-soft)] mb-4">
                 Modes
@@ -1485,33 +1485,17 @@ export default function Landing() {
                 Open to All 🌍
               </span>
             </div>
-
-            <div>
-              <h4 className="text-[12px] font-bold tracking-[0.05em] uppercase text-[var(--ink-soft)] mb-4">
-                Follow along
-              </h4>
-              <div className="flex gap-2.5">
-                <div className="w-9 h-9 rounded-full border border-[var(--line)] bg-white flex items-center justify-center text-[13px] font-semibold hover:border-[var(--coral-2)] cursor-pointer">
-                  ◎
-                </div>
-                <div className="w-9 h-9 rounded-full border border-[var(--line)] bg-white flex items-center justify-center text-[13px] font-semibold hover:border-[var(--coral-2)] cursor-pointer">
-                  ✕
-                </div>
-                <div className="w-9 h-9 rounded-full border border-[var(--line)] bg-white flex items-center justify-center text-[13px] font-semibold hover:border-[var(--coral-2)] cursor-pointer">
-                  f
-                </div>
-              </div>
-            </div>
           </div>
 
-          <div className="flex justify-between flex-wrap gap-3 border-t border-[var(--line)] mt-10 pt-6.5 text-[13px] text-[var(--ink-soft)]">
-            <div className="flex gap-4.5 flex-wrap">
-              <a href="#safety" className="hover:text-[var(--ink)] transition-colors">
+          <div className="flex justify-between items-center flex-wrap gap-4 border-t border-[var(--line)] mt-10 pt-6 text-[13px] text-[var(--ink-soft)]">
+            <div className="flex items-center gap-6 flex-wrap">
+              <Link to="/privacy" className="hover:text-[var(--ink)] transition-colors">
                 Privacy Policy
-              </a>
-              <a href="#safety" className="hover:text-[var(--ink)] transition-colors">
+              </Link>
+              <span className="text-[var(--line)] select-none">•</span>
+              <Link to="/terms" className="hover:text-[var(--ink)] transition-colors">
                 Terms of Service
-              </a>
+              </Link>
             </div>
             <div>© 2026 duogo Inc. All rights reserved.</div>
           </div>

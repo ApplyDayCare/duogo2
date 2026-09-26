@@ -42,7 +42,7 @@ const About = () => {
           </p>
 
           <p className="text-sm">
-            Get in touch: <a href="mailto:hello@duogo.ca" className="text-primary hover:underline">hello@duogo.ca</a>
+            Get in touch: <a href="mailto:sayhello@duogo.space" className="text-primary hover:underline">sayhello@duogo.space</a>
           </p>
         </div>
       </div>

@@ -48,7 +48,7 @@ const Terms = () => {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-2">Contact</h2>
-            <p>Questions? Email <a href="mailto:support@friendconnector.app" className="text-primary hover:underline">support@friendconnector.app</a></p>
+            <p>Questions? Email <a href="mailto:sayhello@duogo.space" className="text-primary hover:underline">sayhello@duogo.space</a></p>
           </section>
         </div>
       </div>

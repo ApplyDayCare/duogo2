@@ -28,7 +28,7 @@ app.use((req, res, next) => {
 // Configure Web Push VAPID
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:admin@duogo.app";
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:sayhello@duogo.space";
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   try {
@@ -285,7 +285,7 @@ async function sendTransactionalEmail(opts: SendEmailOptions): Promise<{ success
   // 2. Try Brevo if configured
   if (brevoApiKey) {
     try {
-      const cleanSenderEmail = process.env.BREVO_FROM_EMAIL || "hello@duogo.app";
+      const cleanSenderEmail = process.env.BREVO_FROM_EMAIL || "sayhello@duogo.space";
       const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
         method: "POST",
         headers: {

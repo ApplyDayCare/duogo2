@@ -322,7 +322,7 @@ const CoupleSetup = () => {
                 <div className="space-y-2">
                   <Label htmlFor="createSocial" className="text-xs font-bold uppercase tracking-wider text-[#706A62]">Instagram or LinkedIn Profile URL</Label>
                   <Input id="createSocial" placeholder="https://instagram.com/yourhandle" value={createSocial} onChange={(e) => setCreateSocial(e.target.value)} required maxLength={200} className="h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-base font-semibold focus-visible:ring-[#FF5436]" />
-                  <p className="text-xs text-[#706A62]">🔒 Social media profile links remain hidden at all times until you accept the match and get connected. No account? Email <a href="mailto:hello@duogo.space" className="text-[#FF5436] hover:underline font-medium">hello@duogo.space</a>.</p>
+                  <p className="text-xs text-[#706A62]">🔒 Social media profile links remain hidden at all times until you accept the match and get connected. No account? Email <a href="mailto:sayhello@duogo.space" className="text-[#FF5436] hover:underline font-medium">sayhello@duogo.space</a>.</p>
                 </div>
                 <Button type="submit" className="h-13 sm:h-14 w-full text-base font-bold rounded-2xl bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] transition-all cursor-pointer" disabled={createLoading}>
                   {createLoading ? "Creating..." : "Create Invite Code →"}
@@ -368,7 +368,7 @@ const CoupleSetup = () => {
               <div className="space-y-2">
                 <Label htmlFor="joinSocial" className="text-xs font-bold uppercase tracking-wider text-[#706A62]">Instagram or LinkedIn Profile URL</Label>
                 <Input id="joinSocial" placeholder="https://instagram.com/yourhandle" value={joinSocial} onChange={(e) => setJoinSocial(e.target.value)} required maxLength={200} className="h-13 rounded-2xl border-[#EFE8DD] bg-[#FAF7F2]/60 px-4 text-base font-semibold focus-visible:ring-[#FF5436]" />
-                <p className="text-xs text-[#706A62]">🔒 Social media profile links remain hidden at all times until you accept the match and get connected. No account? Email <a href="mailto:hello@duogo.space" className="text-[#FF5436] hover:underline font-medium">hello@duogo.space</a>.</p>
+                <p className="text-xs text-[#706A62]">🔒 Social media profile links remain hidden at all times until you accept the match and get connected. No account? Email <a href="mailto:sayhello@duogo.space" className="text-[#FF5436] hover:underline font-medium">sayhello@duogo.space</a>.</p>
               </div>
               <Button type="submit" className="h-13 sm:h-14 w-full text-base font-bold rounded-2xl bg-[#FF5436] hover:bg-[#E84326] text-white shadow-[0_8px_20px_rgba(255,84,54,0.32)] transition-all cursor-pointer" disabled={joinLoading}>
                 {joinLoading ? "Joining..." : "Join Partner →"}

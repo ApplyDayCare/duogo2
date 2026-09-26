@@ -9,7 +9,7 @@ const SuspensionBanner = () => (
         Matching is temporarily disabled while we review your account. This usually takes up to 48 hours.
       </p>
       <p className="text-xs text-muted-foreground">
-        Questions? Email <a href="mailto:support@friendconnector.app" className="text-primary underline">support@friendconnector.app</a>
+        Questions? Email <a href="mailto:sayhello@duogo.space" className="text-primary underline">sayhello@duogo.space</a>
       </p>
     </div>
   </div>

@@ -21,8 +21,8 @@ const Contact = () => {
             <Mail className="mx-auto h-10 w-10 text-primary" />
             <div>
               <p className="font-semibold text-foreground">Email Us</p>
-              <a href="mailto:support@friendconnector.app" className="text-primary hover:underline">
-                support@friendconnector.app
+              <a href="mailto:sayhello@duogo.space" className="text-primary hover:underline">
+                sayhello@duogo.space
               </a>
             </div>
             <p className="text-sm text-muted-foreground">We typically respond within 48 hours.</p>
