@@ -356,12 +356,12 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
 
         {/* Live Diagnostics Card */}
         {diagResult && (
-          <div className="mt-3 p-3 rounded-2xl bg-[#FAF7F2] border border-[#EDE8E1] text-[11px] space-y-1 font-mono text-[#57524C]">
-            <div className="flex items-center justify-between font-sans font-bold text-[#1A1816] text-xs pb-1 border-b border-[#E5DFD5]">
-              <span>Push Diagnostics</span>
+          <div className="mt-3 p-3.5 rounded-2xl bg-[#FAF7F2] border border-[#EDE8E1] text-[11px] space-y-2 font-mono text-[#57524C]">
+            <div className="flex items-center justify-between font-sans font-bold text-[#1A1816] text-xs pb-1.5 border-b border-[#E5DFD5]">
+              <span>On-Device Push Diagnostics</span>
               <Badge
                 variant="outline"
-                className={`text-[10px] ${
+                className={`text-[10px] font-semibold px-2 py-0.5 ${
                   diagResult.keysMatch
                     ? "bg-green-50 text-green-700 border-green-200"
                     : "bg-red-50 text-red-700 border-red-200"
@@ -370,19 +370,38 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
                 {diagResult.keysMatch ? "✅ Keys Match 100%" : "❌ Key Mismatch"}
               </Badge>
             </div>
-            <p className="truncate">
-              <span className="font-bold text-[#1A1816]">Server VAPID:</span> {diagResult.serverKey?.slice(0, 18)}...
-            </p>
-            <p className="truncate">
-              <span className="font-bold text-[#1A1816]">Device VAPID:</span> {diagResult.clientKey?.slice(0, 18)}...
-            </p>
-            {diagResult.endpoint && (
-              <p className="truncate">
-                <span className="font-bold text-[#1A1816]">Endpoint:</span> {diagResult.endpoint.slice(0, 32)}...
+
+            <div className="space-y-1">
+              <span className="font-sans font-bold text-[#1A1816] block text-[10px] uppercase tracking-wider">
+                Active Server VAPID Key (87 chars)
+              </span>
+              <p className="break-all p-2 rounded-lg bg-white border border-[#E5DFD5] text-[10px] select-all">
+                {diagResult.serverKey}
               </p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="font-sans font-bold text-[#1A1816] block text-[10px] uppercase tracking-wider">
+                Device pushManager Key (87 chars)
+              </span>
+              <p className="break-all p-2 rounded-lg bg-white border border-[#E5DFD5] text-[10px] select-all">
+                {diagResult.clientKey}
+              </p>
+            </div>
+
+            {diagResult.endpoint && (
+              <div className="space-y-1">
+                <span className="font-sans font-bold text-[#1A1816] block text-[10px] uppercase tracking-wider">
+                  Active Subscription Endpoint
+                </span>
+                <p className="break-all p-2 rounded-lg bg-white border border-[#E5DFD5] text-[10px] text-muted-foreground select-all">
+                  {diagResult.endpoint}
+                </p>
+              </div>
             )}
+
             {diagResult.error && (
-              <p className="text-red-600 font-sans">
+              <p className="text-red-600 font-sans p-2 rounded-lg bg-red-50 border border-red-200">
                 <span className="font-bold">Error:</span> {diagResult.error}
               </p>
             )}

@@ -253,7 +253,11 @@ app.post("/api/push/dispatch", async (req, res) => {
                 );
                 sentCount++;
               } catch (pushErr: any) {
-                console.warn(`Error sending push to endpoint for user ${targetUserId}:`, pushErr?.message);
+                console.warn(`Error sending push to endpoint for user ${targetUserId}:`, pushErr?.message, "Status:", pushErr?.statusCode);
+                if (pushErr?.statusCode === 403 || pushErr?.statusCode === 410 || pushErr?.statusCode === 404) {
+                  console.log(`[Push API] Pruning expired/mismatched subscription for endpoint: ${sub.endpoint.slice(0, 35)}...`);
+                  await supabaseAdmin.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+                }
               }
             }
           }

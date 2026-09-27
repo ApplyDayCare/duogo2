@@ -84,6 +84,14 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+function uint8ArrayToBase64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 export function usePushNotifications(): PushNotificationState {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -371,7 +379,7 @@ export function usePushNotifications(): PushNotificationState {
       const activeKey = await getEffectiveVapidPublicKey();
       console.log("CRITICAL DEBUG: Active Server VAPID Public Key:", activeKey);
 
-      // 2. Unregister all old service worker registrations to purge cached code
+      // 2. Unregister ALL old service workers
       if ("serviceWorker" in navigator) {
         try {
           const registrations = await navigator.serviceWorker.getRegistrations();
@@ -384,7 +392,20 @@ export function usePushNotifications(): PushNotificationState {
         }
       }
 
-      // 3. Clear database push_subscriptions for this user
+      // 3. Clear ALL browser caches
+      if ("caches" in window) {
+        try {
+          const cacheKeys = await caches.keys();
+          for (const k of cacheKeys) {
+            console.log("[PWA Push Kill-Switch] Deleting cache:", k);
+            await caches.delete(k);
+          }
+        } catch (cacheErr) {
+          console.warn("[PWA Push] Warning clearing caches:", cacheErr);
+        }
+      }
+
+      // 4. Clear database push_subscriptions for this user
       if (user?.id) {
         try {
           await supabase.from("push_subscriptions" as any).delete().eq("user_id", user.id);
@@ -394,41 +415,42 @@ export function usePushNotifications(): PushNotificationState {
         }
       }
 
-      // 4. Register a fresh Service Worker with cache-busting
+      // 5. Register a fresh Service Worker with timestamp query
       const freshReg = await navigator.serviceWorker.register(`/sw.js?v=${Date.now()}`);
       swRegRef.current = freshReg;
       await navigator.serviceWorker.ready;
-      console.log("[PWA Push] Fresh Service Worker registered successfully.");
+      console.log("[PWA Push] Fresh Service Worker ready.");
 
-      // 5. Request / Ensure browser permission
+      // 6. Request / Ensure browser permission
       const permResult = await Notification.requestPermission();
       setPermission(permResult);
       if (permResult !== "granted") {
         throw new Error("Notification permission was not granted.");
       }
 
-      // 6. Subscribe with the active VAPID key
+      // 7. Subscribe with the active VAPID key
       const applicationServerKey = urlBase64ToUint8Array(activeKey);
       const newSub = await freshReg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey as BufferSource,
       });
 
-      console.log("[PWA Push] New subscription created from PushManager:", newSub.endpoint);
+      console.log("[PWA Push] New subscription endpoint:", newSub.endpoint);
 
-      // 7. Verify the key on the created subscription
+      // 8. Decode the exact key stored in the browser subscription
       const clientKeyRaw = new Uint8Array(newSub.options.applicationServerKey || []);
+      const decodedClientKey = uint8ArrayToBase64Url(clientKeyRaw);
       const keysMatch =
         clientKeyRaw.length === applicationServerKey.length &&
         clientKeyRaw.every((val, i) => val === applicationServerKey[i]);
 
-      console.log("[PWA Push] Key validation check:", {
-        serverKeyLength: applicationServerKey.length,
-        clientKeyLength: clientKeyRaw.length,
+      console.log("CRITICAL DEBUG: Exact Key Verification", {
+        serverKey: activeKey,
+        decodedClientKey,
         keysMatch,
       });
 
-      // 8. Save fresh subscription to Supabase
+      // 9. Save fresh subscription to Supabase
       if (user?.id) {
         await saveSubscriptionToSupabase(newSub, user.id);
       }
@@ -439,13 +461,13 @@ export function usePushNotifications(): PushNotificationState {
 
       toast({
         title: "✅ Push Device 100% Synced",
-        description: "Old workers purged. Device linked to active server key.",
+        description: "Old workers & caches purged. Device linked to active server key.",
       });
 
       return {
         success: true,
         serverKey: activeKey,
-        clientKey: activeKey,
+        clientKey: decodedClientKey || activeKey,
         keysMatch,
         endpoint: newSub.endpoint,
       };
