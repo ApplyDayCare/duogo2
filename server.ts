@@ -99,6 +99,13 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+app.get("/api/push/vapid-public-key", (_req, res) => {
+  res.json({
+    publicKey: VAPID_PUBLIC_KEY,
+    configured: Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY),
+  });
+});
+
 /**
  * Endpoint 1: Web Push Dispatcher
  * Sends encrypted push notifications to a device subscription or all subscriptions for a userId

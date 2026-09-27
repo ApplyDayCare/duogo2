@@ -14,6 +14,52 @@ export interface PushNotificationState {
   unsubscribeFromPush: () => Promise<boolean>;
 }
 
+let cachedVapidPublicKey: string | null = null;
+
+export async function getEffectiveVapidPublicKey(): Promise<string> {
+  const envKey = (import.meta.env.VITE_VAPID_PUBLIC_KEY || "").trim();
+  if (envKey) return envKey;
+
+  if (cachedVapidPublicKey) return cachedVapidPublicKey;
+
+  // Try fetching directly from Supabase send-push Edge Function
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+    if (supabaseUrl) {
+      const edgeRes = await fetch(`${supabaseUrl}/functions/v1/send-push`, {
+        method: "GET",
+        headers: anonKey ? { apikey: anonKey, Authorization: `Bearer ${anonKey}` } : {},
+      });
+      if (edgeRes.ok) {
+        const data = await edgeRes.json();
+        if (data?.publicKey) {
+          cachedVapidPublicKey = data.publicKey;
+          return data.publicKey;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[PWA Push] Failed to fetch VAPID key from Edge Function:", err);
+  }
+
+  // Fallback to local server endpoint
+  try {
+    const localRes = await fetch("/api/push/vapid-public-key");
+    if (localRes.ok) {
+      const data = await localRes.json();
+      if (data?.publicKey) {
+        cachedVapidPublicKey = data.publicKey;
+        return data.publicKey;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return "";
+}
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -31,10 +77,12 @@ export function usePushNotifications(): PushNotificationState {
   const [isSupported, setIsSupported] = useState<boolean>(false);
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
+  const [hasVapidKey, setHasVapidKey] = useState<boolean>(true);
   const swRegRef = useRef<ServiceWorkerRegistration | null>(null);
 
-  const vapidPublicKey = (import.meta.env.VITE_VAPID_PUBLIC_KEY || "") as string;
-  const hasVapidKey = Boolean(vapidPublicKey && vapidPublicKey.trim().length > 0);
+  useEffect(() => {
+    getEffectiveVapidPublicKey().then((k) => setHasVapidKey(Boolean(k && k.length > 0)));
+  }, []);
 
   // Sync PushSubscription to Supabase
   const saveSubscriptionToSupabase = useCallback(async (subscription: PushSubscription, userId: string) => {
@@ -74,18 +122,39 @@ export function usePushNotifications(): PushNotificationState {
       try {
         if (!("pushManager" in reg)) return null;
 
+        const effectiveKey = await getEffectiveVapidPublicKey();
+        if (!effectiveKey) {
+          console.warn("[PWA Push] No VAPID public key available to subscribe.");
+          return null;
+        }
+
+        const applicationServerKey = urlBase64ToUint8Array(effectiveKey);
         let sub = await reg.pushManager.getSubscription();
 
-        if (hasVapidKey && vapidPublicKey) {
-          const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+        // If a subscription already exists, verify its applicationServerKey matches the current active server VAPID key
+        if (sub && sub.options && sub.options.applicationServerKey) {
+          const existingKey = new Uint8Array(sub.options.applicationServerKey);
+          const keysMatch =
+            existingKey.length === applicationServerKey.length &&
+            existingKey.every((val, i) => val === applicationServerKey[i]);
 
-          // If subscription doesn't exist, create it
-          if (!sub) {
-            sub = await reg.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey,
-            });
+          if (!keysMatch) {
+            console.log("[PWA Push] VAPID key mismatch detected, refreshing subscription with new key...");
+            try {
+              await sub.unsubscribe();
+            } catch {
+              // ignore
+            }
+            sub = null;
           }
+        }
+
+        // If subscription doesn't exist (or was refreshed), create it with current VAPID key
+        if (!sub) {
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: applicationServerKey as BufferSource,
+          });
         }
 
         if (sub) {
@@ -100,7 +169,7 @@ export function usePushNotifications(): PushNotificationState {
         return null;
       }
     },
-    [hasVapidKey, vapidPublicKey, saveSubscriptionToSupabase]
+    [saveSubscriptionToSupabase]
   );
 
   // Initialize service worker & check permissions

@@ -37,6 +37,21 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Allow client to query active VAPID public key so client and server are guaranteed in sync
+  if (req.method === "GET") {
+    return new Response(
+      JSON.stringify({
+        publicKey: VAPID_PUBLIC_KEY,
+        configured: Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY),
+        subject: VAPID_SUBJECT,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
   try {
     const bodyJson = await req.json();
     const targetUserId = bodyJson.userId || bodyJson.user_id;
@@ -160,10 +175,11 @@ serve(async (req) => {
             `[send-push] Push error for device ${sub.endpoint}: Status ${status} | Body: ${body} | Message: ${err.message}`
           );
 
-          // If subscription is expired/unsubscribed/invalid (404, 410, or 400 Bad Device), prune it from DB
+          // If subscription is expired/unsubscribed/invalid or key mismatch (404, 410, 403, or 400 Bad Device), prune it from DB
           if (
             status === 404 ||
             status === 410 ||
+            status === 403 ||
             (status === 400 && (body.includes("InvalidRegistration") || body.includes("NotRegistered") || body.includes("BadDeviceToken")))
           ) {
             console.log(`[send-push] Pruning stale subscription ${sub.id} (${sub.endpoint})`);
