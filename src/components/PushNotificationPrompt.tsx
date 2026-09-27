@@ -1,48 +1,103 @@
-import { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { isPushSupported, getPushPermissionState, requestPushPermission } from "@/lib/pushNotifications";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellRing, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
-const PushNotificationPrompt = () => {
+const PushNotificationPrompt: React.FC<{ className?: string }> = ({ className = "" }) => {
   const { user } = useAuth();
-  const [state, setState] = useState<NotificationPermission | "unsupported">("default");
+  const { isSupported, permission, isSubscribed, requestPermission } = usePushNotifications();
   const [requesting, setRequesting] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    setState(getPushPermissionState());
-  }, []);
-
-  if (!user || !isPushSupported() || state === "granted" || state === "denied" || state === "unsupported") {
+  if (
+    dismissed ||
+    !user ||
+    !isSupported ||
+    permission === "denied" ||
+    isSubscribed ||
+    permission === "granted"
+  ) {
     return null;
   }
 
   const handleEnable = async () => {
     setRequesting(true);
-    const success = await requestPushPermission();
-    setRequesting(false);
-    if (success) {
-      setState("granted");
-      toast({ title: "Push notifications enabled! 🔔" });
-    } else {
-      setState(getPushPermissionState());
-      toast({ title: "Could not enable notifications", variant: "destructive" });
+    try {
+      const success = await requestPermission();
+      if (success) {
+        if (user?.id) {
+          try {
+            const storageKey = `duogo_notification_preferences_${user.id}`;
+            const existing = localStorage.getItem(storageKey);
+            const currentPrefs = existing ? JSON.parse(existing) : {};
+            localStorage.setItem(storageKey, JSON.stringify({ ...currentPrefs, pushEnabled: true }));
+          } catch {}
+        }
+        toast({
+          title: "Notifications Enabled! 🔔",
+          description: "You'll now receive instant alerts for matches and messages.",
+        });
+      } else {
+        toast({
+          title: "Could not enable notifications",
+          description: "Permission was not granted or was dismissed.",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error enabling notifications",
+        description: err.message || "Please check your browser settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setRequesting(false);
     }
   };
 
   return (
-    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 flex items-center gap-3">
-      <Bell className="h-5 w-5 text-primary shrink-0" />
-      <div className="flex-1">
-        <p className="text-sm font-medium text-foreground">Get notified instantly</p>
-        <p className="text-xs text-muted-foreground">Enable push notifications so you never miss a match.</p>
+    <div
+      className={`rounded-2xl border border-[#FFD9CE] bg-gradient-to-r from-[#FFF5F2] to-[#FFF9F6] p-4 flex items-center justify-between gap-3 shadow-2xs ${className}`}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF0EB] text-[#FF5436]">
+          <BellRing className="h-5 w-5 animate-pulse" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-[#1A1816] truncate">Get notified instantly</p>
+          <p className="text-[11px] text-[#706A62] leading-tight">
+            Enable lock-screen push alerts so you never miss a match or message.
+          </p>
+        </div>
       </div>
-      <Button size="sm" onClick={handleEnable} disabled={requesting}>
-        {requesting ? "Enabling…" : "Enable"}
-      </Button>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <Button
+          size="sm"
+          onClick={handleEnable}
+          disabled={requesting}
+          className="rounded-full bg-[#FF5436] hover:bg-[#E03E22] text-white text-xs font-bold h-8 px-4 shadow-xs"
+        >
+          {requesting ? (
+            <span className="flex items-center gap-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Enabling…
+            </span>
+          ) : (
+            "Enable"
+          )}
+        </Button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="text-[11px] text-[#9E978E] hover:text-[#1A1816] px-1.5 py-1"
+        >
+          ✕
+        </button>
+      </div>
     </div>
   );
 };
 
 export default PushNotificationPrompt;
+

@@ -22,6 +22,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { deduplicateNotifications, RawNotification } from "@/lib/notificationDeduplication";
 import { NotificationSettingsCard } from "@/components/NotificationSettingsCard";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 export interface NotificationItem extends RawNotification {
   type?: "match" | "message" | "mutual" | "system";
@@ -87,31 +88,28 @@ export const Notifications = () => {
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [showSettings, setShowSettings] = useState(false);
 
-  // Push notification state (safely checked directly from browser APIs)
-  const [pushSupported, setPushSupported] = useState(false);
-  const [pushPermission, setPushPermission] = useState<NotificationPermission>("default");
+  // Push notification state unified via hook
+  const {
+    isSupported: pushSupported,
+    permission: pushPermission,
+    isSubscribed,
+    requestPermission: requestPushPermissionUnified,
+  } = usePushNotifications();
   const [enablingPush, setEnablingPush] = useState(false);
 
-  // Check push notification support safely without crashing
-  useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator) {
-      setPushSupported(true);
-      try {
-        setPushPermission(Notification.permission);
-      } catch {
-        setPushPermission("default");
-      }
-    } else {
-      setPushSupported(false);
-    }
-  }, []);
-
   const requestPushPermission = async () => {
-    if (!pushSupported || typeof window === "undefined" || !("Notification" in window)) return;
+    if (!pushSupported) return;
     setEnablingPush(true);
     try {
-      const perm = await Notification.requestPermission();
-      setPushPermission(perm);
+      await requestPushPermissionUnified();
+      if (user?.id) {
+        try {
+          const storageKey = `duogo_notification_preferences_${user.id}`;
+          const existing = localStorage.getItem(storageKey);
+          const currentPrefs = existing ? JSON.parse(existing) : {};
+          localStorage.setItem(storageKey, JSON.stringify({ ...currentPrefs, pushEnabled: true }));
+        } catch {}
+      }
     } catch (err) {
       console.warn("Could not request notification permission:", err);
     } finally {
@@ -499,7 +497,7 @@ export const Notifications = () => {
       )}
 
       {/* Push Notification Opt-in Prompt (Non-intrusive) */}
-      {pushSupported && pushPermission !== "granted" && (
+      {pushSupported && pushPermission !== "granted" && !isSubscribed && (
         <Card className="rounded-2xl border border-[#FFE2D6] bg-gradient-to-br from-[#FFF9F6] to-white p-4 shadow-2xs">
           <div className="flex items-start gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF0EB] text-[#FF5436] shrink-0 mt-0.5">

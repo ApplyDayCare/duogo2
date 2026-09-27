@@ -25,14 +25,51 @@ app.use((req, res, next) => {
   next();
 });
 
-// Configure Web Push VAPID
-const VAPID_PUBLIC_KEY =
-  process.env.VAPID_PUBLIC_KEY ||
-  process.env.VITE_VAPID_PUBLIC_KEY ||
-  "BPXs3kQMjHRgkldzFM4X7Ji1xeTlN7nQ39XaqSb_XSS_q9h20oJL7j6k7h1WuXurbTpcme6Y0Pu0XJyQgSpccv8";
-const VAPID_PRIVATE_KEY =
-  process.env.VAPID_PRIVATE_KEY ||
-  "JBkxVu_UN5klHeP4kZgbYCXM1nsOaQh3RUZNRVFR9_Y";
+// Configure Web Push VAPID with strict 65-byte NIST P-256 validation
+function resolveValidVapidPublicKey(): string {
+  const fallback = "BPXs3kQMjHRgkldzFM4X7Ji1xeTlN7nQ39XaqSb_XSS_q9h20oJL7j6k7h1WuXurbTpcme6Y0Pu0XJyQgSpccv8";
+  const candidates = [
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VITE_VAPID_PUBLIC_KEY,
+    fallback,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.length > 50 && !candidate.startsWith("sb_")) {
+      try {
+        const decoded = Buffer.from(candidate, "base64url");
+        if (decoded.length === 65) {
+          return candidate;
+        }
+      } catch {}
+    }
+  }
+  return fallback;
+}
+
+function resolveValidVapidPrivateKey(): string {
+  const fallback = "JBkxVu_UN5klHeP4kZgbYCXM1nsOaQh3RUZNRVFR9_Y";
+  const candidates = [
+    process.env.VAPID_PRIVATE_KEY,
+    process.env.VITE_VAPID_PRIVATE_KEY,
+    fallback,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.length > 30 && !candidate.startsWith("sb_")) {
+      try {
+        const decoded = Buffer.from(candidate, "base64url");
+        if (decoded.length === 32) {
+          return candidate;
+        }
+      } catch {}
+    }
+  }
+  return fallback;
+}
+
+const VAPID_PUBLIC_KEY = resolveValidVapidPublicKey();
+const VAPID_PRIVATE_KEY = resolveValidVapidPrivateKey();
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:sayhello@duogo.space";
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {

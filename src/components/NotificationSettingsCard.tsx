@@ -77,6 +77,18 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
     }
   }, [prefs, storageKey]);
 
+  // Synchronize pushEnabled preference whenever browser subscription or permission is active
+  useEffect(() => {
+    if (isSubscribed || permission === "granted") {
+      setPrefs((prev) => {
+        if (!prev.pushEnabled) {
+          return { ...prev, pushEnabled: true };
+        }
+        return prev;
+      });
+    }
+  }, [isSubscribed, permission]);
+
   const handleTogglePush = async (checked: boolean) => {
     setLoading(true);
     try {
@@ -84,10 +96,18 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
         const granted = await requestPermission();
         if (granted) {
           setPrefs((prev) => ({ ...prev, pushEnabled: true }));
+          toast({
+            title: "Push Notifications Enabled",
+            description: "This device is now registered to receive real-time alerts.",
+          });
         }
       } else {
         await unsubscribeFromPush();
         setPrefs((prev) => ({ ...prev, pushEnabled: false }));
+        toast({
+          title: "Push Notifications Disabled",
+          description: "This device will no longer receive pop-up alerts.",
+        });
       }
     } catch (err: any) {
       toast({
@@ -120,10 +140,19 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
     }
   };
 
+  const [diagResult, setDiagResult] = useState<{
+    serverKey?: string;
+    clientKey?: string;
+    keysMatch?: boolean;
+    endpoint?: string;
+    error?: string;
+  } | null>(null);
+
   const handleResetPush = async () => {
     setResetting(true);
     try {
-      await resetAndReconnectPush();
+      const result = await resetAndReconnectPush();
+      setDiagResult(result);
     } finally {
       setResetting(false);
     }
@@ -187,7 +216,7 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
             </div>
           </div>
           <ToggleSwitch
-            checked={isSubscribed && prefs.pushEnabled}
+            checked={Boolean((isSubscribed || permission === "granted") && prefs.pushEnabled !== false)}
             disabled={loading || !isSupported}
             onCheckedChange={handleTogglePush}
           />
@@ -306,11 +335,11 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
               variant="outline"
               disabled={resetting || !isSupported}
               onClick={handleResetPush}
-              title="Unsubscribe old token and re-register fresh FCM token"
+              title="Purge cached Service Workers and resubscribe with verified key"
               className="rounded-full h-8 text-xs font-semibold border-[#EFE8DD] hover:border-[#FF5436] hover:text-[#FF5436] gap-1.5"
             >
               {resetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-              <span>Re-link Device</span>
+              <span>{resetting ? "Purging SW..." : "Kill SW & Resync"}</span>
             </Button>
             <Button
               size="sm"
@@ -324,6 +353,41 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
             </Button>
           </div>
         </div>
+
+        {/* Live Diagnostics Card */}
+        {diagResult && (
+          <div className="mt-3 p-3 rounded-2xl bg-[#FAF7F2] border border-[#EDE8E1] text-[11px] space-y-1 font-mono text-[#57524C]">
+            <div className="flex items-center justify-between font-sans font-bold text-[#1A1816] text-xs pb-1 border-b border-[#E5DFD5]">
+              <span>Push Diagnostics</span>
+              <Badge
+                variant="outline"
+                className={`text-[10px] ${
+                  diagResult.keysMatch
+                    ? "bg-green-50 text-green-700 border-green-200"
+                    : "bg-red-50 text-red-700 border-red-200"
+                }`}
+              >
+                {diagResult.keysMatch ? "✅ Keys Match 100%" : "❌ Key Mismatch"}
+              </Badge>
+            </div>
+            <p className="truncate">
+              <span className="font-bold text-[#1A1816]">Server VAPID:</span> {diagResult.serverKey?.slice(0, 18)}...
+            </p>
+            <p className="truncate">
+              <span className="font-bold text-[#1A1816]">Device VAPID:</span> {diagResult.clientKey?.slice(0, 18)}...
+            </p>
+            {diagResult.endpoint && (
+              <p className="truncate">
+                <span className="font-bold text-[#1A1816]">Endpoint:</span> {diagResult.endpoint.slice(0, 32)}...
+              </p>
+            )}
+            {diagResult.error && (
+              <p className="text-red-600 font-sans">
+                <span className="font-bold">Error:</span> {diagResult.error}
+              </p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

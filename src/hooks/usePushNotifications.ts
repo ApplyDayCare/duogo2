@@ -19,11 +19,21 @@ export const DEFAULT_VAPID_PUBLIC_KEY = "BPXs3kQMjHRgkldzFM4X7Ji1xeTlN7nQ39XaqSb
 
 let cachedVapidPublicKey: string | null = null;
 
+function isValidDecodedVapidKey(key: string): boolean {
+  if (!key || typeof key !== "string" || key.startsWith("sb_") || key.length < 50) return false;
+  try {
+    const bytes = urlBase64ToUint8Array(key);
+    return bytes.length === 65;
+  } catch {
+    return false;
+  }
+}
+
 export async function getEffectiveVapidPublicKey(): Promise<string> {
   const envKey = (import.meta.env.VITE_VAPID_PUBLIC_KEY || "").trim();
-  if (envKey) return envKey;
+  if (envKey && isValidDecodedVapidKey(envKey)) return envKey;
 
-  if (cachedVapidPublicKey) return cachedVapidPublicKey;
+  if (cachedVapidPublicKey && isValidDecodedVapidKey(cachedVapidPublicKey)) return cachedVapidPublicKey;
 
   // Try fetching directly from Supabase send-push Edge Function
   try {
@@ -36,9 +46,9 @@ export async function getEffectiveVapidPublicKey(): Promise<string> {
       });
       if (edgeRes.ok) {
         const data = await edgeRes.json();
-        if (data?.publicKey && data.publicKey.trim().length > 0) {
-          cachedVapidPublicKey = data.publicKey;
-          return data.publicKey;
+        if (data?.publicKey && isValidDecodedVapidKey(data.publicKey.trim())) {
+          cachedVapidPublicKey = data.publicKey.trim();
+          return cachedVapidPublicKey;
         }
       }
     }
@@ -51,9 +61,9 @@ export async function getEffectiveVapidPublicKey(): Promise<string> {
     const localRes = await fetch("/api/push/vapid-public-key");
     if (localRes.ok) {
       const data = await localRes.json();
-      if (data?.publicKey && data.publicKey.trim().length > 0) {
-        cachedVapidPublicKey = data.publicKey;
-        return data.publicKey;
+      if (data?.publicKey && isValidDecodedVapidKey(data.publicKey.trim())) {
+        cachedVapidPublicKey = data.publicKey.trim();
+        return cachedVapidPublicKey;
       }
     }
   } catch {
@@ -343,46 +353,102 @@ export function usePushNotifications(): PushNotificationState {
     }
   }, [user?.id, toast]);
 
-  // Reset and reconnect push device subscription
-  const resetAndReconnectPush = useCallback(async (): Promise<boolean> => {
+  // Reset and reconnect push device subscription with full kill-switch
+  const resetAndReconnectPush = useCallback(async (): Promise<{
+    success: boolean;
+    serverKey: string;
+    clientKey: string;
+    keysMatch: boolean;
+    endpoint?: string;
+    error?: string;
+  }> => {
     try {
       cachedVapidPublicKey = null;
-      let activeKey = await getEffectiveVapidPublicKey();
-      if (!activeKey) {
-        activeKey = DEFAULT_VAPID_PUBLIC_KEY;
+      console.log("==================================================");
+      console.log("[PWA Push] INITIATING FULL KILL SWITCH & HARD RESET");
+
+      // 1. Fetch the exact active public key from the backend
+      const activeKey = await getEffectiveVapidPublicKey();
+      console.log("CRITICAL DEBUG: Active Server VAPID Public Key:", activeKey);
+
+      // 2. Unregister all old service worker registrations to purge cached code
+      if ("serviceWorker" in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const reg of registrations) {
+            console.log("[PWA Push Kill-Switch] Unregistering service worker:", reg);
+            await reg.unregister();
+          }
+        } catch (swUnregErr) {
+          console.warn("[PWA Push] Warning unregistering old service workers:", swUnregErr);
+        }
       }
 
-      const reg = swRegRef.current || (await navigator.serviceWorker.ready);
-      if (reg && "pushManager" in reg) {
-        const oldSub = await reg.pushManager.getSubscription();
-        if (oldSub) {
-          try {
-            await oldSub.unsubscribe();
-          } catch {}
-        }
-
-        if (user?.id) {
+      // 3. Clear database push_subscriptions for this user
+      if (user?.id) {
+        try {
           await supabase.from("push_subscriptions" as any).delete().eq("user_id", user.id);
-        }
-
-        const applicationServerKey = urlBase64ToUint8Array(activeKey);
-        const newSub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: applicationServerKey as BufferSource,
-        });
-
-        if (newSub && user?.id) {
-          await saveSubscriptionToSupabase(newSub, user.id);
-          setIsSubscribed(true);
-          setPermission("granted");
-          toast({
-            title: "✅ Push Device Re-Linked",
-            description: "Fresh subscription registered with active server keys.",
-          });
-          return true;
+          console.log("[PWA Push] Cleared old DB push_subscriptions for user:", user.id);
+        } catch (dbErr) {
+          console.warn("[PWA Push] DB clear warning:", dbErr);
         }
       }
-      return false;
+
+      // 4. Register a fresh Service Worker with cache-busting
+      const freshReg = await navigator.serviceWorker.register(`/sw.js?v=${Date.now()}`);
+      swRegRef.current = freshReg;
+      await navigator.serviceWorker.ready;
+      console.log("[PWA Push] Fresh Service Worker registered successfully.");
+
+      // 5. Request / Ensure browser permission
+      const permResult = await Notification.requestPermission();
+      setPermission(permResult);
+      if (permResult !== "granted") {
+        throw new Error("Notification permission was not granted.");
+      }
+
+      // 6. Subscribe with the active VAPID key
+      const applicationServerKey = urlBase64ToUint8Array(activeKey);
+      const newSub = await freshReg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey as BufferSource,
+      });
+
+      console.log("[PWA Push] New subscription created from PushManager:", newSub.endpoint);
+
+      // 7. Verify the key on the created subscription
+      const clientKeyRaw = new Uint8Array(newSub.options.applicationServerKey || []);
+      const keysMatch =
+        clientKeyRaw.length === applicationServerKey.length &&
+        clientKeyRaw.every((val, i) => val === applicationServerKey[i]);
+
+      console.log("[PWA Push] Key validation check:", {
+        serverKeyLength: applicationServerKey.length,
+        clientKeyLength: clientKeyRaw.length,
+        keysMatch,
+      });
+
+      // 8. Save fresh subscription to Supabase
+      if (user?.id) {
+        await saveSubscriptionToSupabase(newSub, user.id);
+      }
+
+      setIsSubscribed(true);
+      setPermission("granted");
+      console.log("==================================================");
+
+      toast({
+        title: "✅ Push Device 100% Synced",
+        description: "Old workers purged. Device linked to active server key.",
+      });
+
+      return {
+        success: true,
+        serverKey: activeKey,
+        clientKey: activeKey,
+        keysMatch,
+        endpoint: newSub.endpoint,
+      };
     } catch (err: any) {
       console.error("[PWA Push] Reset error:", err);
       toast({
@@ -390,7 +456,13 @@ export function usePushNotifications(): PushNotificationState {
         description: err.message || "Failed to reset push subscription",
         variant: "destructive",
       });
-      return false;
+      return {
+        success: false,
+        serverKey: DEFAULT_VAPID_PUBLIC_KEY,
+        clientKey: "error",
+        keysMatch: false,
+        error: err.message,
+      };
     }
   }, [user?.id, saveSubscriptionToSupabase, toast]);
 
