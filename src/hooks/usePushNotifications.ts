@@ -120,7 +120,7 @@ export function usePushNotifications(): PushNotificationState {
 
   // Register push subscription via PushManager
   const registerPushSubscription = useCallback(
-    async (reg: ServiceWorkerRegistration, userId?: string): Promise<PushSubscription | null> => {
+    async (reg: ServiceWorkerRegistration, userId?: string, forceRenew = false): Promise<PushSubscription | null> => {
       try {
         if (!("pushManager" in reg)) return null;
 
@@ -132,6 +132,14 @@ export function usePushNotifications(): PushNotificationState {
 
         const applicationServerKey = urlBase64ToUint8Array(effectiveKey);
         let sub = await reg.pushManager.getSubscription();
+
+        if (forceRenew && sub) {
+          console.log("[PWA Push] Force renewing push subscription...");
+          try {
+            await sub.unsubscribe();
+          } catch {}
+          sub = null;
+        }
 
         // If a subscription already exists, verify its applicationServerKey matches the current active server VAPID key
         if (sub && sub.options && sub.options.applicationServerKey) {
@@ -330,9 +338,9 @@ export function usePushNotifications(): PushNotificationState {
     if (granted) {
       let sentViaServer = false;
 
-      // Ensure we have an active registered subscription in Supabase before sending test push
+      // Ensure we have an active, freshly renewed subscription in Supabase before sending test push
       if (swRegRef.current && user?.id) {
-        await registerPushSubscription(swRegRef.current, user.id);
+        await registerPushSubscription(swRegRef.current, user.id, true);
       }
 
       // Try Supabase Edge Function send-push dispatch
