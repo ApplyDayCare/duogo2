@@ -426,8 +426,25 @@ export function usePushNotifications(): PushNotificationState {
       // 5. Register a fresh Service Worker with timestamp query
       const freshReg = await navigator.serviceWorker.register(`/sw.js?v=${Date.now()}`);
       swRegRef.current = freshReg;
-      await navigator.serviceWorker.ready;
-      console.log("[PWA Push] Fresh Service Worker ready.");
+      
+      // Wait for service worker to be active
+      let readyReg = await navigator.serviceWorker.ready;
+      
+      // Ensure the worker is active
+      if (!readyReg.active) {
+        const worker = readyReg.installing || readyReg.waiting || freshReg.installing || freshReg.waiting;
+        if (worker) {
+          await new Promise<void>((resolve) => {
+            worker.addEventListener("statechange", () => {
+              if (worker.state === "activated") resolve();
+            });
+            setTimeout(resolve, 2000);
+          });
+        }
+        readyReg = await navigator.serviceWorker.ready;
+      }
+      
+      console.log("[PWA Push] Fresh Service Worker fully active & ready.");
 
       // 6. Request / Ensure browser permission
       const permResult = await Notification.requestPermission();
@@ -436,16 +453,27 @@ export function usePushNotifications(): PushNotificationState {
         throw new Error("Notification permission was not granted.");
       }
 
-      // 7. Subscribe with the active VAPID key
+      // 7. Clear any existing subscription on this registration before subscribing
+      try {
+        const existingSub = await readyReg.pushManager.getSubscription();
+        if (existingSub) {
+          console.log("[PWA Push] Unsubscribing previous subscription during resync...");
+          await existingSub.unsubscribe();
+        }
+      } catch (unsubErr) {
+        console.warn("[PWA Push] Non-fatal error cleaning up existing subscription:", unsubErr);
+      }
+
+      // 8. Subscribe with the active VAPID key
       const applicationServerKey = urlBase64ToUint8Array(activeKey);
-      const newSub = await freshReg.pushManager.subscribe({
+      const newSub = await readyReg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey as BufferSource,
       });
 
       console.log("[PWA Push] New subscription endpoint:", newSub.endpoint);
 
-      // 8. Decode the exact key stored in the browser subscription
+      // 9. Decode the exact key stored in the browser subscription
       const clientKeyRaw = new Uint8Array(newSub.options.applicationServerKey || []);
       const decodedClientKey = uint8ArrayToBase64Url(clientKeyRaw);
       const keysMatch =
@@ -458,7 +486,7 @@ export function usePushNotifications(): PushNotificationState {
         keysMatch,
       });
 
-      // 9. Save fresh subscription to Supabase
+      // 10. Save fresh subscription to Supabase
       if (user?.id) {
         await saveSubscriptionToSupabase(newSub, user.id);
       }
