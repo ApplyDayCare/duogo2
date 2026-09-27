@@ -18,7 +18,13 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  } catch (vapidErr) {
+    console.error("[send-push] Failed to set VAPID details:", vapidErr);
+  }
+} else {
+  console.warn("[send-push] WARNING: VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY is missing from Supabase Secrets.");
 }
 
 serve(async (req) => {
@@ -36,6 +42,19 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+      console.error("[send-push] VAPID keys are not configured in Supabase Secrets.");
+      return new Response(
+        JSON.stringify({
+          error: "VAPID keys not configured in Edge Function secrets (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY).",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     const authHeader = req.headers.get("Authorization") || req.headers.get("authorization") || "";
@@ -103,6 +122,8 @@ serve(async (req) => {
       );
     }
 
+    console.log(`[send-push] Found ${subscriptions.length} subscription(s) for user ${targetUserId}`);
+
     const payload = JSON.stringify({
       title,
       body: body || "",
@@ -128,8 +149,19 @@ serve(async (req) => {
           await webpush.sendNotification(pushSubscription, payload);
           return { success: true, endpoint: sub.endpoint };
         } catch (err: any) {
-          // If subscription is expired/unsubscribed (404 or 410 Gone), prune it from database
-          if (err.statusCode === 404 || err.statusCode === 410) {
+          const status = err.statusCode || err.status || "unknown";
+          const body = typeof err.body === "string" ? err.body : JSON.stringify(err.body || {});
+          console.error(
+            `[send-push] Push error for device ${sub.endpoint}: Status ${status} | Body: ${body} | Message: ${err.message}`
+          );
+
+          // If subscription is expired/unsubscribed/invalid (404, 410, or 400 Bad Device), prune it from DB
+          if (
+            status === 404 ||
+            status === 410 ||
+            (status === 400 && (body.includes("InvalidRegistration") || body.includes("NotRegistered") || body.includes("BadDeviceToken")))
+          ) {
+            console.log(`[send-push] Pruning stale subscription ${sub.id} (${sub.endpoint})`);
             await supabase.from("push_subscriptions").delete().eq("id", sub.id);
           }
           throw err;
@@ -138,6 +170,7 @@ serve(async (req) => {
     );
 
     const successful = sendResults.filter((r) => r.status === "fulfilled").length;
+    console.log(`[send-push] Complete: ${successful}/${subscriptions.length} devices received the push.`);
 
     return new Response(
       JSON.stringify({
@@ -151,6 +184,7 @@ serve(async (req) => {
       }
     );
   } catch (err: any) {
+    console.error("[send-push] Unhandled error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

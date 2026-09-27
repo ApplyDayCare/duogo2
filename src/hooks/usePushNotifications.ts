@@ -306,9 +306,11 @@ export function usePushNotifications(): PushNotificationState {
   useEffect(() => {
     if (!user) return;
 
+    const instanceId = Math.random().toString(36).substring(2, 9);
+
     // Realtime listener for incoming messages across all conversations
     const messagesChannel = supabase
-      .channel("global-push-messages")
+      .channel(`push-messages:${user.id}:${instanceId}`)
       .on(
         "postgres_changes",
         {
@@ -361,7 +363,7 @@ export function usePushNotifications(): PushNotificationState {
 
     // Realtime listener for incoming match & connect notifications
     const notificationsChannel = supabase
-      .channel("global-push-notifications")
+      .channel(`push-notifications:${user.id}:${instanceId}`)
       .on(
         "postgres_changes",
         {
