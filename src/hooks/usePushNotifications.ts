@@ -29,14 +29,12 @@ function isValidDecodedVapidKey(key: string): boolean {
   }
 }
 
-export async function getEffectiveVapidPublicKey(): Promise<string> {
-  // 1. Check if explicitly passed via valid env var
-  const envKey = (import.meta.env.VITE_VAPID_PUBLIC_KEY || "").trim();
-  if (envKey && isValidDecodedVapidKey(envKey) && !envKey.startsWith("sb_")) return envKey;
+export async function getEffectiveVapidPublicKey(forceFresh = false): Promise<string> {
+  if (!forceFresh && cachedVapidPublicKey && isValidDecodedVapidKey(cachedVapidPublicKey)) {
+    return cachedVapidPublicKey;
+  }
 
-  if (cachedVapidPublicKey && isValidDecodedVapidKey(cachedVapidPublicKey)) return cachedVapidPublicKey;
-
-  // 2. Try fetching dynamically from Supabase send-push GET endpoint
+  // 1. Fetch dynamically from Supabase send-push GET endpoint
   try {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -49,6 +47,7 @@ export async function getEffectiveVapidPublicKey(): Promise<string> {
         const data = await edgeRes.json();
         if (data?.publicKey && isValidDecodedVapidKey(data.publicKey.trim())) {
           cachedVapidPublicKey = data.publicKey.trim();
+          console.log("[PWA Push] Successfully fetched active VAPID key from Edge Function:", cachedVapidPublicKey);
           return cachedVapidPublicKey;
         }
       }
@@ -57,21 +56,14 @@ export async function getEffectiveVapidPublicKey(): Promise<string> {
     console.warn("[PWA Push] Failed to fetch dynamic VAPID key from Edge Function:", err);
   }
 
-  // 3. Fetch from local server endpoint (/api/push/vapid-public-key)
-  try {
-    const localRes = await fetch(`/api/push/vapid-public-key?t=${Date.now()}`);
-    if (localRes.ok) {
-      const data = await localRes.json();
-      if (data?.publicKey && isValidDecodedVapidKey(data.publicKey.trim())) {
-        cachedVapidPublicKey = data.publicKey.trim();
-        return cachedVapidPublicKey;
-      }
-    }
-  } catch {
-    // ignore
+  // 2. Check if explicitly passed via valid env var
+  const envKey = (import.meta.env.VITE_VAPID_PUBLIC_KEY || "").trim();
+  if (envKey && isValidDecodedVapidKey(envKey) && !envKey.startsWith("sb_")) {
+    cachedVapidPublicKey = envKey;
+    return envKey;
   }
 
-  // 4. Authoritative constant fallback
+  // 3. Fallback to constant
   cachedVapidPublicKey = DEFAULT_VAPID_PUBLIC_KEY;
   return DEFAULT_VAPID_PUBLIC_KEY;
 }
@@ -383,9 +375,12 @@ export function usePushNotifications(): PushNotificationState {
       console.log("==================================================");
       console.log("[PWA Push] INITIATING FULL KILL SWITCH & HARD RESET");
 
-      // 1. Fetch the exact active public key from the backend
-      const activeKey = await getEffectiveVapidPublicKey();
+      // 1. Fetch the exact active public key directly from the backend Edge Function
+      const activeKey = await getEffectiveVapidPublicKey(true);
       console.log("CRITICAL DEBUG: Active Server VAPID Public Key:", activeKey);
+      if (!activeKey) {
+        throw new Error("Error fetching server key: No public key returned from Edge Function.");
+      }
 
       // 2. Unregister ALL old service workers
       if ("serviceWorker" in navigator) {

@@ -55,7 +55,7 @@
       // Register service worker to qualify for PWA installability and notifications with cache-busting
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js?v=20260927-2', { scope: '/', updateViaCache: 'none' })
+          navigator.serviceWorker.register('/sw.js?v=20260927-3', { scope: '/', updateViaCache: 'none' })
             .then(function(reg) {
               reg.update();
               console.log('[PWA] Service Worker registered with scope:', reg.scope);

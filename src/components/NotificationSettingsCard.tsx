@@ -147,12 +147,24 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
     endpoint?: string;
     error?: string;
   } | null>(null);
+  const [resyncAlertKey, setResyncAlertKey] = useState<string | null>(null);
 
   const handleResetPush = async () => {
     setResetting(true);
+    setResyncAlertKey(null);
     try {
       const result = await resetAndReconnectPush();
       setDiagResult(result);
+      if (result.serverKey) {
+        setResyncAlertKey(result.serverKey);
+      }
+    } catch (err: any) {
+      setDiagResult({
+        serverKey: "Error fetching server key",
+        clientKey: "error",
+        keysMatch: false,
+        error: err.message || "Failed to resync",
+      });
     } finally {
       setResetting(false);
     }
@@ -354,6 +366,23 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
           </div>
         </div>
 
+        {/* On-Screen Verification Alert */}
+        {resyncAlertKey && (
+          <div className="mt-3 p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-xs flex items-center gap-1.5 text-amber-900">
+                🔔 Verified Key Active On Device:
+              </span>
+              <Badge className="bg-amber-600 text-white text-[10px] font-mono px-2 py-0.5">
+                87 Chars • NIST P-256
+              </Badge>
+            </div>
+            <p className="font-mono text-[10px] break-all bg-white/80 p-2 rounded-lg border border-amber-200 select-all">
+              {resyncAlertKey}
+            </p>
+          </div>
+        )}
+
         {/* Live Diagnostics Card */}
         {diagResult && (
           <div className="mt-3 p-3.5 rounded-2xl bg-[#FAF7F2] border border-[#EDE8E1] text-[11px] space-y-2 font-mono text-[#57524C]">
@@ -376,7 +405,7 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
                 Active Server VAPID Key (87 chars)
               </span>
               <p className="break-all p-2 rounded-lg bg-white border border-[#E5DFD5] text-[10px] select-all">
-                {diagResult.serverKey}
+                {diagResult.serverKey || "Error fetching server key"}
               </p>
             </div>
 
