@@ -26,8 +26,13 @@ app.use((req, res, next) => {
 });
 
 // Configure Web Push VAPID
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || "";
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
+const VAPID_PUBLIC_KEY =
+  process.env.VAPID_PUBLIC_KEY ||
+  process.env.VITE_VAPID_PUBLIC_KEY ||
+  "BPXs3kQMjHRgkldzFM4X7Ji1xeTlN7nQ39XaqSb_XSS_q9h20oJL7j6k7h1WuXurbTpcme6Y0Pu0XJyQgSpccv8";
+const VAPID_PRIVATE_KEY =
+  process.env.VAPID_PRIVATE_KEY ||
+  "JBkxVu_UN5klHeP4kZgbYCXM1nsOaQh3RUZNRVFR9_Y";
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:sayhello@duogo.space";
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {

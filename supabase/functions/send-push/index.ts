@@ -11,8 +11,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") || "";
-const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") || "";
+const VAPID_PUBLIC_KEY =
+  Deno.env.get("VAPID_PUBLIC_KEY") ||
+  "BPXs3kQMjHRgkldzFM4X7Ji1xeTlN7nQ39XaqSb_XSS_q9h20oJL7j6k7h1WuXurbTpcme6Y0Pu0XJyQgSpccv8";
+const VAPID_PRIVATE_KEY =
+  Deno.env.get("VAPID_PRIVATE_KEY") ||
+  "JBkxVu_UN5klHeP4kZgbYCXM1nsOaQh3RUZNRVFR9_Y";
 const rawSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:sayhello@duogo.space";
 const VAPID_SUBJECT =
   rawSubject.startsWith("mailto:") || rawSubject.startsWith("https://") || rawSubject.startsWith("http://")

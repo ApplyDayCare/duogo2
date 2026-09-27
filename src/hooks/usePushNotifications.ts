@@ -14,6 +14,8 @@ export interface PushNotificationState {
   unsubscribeFromPush: () => Promise<boolean>;
 }
 
+export const DEFAULT_VAPID_PUBLIC_KEY = "BPXs3kQMjHRgkldzFM4X7Ji1xeTlN7nQ39XaqSb_XSS_q9h20oJL7j6k7h1WuXurbTpcme6Y0Pu0XJyQgSpccv8";
+
 let cachedVapidPublicKey: string | null = null;
 
 export async function getEffectiveVapidPublicKey(): Promise<string> {
@@ -33,7 +35,7 @@ export async function getEffectiveVapidPublicKey(): Promise<string> {
       });
       if (edgeRes.ok) {
         const data = await edgeRes.json();
-        if (data?.publicKey) {
+        if (data?.publicKey && data.publicKey.trim().length > 0) {
           cachedVapidPublicKey = data.publicKey;
           return data.publicKey;
         }
@@ -48,7 +50,7 @@ export async function getEffectiveVapidPublicKey(): Promise<string> {
     const localRes = await fetch("/api/push/vapid-public-key");
     if (localRes.ok) {
       const data = await localRes.json();
-      if (data?.publicKey) {
+      if (data?.publicKey && data.publicKey.trim().length > 0) {
         cachedVapidPublicKey = data.publicKey;
         return data.publicKey;
       }
@@ -57,7 +59,7 @@ export async function getEffectiveVapidPublicKey(): Promise<string> {
     // ignore
   }
 
-  return "";
+  return DEFAULT_VAPID_PUBLIC_KEY;
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
