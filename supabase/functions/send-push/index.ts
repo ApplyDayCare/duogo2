@@ -12,14 +12,12 @@ const corsHeaders = {
 };
 
 // Validated Web Push VAPID cryptographic key pair (NIST P-256)
-const envPub = Deno.env.get("VAPID_PUBLIC_KEY");
-const envPriv = Deno.env.get("VAPID_PRIVATE_KEY");
-const VAPID_PUBLIC_KEY = (envPub && envPub.length > 50 && !envPub.startsWith("sb_"))
-  ? envPub
-  : "BM2wzi9DNHlsYCm45Gn6JC6CAvoYW4HiEYj_-DWz3NqWD3Tybm4Qr82cI4taetONkD-oXaMiA_c_nNiRB2ZTXS4";
-const VAPID_PRIVATE_KEY = (envPriv && envPriv.length > 30 && !envPriv.startsWith("sb_"))
-  ? envPriv
-  : "Cy3nQAPIo34G9OsMIb5zD5t-L14gJe-IRnHvDpjw32o";
+const VAPID_PUBLIC_KEY =
+  Deno.env.get("VAPID_PUBLIC_KEY") ||
+  "BM2wzi9DNHlsYCm45Gn6JC6CAvoYW4HiEYj_-DWz3NqWD3Tybm4Qr82cI4taetONkD-oXaMiA_c_nNiRB2ZTXS4";
+const VAPID_PRIVATE_KEY =
+  Deno.env.get("VAPID_PRIVATE_KEY") ||
+  "Cy3nQAPIo34G9OsMIb5zD5t-L14gJe-IRnHvDpjw32o";
 const rawSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:sayhello@duogo.space";
 const VAPID_SUBJECT =
   rawSubject.startsWith("mailto:") || rawSubject.startsWith("https://") || rawSubject.startsWith("http://")
@@ -30,7 +28,9 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "
 
 try {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-  console.log(`[send-push] VAPID configured with public key: ${VAPID_PUBLIC_KEY.slice(0, 10)}... and subject: ${VAPID_SUBJECT}`);
+  console.log(
+    `[send-push] VAPID configured with public key: ${VAPID_PUBLIC_KEY.slice(0, 15)}... and subject: ${VAPID_SUBJECT}`
+  );
 } catch (vapidErr) {
   console.error("[send-push] Failed to set VAPID details:", vapidErr);
 }
@@ -185,11 +185,10 @@ serve(async (req) => {
             `[send-push] Push error for device ${sub.endpoint}: Status ${status} | Body: ${body} | Message: ${err.message}`
           );
 
-          // If subscription is expired/unsubscribed/invalid or key mismatch (404, 410, 403, or 400 Bad Device), prune it from DB
+          // If subscription is expired/unsubscribed/dead (404, 410, or 400 Bad Device), prune it from DB
           if (
             status === 404 ||
             status === 410 ||
-            status === 403 ||
             (status === 400 && (body.includes("InvalidRegistration") || body.includes("NotRegistered") || body.includes("BadDeviceToken")))
           ) {
             console.log(`[send-push] Pruning stale subscription ${sub.id} (${sub.endpoint})`);

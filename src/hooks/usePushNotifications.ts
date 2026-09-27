@@ -36,7 +36,28 @@ export async function getEffectiveVapidPublicKey(): Promise<string> {
 
   if (cachedVapidPublicKey && isValidDecodedVapidKey(cachedVapidPublicKey)) return cachedVapidPublicKey;
 
-  // 2. Fetch from local server endpoint (/api/push/vapid-public-key)
+  // 2. Try fetching dynamically from Supabase send-push GET endpoint
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+    if (supabaseUrl) {
+      const edgeRes = await fetch(`${supabaseUrl}/functions/v1/send-push?t=${Date.now()}`, {
+        method: "GET",
+        headers: anonKey ? { apikey: anonKey, Authorization: `Bearer ${anonKey}` } : {},
+      });
+      if (edgeRes.ok) {
+        const data = await edgeRes.json();
+        if (data?.publicKey && isValidDecodedVapidKey(data.publicKey.trim())) {
+          cachedVapidPublicKey = data.publicKey.trim();
+          return cachedVapidPublicKey;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[PWA Push] Failed to fetch dynamic VAPID key from Edge Function:", err);
+  }
+
+  // 3. Fetch from local server endpoint (/api/push/vapid-public-key)
   try {
     const localRes = await fetch(`/api/push/vapid-public-key?t=${Date.now()}`);
     if (localRes.ok) {
@@ -50,7 +71,7 @@ export async function getEffectiveVapidPublicKey(): Promise<string> {
     // ignore
   }
 
-  // 3. Fallback to constant
+  // 4. Authoritative constant fallback
   cachedVapidPublicKey = DEFAULT_VAPID_PUBLIC_KEY;
   return DEFAULT_VAPID_PUBLIC_KEY;
 }
@@ -183,19 +204,24 @@ export function usePushNotifications(): PushNotificationState {
 
         // If a subscription already exists, verify its applicationServerKey matches the current active server VAPID key
         if (sub && sub.options && sub.options.applicationServerKey) {
-          const existingKey = new Uint8Array(sub.options.applicationServerKey);
+          const existingKeyRaw = new Uint8Array(sub.options.applicationServerKey);
+          const existingKeyB64 = uint8ArrayToBase64Url(existingKeyRaw);
           const keysMatch =
-            existingKey.length === applicationServerKey.length &&
-            existingKey.every((val, i) => val === applicationServerKey[i]);
+            existingKeyRaw.length === applicationServerKey.length &&
+            existingKeyRaw.every((val, i) => val === applicationServerKey[i]);
 
           if (!keysMatch) {
-            console.log("[PWA Push] VAPID key mismatch detected, refreshing subscription with new key...");
+            console.warn(
+              `[PWA Push] ⚠️ Key Mismatch! Subscription key: ${existingKeyB64.slice(0, 15)}... does NOT match active server key: ${effectiveKey.slice(0, 15)}... Refreshing subscription...`
+            );
             try {
               await sub.unsubscribe();
             } catch {
               // ignore
             }
             sub = null;
+          } else {
+            console.log(`[PWA Push] ✅ Subscription key matches active server key (${effectiveKey.slice(0, 15)}...)`);
           }
         }
 
