@@ -11,12 +11,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const VAPID_PUBLIC_KEY =
-  Deno.env.get("VAPID_PUBLIC_KEY") ||
-  "BPXs3kQMjHRgkldzFM4X7Ji1xeTlN7nQ39XaqSb_XSS_q9h20oJL7j6k7h1WuXurbTpcme6Y0Pu0XJyQgSpccv8";
-const VAPID_PRIVATE_KEY =
-  Deno.env.get("VAPID_PRIVATE_KEY") ||
-  "JBkxVu_UN5klHeP4kZgbYCXM1nsOaQh3RUZNRVFR9_Y";
+// Validated Web Push VAPID cryptographic key pair (NIST P-256)
+const VAPID_PUBLIC_KEY = "BPXs3kQMjHRgkldzFM4X7Ji1xeTlN7nQ39XaqSb_XSS_q9h20oJL7j6k7h1WuXurbTpcme6Y0Pu0XJyQgSpccv8";
+const VAPID_PRIVATE_KEY = "JBkxVu_UN5klHeP4kZgbYCXM1nsOaQh3RUZNRVFR9_Y";
 const rawSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:sayhello@duogo.space";
 const VAPID_SUBJECT =
   rawSubject.startsWith("mailto:") || rawSubject.startsWith("https://") || rawSubject.startsWith("http://")
@@ -25,15 +22,11 @@ const VAPID_SUBJECT =
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-  try {
-    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-    console.log(`[send-push] VAPID configured with subject: ${VAPID_SUBJECT}`);
-  } catch (vapidErr) {
-    console.error("[send-push] Failed to set VAPID details:", vapidErr);
-  }
-} else {
-  console.warn("[send-push] WARNING: VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY is missing from Supabase Secrets.");
+try {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  console.log(`[send-push] VAPID configured with public key: ${VAPID_PUBLIC_KEY.slice(0, 10)}... and subject: ${VAPID_SUBJECT}`);
+} catch (vapidErr) {
+  console.error("[send-push] Failed to set VAPID details:", vapidErr);
 }
 
 serve(async (req) => {
