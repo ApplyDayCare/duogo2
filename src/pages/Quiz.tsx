@@ -73,7 +73,7 @@ const FREE_TIME_OPTIONS: ChipOption[] = [
 ];
 
 const FRIEND_QUALITIES_OPTIONS: ChipOption[] = [
-  { id: "authentic", label: "Authentic", emoji: "🌟" },
+  { id: "authentic", label: "Honest", emoji: "🌟" },
   { id: "attentive", label: "Attentive", emoji: "👀" },
   { id: "charismatic", label: "Charismatic", emoji: "🤩" },
   { id: "grounded", label: "Grounded", emoji: "🌿" },

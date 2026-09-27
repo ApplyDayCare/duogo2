@@ -48,6 +48,7 @@ import { validateSocialUrl } from "@/lib/socialValidation";
 import AvatarUpload from "@/components/AvatarUpload";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { QuizResponseSummary } from "@/components/QuizResponseSummary";
+import { NotificationSettingsCard } from "@/components/NotificationSettingsCard";
 import { getOfflineProfile } from "@/lib/queryPersister";
 import {
   formatCanadianPostalCode,
@@ -59,7 +60,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const RADIUS_OPTIONS = [
-  { value: "5", label: "My neighborhood only", desc: "Within ~5 km (High match priority)" },
+  { value: "5", label: "My neighborhood only", desc: "Within ~5 km (Closest proximity)" },
   { value: "15", label: "Nearby neighborhoods", desc: "Up to 15 km" },
   { value: "30", label: "Within 30 minutes drive", desc: "Up to 30 km" },
   { value: "60", label: "Across the region", desc: "Up to 60 km" },
@@ -861,7 +862,10 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Card 3: App & Account Danger Zone */}
+          {/* Card 3: App Notification Preferences */}
+          <NotificationSettingsCard />
+
+          {/* Card 4: App & Account Danger Zone */}
           <Card className="rounded-3xl border border-[#EFE8DD] shadow-card bg-white overflow-hidden">
             <CardHeader className="p-5 pb-3 border-b border-[#F5EDE3]">
               <div className="flex items-center gap-2">

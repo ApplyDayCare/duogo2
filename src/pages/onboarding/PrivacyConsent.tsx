@@ -53,7 +53,7 @@ const PrivacyConsent = () => {
       }
 
       const draft = getSignupDraft();
-      const firstName = draft.first_name?.trim() || profile?.first_name?.trim() || user.user_metadata?.first_name || user.email?.split("@")[0] || "Member";
+      const firstName = draft.first_name?.trim() || profile?.first_name?.trim() || user.user_metadata?.first_name || user.email?.split("@")[0] || "Friend";
       const userType = draft.user_type || profile?.user_type || "solo";
       const locationCity = draft.location_city || profile?.location_city || "Milton";
 

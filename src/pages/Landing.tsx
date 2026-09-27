@@ -763,19 +763,19 @@ export default function Landing() {
                 <div className="flex -space-x-2.5">
                   <img
                     src={parkWalkImg}
-                    alt="Unlocked member profile"
+                    alt="Unlocked user profile"
                     referrerPolicy="no-referrer"
                     className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-xs"
                   />
                   <img
                     src={dinnerChatImg}
-                    alt="Unlocked member profile"
+                    alt="Unlocked user profile"
                     referrerPolicy="no-referrer"
                     className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-xs"
                   />
                   <img
                     src={cafeLifestyleImg}
-                    alt="Unlocked member profile"
+                    alt="Unlocked user profile"
                     referrerPolicy="no-referrer"
                     className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-xs"
                   />
@@ -837,7 +837,7 @@ export default function Landing() {
               duogo is built specifically for friendship—not dating, flirting, or collecting matches.
             </p>
             <p className="mt-3 text-[var(--ink-soft)] text-[16px] sm:text-[17px] leading-relaxed">
-              No swiping for attention. No pressure to perform. Just intentional introductions designed to help you find people you genuinely connect with.
+              No swiping for attention. No pressure to perform. Just direct introductions designed to help you find people you connect with.
             </p>
           </div>
 
@@ -947,7 +947,7 @@ export default function Landing() {
                   One-on-one, matched properly
                 </h3>
                 <p className="text-[var(--ink-soft)] max-w-[46ch] text-[15px] leading-relaxed">
-                  For people who want a genuine companion for the things they love doing, not an inactive group chat that never schedules a meetup.
+                  For people who want a companion for activities they enjoy, not an inactive group chat that never schedules a meetup.
                 </p>
                 <div className="mt-4.5 flex flex-col gap-2.5">
                   <div className="text-[14.5px] text-[var(--ink-soft)] pl-6 relative font-semibold before:content-['•'] before:absolute before:left-0 before:text-[var(--coral-2)]">
@@ -1239,7 +1239,7 @@ export default function Landing() {
                 </h3>
               </div>
               <p className="text-[var(--cream)]/75 text-[15px] leading-relaxed">
-                Every applicant provides a real, public social link (Instagram, LinkedIn, or portfolio) to prevent catfishing, eliminate bots, and ensure genuine human accountability.
+                Every applicant provides a real, public social link (Instagram, LinkedIn, or portfolio) to prevent catfishing, eliminate bots, and verify user identity.
               </p>
             </div>
             <div className="bg-[var(--cream)]/6 rounded-[22px] p-6.5 border border-[var(--cream)]/10">
@@ -1261,7 +1261,7 @@ export default function Landing() {
                 </h3>
               </div>
               <p className="text-[var(--cream)]/75 text-[15px] leading-relaxed">
-                After meeting up, members complete a brief in-app pulse check to verify safety, punctuality, and mutual respect, continually rewarding reliable and respectful community members.
+                After meeting up, both people complete a brief in-app pulse check to verify safety, punctuality, and mutual respect, keeping meetups reliable and comfortable.
               </p>
             </div>
           </div>
@@ -1336,7 +1336,7 @@ export default function Landing() {
                   Why are names and photos hidden at first?
                 </AccordionTrigger>
                 <AccordionContent className="text-[14.5px] text-[var(--ink-soft)] leading-relaxed pt-1 pb-3">
-                  Traditional social apps create bias based on headshots and follower counts. By looking at true compatibility dimensions first, such as energy levels, social battery, and conversational depth, you make authentic decisions. Once both people tap Connect, photos and full profiles unlock immediately.
+                  Traditional social apps create bias based on headshots and follower counts. By looking at compatibility dimensions first, such as energy levels, social battery, and conversational depth, you focus on what matters. Once both people tap Connect, photos and full profiles unlock immediately.
                 </AccordionContent>
               </AccordionItem>
 
@@ -1388,7 +1388,7 @@ export default function Landing() {
               Your next great friendship could start today.
             </h2>
             <p className="text-[var(--ink-soft)] text-[16.5px] sm:text-[18px] max-w-lg mx-auto mt-4 leading-relaxed">
-              Take the friendship quiz and get matched with someone who genuinely fits your personality and lifestyle.
+              Take the quiz and get matched with people who fit your personality and lifestyle.
             </p>
 
             <div className="mt-8 flex items-center justify-center gap-4 flex-wrap">
@@ -1544,7 +1544,7 @@ export default function Landing() {
             <div className="p-3.5 rounded-2xl bg-white border border-[var(--line)] text-xs text-[var(--ink)] space-y-2 my-1 shadow-xs">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[var(--ink-soft)]">Signed in as:</span>
-                <span className="font-bold truncate max-w-[200px]">{session.user.email || "Active Member"}</span>
+                <span className="font-bold truncate max-w-[200px]">{session.user.email || "Active User"}</span>
               </div>
               <div className="flex items-center gap-2 pt-1">
                 <button

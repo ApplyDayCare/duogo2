@@ -86,7 +86,7 @@ export async function syncSignupDraftToSupabase(user: { id: string; email?: stri
       .eq("id", user.id)
       .maybeSingle();
 
-    const resolvedFirstName = draft.first_name?.trim() || existingProfile?.first_name?.trim() || user.email?.split("@")[0] || "Member";
+    const resolvedFirstName = draft.first_name?.trim() || existingProfile?.first_name?.trim() || user.email?.split("@")[0] || "Friend";
     const resolvedUserType = draft.user_type || existingProfile?.user_type || "solo";
     const resolvedLocation = draft.location_city || existingProfile?.location_city || "Milton";
 

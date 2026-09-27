@@ -152,7 +152,7 @@ export const MatchSidebarProfile = ({
       {/* Safe Connection Notice */}
       <div className="rounded-2xl bg-[#FAF7F2] border border-[#EBE3D5] p-3.5 text-center">
         <p className="text-[11px] text-[#888177] leading-relaxed">
-          🔒 Both members are verified. Keep all initial chats friendly and meet in public spots when you're ready!
+          🔒 Both profiles are verified. Keep all initial chats friendly and meet in public spots when you're ready!
         </p>
         <button
           onClick={() => {

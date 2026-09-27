@@ -610,7 +610,7 @@ const Dashboard = () => {
               </motion.span>
             </h1>
             <p className="text-sm text-muted-foreground">
-              {profile?.user_type === "couple" ? "Looking for double-date couple friends" : "Looking for great genuine friends"}
+              {profile?.user_type === "couple" ? "Looking for couple matches" : "Looking to meet people nearby"}
             </p>
           </div>
 
@@ -654,7 +654,7 @@ const Dashboard = () => {
               <p className="text-xs text-[#666059] mt-0.5">
                 {incomingRequestsCount === 1
                   ? `${incomingRequests[0].score}% Compatibility · Review their profile and connect back to start chatting.`
-                  : "Members reviewed your profile and sent connection requests."}
+                  : "People reviewed your profile and sent connection requests."}
               </p>
             </div>
           </div>
@@ -839,7 +839,7 @@ const Dashboard = () => {
             </div>
             <div>
               <h4 className="font-serif font-bold text-base text-[#1A1816]">Compatibility Quiz Pending</h4>
-              <p className="text-xs text-[#706A62]">Take our 10-dimension quiz to calculate authentic compatibility scores and unlock matches.</p>
+              <p className="text-xs text-[#706A62]">Take our 10-dimension quiz to calculate compatibility scores and unlock matches.</p>
             </div>
           </div>
           <Button
@@ -877,11 +877,11 @@ const Dashboard = () => {
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white leading-tight">
               {!profile?.quiz_completed
                 ? "Complete Your Compatibility Quiz"
-                : "Ready to meet your next real connection?"}
+                : "Ready to meet your next match?"}
             </h2>
             <p className="text-sm text-white/90 leading-relaxed">
               {!profile?.quiz_completed
-                ? "Take our 10-dimension compatibility quiz so we can calculate authentic scores and suggest genuine matches."
+                ? "Take our 10-dimension compatibility quiz so we can calculate scores and suggest matches."
                 : coupleInfo?.isCouple && !coupleInfo.isLinked
                 ? "Link your partner account to unlock couple matching with local duos."
                 : coupleInfo?.isCouple && !coupleInfo.partnerQuizDone
@@ -1078,7 +1078,7 @@ const Dashboard = () => {
                 ? `You have ${stats.incomingRequests} incoming connection request(s) waiting for your response!`
                 : stats.pendingMatches > 0
                 ? `You have ${stats.pendingMatches} request(s) sent and awaiting candidate response.`
-                : "You haven't connected with any local members yet. Head to Discover to swipe through compatibility profiles and build your circle."}
+                : "You haven't connected with anyone yet. Head to Discover to find your people and start a connection."}
             </p>
           </div>
           <div className="pt-1 flex flex-wrap justify-center gap-2">
@@ -1142,9 +1142,9 @@ const Dashboard = () => {
               onClick: undefined,
             },
             {
-              label: "Referrals",
+              label: "Shared Invites",
               value: stats.referrals,
-              subtext: `${stats.referrals} friends invited`,
+              subtext: `${stats.referrals} people joined`,
               icon: Users,
               color: "text-[#8B5CF6]",
               bg: "bg-[#EDE9FE]",
@@ -1207,18 +1207,10 @@ const Dashboard = () => {
             </div>
             {qualityDisplay > 1 && (
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground font-medium">Quality Multiplier</span>
+                <span className="text-muted-foreground font-medium">Profile Completeness</span>
                 <span className="text-foreground font-bold flex items-center gap-1.5 bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full text-xs">
-                  <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" /> {qualityDisplay.toFixed(1)}x Priority
+                  <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" /> {qualityDisplay.toFixed(1)}x Verified
                 </span>
-              </div>
-            )}
-            {stats.boostActive && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground font-medium">Priority Boost</span>
-                <Badge className="bg-primary/10 text-primary border-0 font-bold rounded-full">
-                  ⚡ {stats.boostDays}d remaining
-                </Badge>
               </div>
             )}
           </CardContent>
@@ -1235,8 +1227,8 @@ const Dashboard = () => {
             <Share2 className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-bold text-foreground">Share Referral</p>
-            <p className="text-[11px] text-muted-foreground font-medium">Get priority boosts</p>
+            <p className="text-sm font-bold text-foreground">Share duogo</p>
+            <p className="text-[11px] text-muted-foreground font-medium">Expand your social circle</p>
           </div>
         </button>
 

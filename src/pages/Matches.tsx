@@ -146,7 +146,7 @@ const Matches = () => {
         const myDims = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3];
         const matchObj: MatchData = {
           user_id: req.otherUser.id,
-          first_name: req.otherUser.first_name || "Community Member",
+          first_name: req.otherUser.first_name || "New Match",
           user_type: (req.otherUser.user_type as any) || myProfile?.user_type || "solo",
           location_city: req.otherUser.location_city || myProfile?.location_city || null,
           travel_radius_km: 15,
@@ -716,7 +716,7 @@ const Matches = () => {
         <h3 className="font-serif text-lg font-bold text-[#1A1816]">Unable to reach matchmaking</h3>
         <p className="text-xs text-[#706A62] mt-1 max-w-sm mb-4">
           {isOffline
-            ? "Your device appears to be offline. Reconnect to sync fresh community members or view your cached profile."
+            ? "Your device appears to be offline. Reconnect to find people nearby or view your cached profile."
             : "We encountered a temporary connection issue. Please check your connection and retry."}
         </p>
         <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["matches"] })}>
@@ -737,7 +737,7 @@ const Matches = () => {
             Complete Your Compatibility Quiz
           </h2>
           <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-            Take our 10-dimension compatibility quiz so we can calculate authentic compatibility scores and suggest genuine matches.
+            Take our 10-dimension compatibility quiz so we can calculate compatibility scores and suggest matches.
           </p>
           <Button
             className="rounded-full h-12 w-full font-bold"

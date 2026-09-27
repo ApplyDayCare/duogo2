@@ -88,7 +88,7 @@ const SoloProfile = () => {
               Tell us about yourself
             </CardTitle>
             <p className="text-sm text-[#706A62]">
-              Your photo and name make your profile feel authentic
+              Add your photo and name so people know who you are
             </p>
           </CardHeader>
           <CardContent className="space-y-5 px-6 sm:px-8 pb-8 pt-2">

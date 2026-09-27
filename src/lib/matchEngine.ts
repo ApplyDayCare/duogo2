@@ -354,7 +354,7 @@ async function executeFetchMatches(
 
     const resolvedProfile = otherProfile || {
       id: otherId,
-      first_name: "Community Member",
+      first_name: "New Match",
       user_type: userType || "solo",
       location_city: resolvedCity,
       travel_radius_km: 15,
@@ -362,7 +362,7 @@ async function executeFetchMatches(
 
     pendingMatchesList.push({
       user_id: resolvedProfile.id,
-      first_name: resolvedProfile.first_name || "Community Member",
+      first_name: resolvedProfile.first_name || "New Match",
       user_type: resolvedProfile.user_type || "solo",
       location_city: resolvedCity,
       travel_radius_km: resolvedProfile.travel_radius_km || 15,
@@ -518,7 +518,7 @@ async function executeFetchMatches(
           const score = soloScore(myQuizRow, dimsObj);
           matchesMap.set(c.id, {
             user_id: c.id,
-            first_name: c.first_name || "Community Member",
+            first_name: c.first_name || "New Match",
             user_type: c.user_type || "solo",
             location_city: sanitizeLocationCity(c.location_city),
             travel_radius_km: c.travel_radius_km,
@@ -595,7 +595,7 @@ async function executeFetchMatches(
               const score = soloScore(myQuizRow, otherQuiz);
               matchesMap.set(c.id, {
                 user_id: c.id,
-                first_name: c.first_name || "Community Member",
+                first_name: c.first_name || "New Match",
                 user_type: c.user_type || "solo",
                 location_city: sanitizeLocationCity(c.location_city),
                 travel_radius_km: c.travel_radius_km,

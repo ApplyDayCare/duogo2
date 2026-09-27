@@ -108,7 +108,7 @@ export function getCandidateDisplayName(
     return isCouple ? `${topVibe} Duo · ${city}` : `${topVibe} · ${city}`;
   }
   if (topVibe) {
-    return isCouple ? `${topVibe} Duo` : `${topVibe} Member`;
+    return isCouple ? `${topVibe} Duo` : `${topVibe}`;
   }
   if (city) {
     return isCouple ? `Duo Match · ${city}` : `Solo Match · ${city}`;

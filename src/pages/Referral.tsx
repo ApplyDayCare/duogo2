@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateReferralCode } from "@/lib/referralUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Copy, Instagram, Mail, ArrowLeft, Users, Target } from "lucide-react";
+import { Loader2, Copy, Instagram, Mail, ArrowLeft, Users, HeartHandshake } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const Referral = () => {
@@ -13,7 +13,7 @@ const Referral = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [referralCode, setReferralCode] = useState("");
-  const [stats, setStats] = useState({ signups: 0, boostActive: false, boostDays: 0 });
+  const [stats, setStats] = useState({ signups: 0 });
 
   useEffect(() => {
     if (!user) return;
@@ -27,13 +27,7 @@ const Referral = () => {
 
       if (existing) {
         setReferralCode(existing.referral_code);
-        const boostActive = existing.priority_boost_expiry
-          ? new Date(existing.priority_boost_expiry) > new Date()
-          : false;
-        const boostDays = boostActive && existing.priority_boost_expiry
-          ? Math.ceil((new Date(existing.priority_boost_expiry).getTime() - Date.now()) / 86400000)
-          : 0;
-        setStats({ signups: existing.successful_signups, boostActive, boostDays });
+        setStats({ signups: existing.successful_signups });
       } else {
         // Generate and save new referral code
         let code = generateReferralCode();
@@ -52,7 +46,7 @@ const Referral = () => {
           attempts++;
         }
         setReferralCode(code);
-        setStats({ signups: 0, boostActive: false, boostDays: 0 });
+        setStats({ signups: 0 });
       }
       setLoading(false);
     })();
@@ -65,20 +59,18 @@ const Referral = () => {
     toast({ title: "Link copied! 📋" });
   };
 
-  const { data: profile } = supabase.auth.getUser ? { data: null } : { data: null };
-
   const shareEmail = () => {
-    const subject = encodeURIComponent("Join me on duogo");
+    const subject = encodeURIComponent("Check out duogo");
     const body = encodeURIComponent(
-      `Hey! I've been using duogo to meet great people. Thought you might like it too. Here's my invite link: ${referralUrl}`
+      `Hey! I've been using duogo to meet people nearby. Here's an invite link to check it out: ${referralUrl}`
     );
     window.open(`mailto:?subject=${subject}&body=${body}`);
   };
 
   const shareInstagram = () => {
-    const text = `I found amazing friends on duogo! Join me: ${referralUrl}`;
+    const text = `Check out duogo: ${referralUrl}`;
     navigator.clipboard.writeText(text);
-    toast({ title: "Text copied! Paste it on Instagram 📱" });
+    toast({ title: "Link copied to clipboard 📱" });
   };
 
   if (loading) {
@@ -94,19 +86,19 @@ const Referral = () => {
       <div className="w-full max-w-md space-y-6">
         <Card className="rounded-3xl border border-[#EFE8DD] shadow-card bg-white overflow-hidden">
           <div className="bg-gradient-to-br from-[#FFF0EB] via-[#FFF8F5] to-white p-6 pb-4 text-center border-b border-[#F5EDE3]">
-            <span className="inline-block text-3xl mb-2">🎁</span>
+            <span className="inline-block text-3xl mb-2">🌱</span>
             <h1 className="font-serif text-2xl font-bold text-foreground">
-              Invite Friends, Match Faster!
+              Share duogo
             </h1>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto leading-relaxed">
-              Share duogo with awesome friends anywhere and unlock 30 days of Priority Matching.
+              Help others expand their social circle.
             </p>
           </div>
 
           <CardContent className="space-y-5 p-6">
             {/* Referral link */}
             <div className="rounded-2xl border border-[#EFE8DD] bg-[#FAF7F2] p-4 space-y-2">
-              <p className="text-xs font-bold text-foreground">Your Personal Invite Link</p>
+              <p className="text-xs font-bold text-foreground">Your Invite Link</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 truncate rounded-xl bg-white px-3.5 py-2.5 text-xs font-mono text-foreground border border-[#EFE8DD] shadow-2xs">
                   {referralUrl}
@@ -117,39 +109,39 @@ const Referral = () => {
               </div>
             </div>
 
-            {/* Benefits */}
+            {/* Why share */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-[#EFE8DD] bg-[#FFF8F5] p-3.5 space-y-2">
-                <p className="text-[11px] font-bold text-primary uppercase tracking-wider">For You</p>
+                <p className="text-[11px] font-bold text-primary uppercase tracking-wider">In Your Area</p>
                 <ul className="text-xs text-foreground space-y-1.5 font-medium">
-                  <li className="flex items-center gap-1.5"><span className="text-primary font-bold">✓</span> Priority matching</li>
-                  <li className="flex items-center gap-1.5"><span className="text-primary font-bold">✓</span> Fast-track queue</li>
-                  <li className="flex items-center gap-1.5"><span className="text-primary font-bold">✓</span> Early features</li>
+                  <li className="flex items-center gap-1.5"><span className="text-primary font-bold">✓</span> Find your people</li>
+                  <li className="flex items-center gap-1.5"><span className="text-primary font-bold">✓</span> Closer distances</li>
+                  <li className="flex items-center gap-1.5"><span className="text-primary font-bold">✓</span> Real-life meetups</li>
                 </ul>
               </div>
               <div className="rounded-2xl border border-[#EFE8DD] bg-white p-3.5 space-y-2">
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">For Friends</p>
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">When They Join</p>
                 <ul className="text-xs text-foreground space-y-1.5 font-medium">
-                  <li className="flex items-center gap-1.5"><span className="text-emerald-600 font-bold">✓</span> Skip the waitlist</li>
-                  <li className="flex items-center gap-1.5"><span className="text-emerald-600 font-bold">✓</span> Verified badges</li>
-                  <li className="flex items-center gap-1.5"><span className="text-emerald-600 font-bold">✓</span> Immediate matches</li>
+                  <li className="flex items-center gap-1.5"><span className="text-emerald-600 font-bold">✓</span> Direct access</li>
+                  <li className="flex items-center gap-1.5"><span className="text-emerald-600 font-bold">✓</span> Compatibility quiz</li>
+                  <li className="flex items-center gap-1.5"><span className="text-emerald-600 font-bold">✓</span> 1-on-1 matches</li>
                 </ul>
               </div>
             </div>
 
-            {/* Stats */}
+            {/* Community Stats */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-[#FAF7F2] border border-[#EFE8DD] p-3.5 text-center">
                 <Users className="h-5 w-5 mx-auto mb-1 text-primary" />
                 <p className="font-serif text-2xl font-bold text-foreground">{stats.signups}</p>
-                <p className="text-[11px] text-muted-foreground font-medium">Friends joined</p>
+                <p className="text-[11px] text-muted-foreground font-medium">People joined</p>
               </div>
               <div className="rounded-2xl bg-[#FAF7F2] border border-[#EFE8DD] p-3.5 text-center">
-                <Target className="h-5 w-5 mx-auto mb-1 text-primary" />
+                <HeartHandshake className="h-5 w-5 mx-auto mb-1 text-primary" />
                 <p className="font-serif text-base font-bold text-foreground mt-1">
-                  {stats.boostActive ? `${stats.boostDays}d Left` : "Standard"}
+                  Active
                 </p>
-                <p className="text-[11px] text-muted-foreground font-medium">Priority status</p>
+                <p className="text-[11px] text-muted-foreground font-medium">Profile standing</p>
               </div>
             </div>
 
@@ -157,15 +149,15 @@ const Referral = () => {
             <div className="space-y-2 pt-1">
               <Button className="w-full h-12 rounded-full font-bold shadow-soft" onClick={shareInstagram}>
                 <Instagram className="h-4 w-4 mr-2" />
-                Share on Instagram
+                Share Link
               </Button>
               <Button variant="outline" className="w-full h-11 rounded-full font-bold border-[#EFE8DD] bg-white hover:bg-[#FAF7F2]" onClick={shareEmail}>
                 <Mail className="h-4 w-4 mr-2" />
-                Share via Email
+                Email Link
               </Button>
               <Button variant="outline" className="w-full h-11 rounded-full font-bold border-[#EFE8DD] bg-white hover:bg-[#FAF7F2]" onClick={copyLink}>
                 <Copy className="h-4 w-4 mr-2" />
-                Copy Link to Clipboard
+                Copy Link
               </Button>
             </div>
 

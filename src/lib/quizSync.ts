@@ -127,8 +127,8 @@ export function determineVibeArchetype(dimensions: QuizDimensions): VibeArchetyp
       title: "Cozy Intellectual",
       emoji: "📚",
       tagline: "Deep conversations, warm spaces & soulful connection",
-      summary: "You value intimate gatherings, late-night philosophical discussions, comfortable cafes, and authentic bonds. You seek friends who appreciate genuine honesty and thoughtful dialogue.",
-      traits: ["Deep Thinker", "Cozy Hangouts", "Intentional", "Warm Atmosphere"],
+      summary: "You value small gatherings, deep conversations, comfortable cafes, and quiet spaces. You appreciate honesty and thoughtful discussion.",
+      traits: ["Deep Thinker", "Cozy Hangouts", "Low-Key", "Warm Atmosphere"],
     };
   }
 
@@ -177,7 +177,7 @@ export function determineVibeArchetype(dimensions: QuizDimensions): VibeArchetyp
       title: "Grounded Pillar",
       emoji: "🤝",
       tagline: "Dependable, intentional planner & deeply loyal companion",
-      summary: "You bring reliability, thoughtful planning, and rock-solid loyalty to your friendships. People count on you for genuine support, timely meetups, and unwavering character.",
+      summary: "You bring reliability, thoughtful planning, and consistency. People count on you for solid support and timely meetups.",
       traits: ["Reliable", "Thoughtful Planner", "Loyal Friend", "Values First"],
     };
   }

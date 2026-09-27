@@ -156,7 +156,7 @@ export const Chats = () => {
                 <p className="text-xs sm:text-sm text-[#666059] leading-relaxed">
                   {searchQuery
                     ? "Try a different search term or clear the filter."
-                    : "When you and another member accept each other, your private chat will appear here so you can connect and plan meetups."}
+                    : "When you and a match accept each other, your private chat will appear here so you can connect and plan meetups."}
                 </p>
               </div>
 

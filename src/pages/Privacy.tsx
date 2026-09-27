@@ -198,7 +198,7 @@ const Privacy = () => {
                 <span className="text-[#FF5436]">1.</span> Information We Collect
               </h2>
               <p className="text-sm text-[#443F39] leading-relaxed">
-                We only collect data necessary to provide authentic, highly compatible, and safe friendship introductions.
+                We only collect data necessary to provide compatible and secure introductions.
               </p>
 
               <div className="space-y-3 pt-2">
@@ -459,7 +459,7 @@ const Privacy = () => {
       {/* Footer */}
       <footer className="border-t border-[#EBE3D5] bg-white py-8 px-4 sm:px-8 text-center text-xs text-[#888177]">
         <div className="max-w-4xl mx-auto space-y-2">
-          <p>© {new Date().getFullYear()} duogo. All rights reserved. Made for genuine friendship.</p>
+          <p>© {new Date().getFullYear()} duogo. All rights reserved.</p>
           <div className="flex items-center justify-center gap-4 text-xs font-medium text-[#666059]">
             <Link to="/privacy" className="hover:text-[#FF5436]">Privacy Policy</Link>
             <span>•</span>

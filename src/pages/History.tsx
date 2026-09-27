@@ -263,7 +263,7 @@ const History = () => {
             <div className="space-y-1.5">
               <h2 className="font-serif text-2xl font-bold text-foreground">No Match History Yet</h2>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                Ready to find genuine friends or couple companions? Start your first search!
+                Ready to find matches? Start your first search!
               </p>
             </div>
             <Button className="rounded-full px-8 font-bold h-12 shadow-soft" onClick={() => navigate("/matches")}>

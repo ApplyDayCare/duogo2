@@ -109,20 +109,20 @@ const JoinReferral = () => {
         <div className="space-y-2">
           <h1 className="text-5xl font-bold tracking-tight text-foreground font-serif">duogo</h1>
           <p className="text-lg text-muted-foreground">
-            You&apos;ve been invited by a friend!
+            You&apos;ve been invited to join duogo!
           </p>
         </div>
 
         <Card className="border-0 shadow-lg rounded-[28px] overflow-hidden">
           <CardContent className="pt-6 pb-6 px-6 space-y-5">
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Join the intentional friendship community: real connections, one match at a time.
+              Meet people nearby based on compatibility and shared interests.
             </p>
             <ul className="text-left text-sm text-foreground space-y-2 mx-auto max-w-xs">
-              <li>✓ Gender-blind matching</li>
+              <li>✓ Compatibility matching</li>
               <li>✓ For solos and couples</li>
               <li>✓ One match at a time</li>
-              <li>✓ Real friendships, not endless swiping</li>
+              <li>✓ No endless swiping</li>
             </ul>
 
             {step === "email" ? (

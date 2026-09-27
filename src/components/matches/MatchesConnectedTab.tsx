@@ -26,7 +26,7 @@ export const MatchesConnectedTab = ({
           </div>
           <h2 className="font-serif text-xl font-bold text-foreground mb-1.5">No Connected Matches Yet</h2>
           <p className="text-xs text-muted-foreground leading-relaxed mb-5">
-            When you and another member accept each other, the connection is established and their real first name, profile, and chat will unlock right here!
+            When you and someone else both accept each other, their profile and chat unlock right here!
           </p>
           <Button
             onClick={onDiscoverClick}

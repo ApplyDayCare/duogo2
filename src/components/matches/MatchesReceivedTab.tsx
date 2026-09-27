@@ -44,7 +44,7 @@ export const MatchesReceivedTab = ({
           </div>
           <h2 className="font-serif text-xl font-bold text-foreground mb-1.5">No Incoming Requests Right Now</h2>
           <p className="text-xs text-muted-foreground leading-relaxed mb-5">
-            When compatible members discover your profile and send a connection request, they will appear here so you can connect back with a single click.
+            When people discover your profile and send a connection request, they will appear here so you can connect back with a single click.
           </p>
           <Button
             onClick={onDiscoverClick}

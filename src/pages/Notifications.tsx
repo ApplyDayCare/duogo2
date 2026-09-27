@@ -17,9 +17,11 @@ import {
   CheckCheck,
   RefreshCw,
   AlertCircle,
+  Settings,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { deduplicateNotifications, RawNotification } from "@/lib/notificationDeduplication";
+import { NotificationSettingsCard } from "@/components/NotificationSettingsCard";
 
 export interface NotificationItem extends RawNotification {
   type?: "match" | "message" | "mutual" | "system";
@@ -83,6 +85,7 @@ export const Notifications = () => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [showSettings, setShowSettings] = useState(false);
 
   // Push notification state (safely checked directly from browser APIs)
   const [pushSupported, setPushSupported] = useState(false);
@@ -446,6 +449,22 @@ export const Notifications = () => {
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin text-[#FF5436]")} />
           </Button>
 
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSettings((prev) => !prev)}
+            className={cn(
+              "h-8 w-8 rounded-full transition-colors",
+              showSettings
+                ? "bg-[#FFF0EB] text-[#FF5436]"
+                : "text-[#666059] hover:text-[#181513] hover:bg-white"
+            )}
+            aria-label="Notification settings"
+            title="Notification settings"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+
           {unreadCount > 0 && (
             <Button
               variant="outline"
@@ -511,6 +530,13 @@ export const Notifications = () => {
             </div>
           </div>
         </Card>
+      )}
+
+      {/* Notification Preferences Settings Card */}
+      {showSettings && (
+        <div className="animate-in fade-in-50 slide-in-from-top-2 duration-200">
+          <NotificationSettingsCard />
+        </div>
       )}
 
       {/* Filter Tabs */}

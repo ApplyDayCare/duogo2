@@ -59,7 +59,7 @@ export const MatchesDiscoverTab = ({
             <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto leading-relaxed">
               {pendingCount > 0
                 ? `You've reviewed all available candidates. You currently have ${pendingCount} pending connection request(s) awaiting response!`
-                : "We match you based on deep compatibility, not an endless swipe stack. We'll notify you as new verified members join!"}
+                : "We match based on compatibility, not endless swiping. We'll notify you as more people join nearby!"}
             </p>
           </div>
 
@@ -86,9 +86,9 @@ export const MatchesDiscoverTab = ({
             )}
 
             <div className="rounded-2xl bg-[#FFF8F5] border border-[#FFD9CE] p-4 text-left">
-              <p className="text-xs font-bold uppercase tracking-wider text-primary">Priority Match Booster</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-primary">Expand Your Social Circle</p>
               <p className="text-xs text-foreground mt-1 font-medium leading-relaxed">
-                Invite a friend and unlock <strong>7 days of Priority Matching</strong> as soon as they sign up!
+                Share duogo to help others find friends they can vibe with.
               </p>
             </div>
 
@@ -101,7 +101,7 @@ export const MatchesDiscoverTab = ({
                 <Sparkles className="h-4 w-4 mr-2" /> Re-review Passed Candidates
               </Button>
               <Button className="rounded-full h-12 w-full font-bold" onClick={() => onNavigate("/referral")}>
-                <Share2 className="h-4 w-4 mr-2" /> Share Your Referral Link
+                <Share2 className="h-4 w-4 mr-2" /> Share duogo
               </Button>
               <Button variant="outline" className="rounded-full h-12 w-full font-semibold" onClick={() => onNavigate("/dashboard")}>
                 Go to Dashboard

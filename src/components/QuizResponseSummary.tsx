@@ -70,7 +70,7 @@ const HOBBY_LABELS: Record<string, { label: string; emoji: string }> = {
 
 // Human-readable labels for friend qualities
 const FRIEND_QUALITY_LABELS: Record<string, { label: string; emoji: string }> = {
-  authentic: { label: "Authentic & Genuine", emoji: "✨" },
+  authentic: { label: "Honest & Direct", emoji: "✨" },
   funny: { label: "Funny & Playful Wit", emoji: "😂" },
   grounded: { label: "Grounded & Low-Drama", emoji: "🌱" },
   active_energetic: { label: "Active & Spontaneous", emoji: "⚡" },

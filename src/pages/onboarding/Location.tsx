@@ -20,7 +20,7 @@ import {
 } from "@/lib/postalCodeUtils";
 
 const RADIUS_OPTIONS = [
-  { value: "5", label: "My neighborhood only", desc: "Within ~5 km (High match priority)" },
+  { value: "5", label: "My neighborhood only", desc: "Within ~5 km (Closest proximity)" },
   { value: "15", label: "Nearby neighborhoods", desc: "Up to 15 km" },
   { value: "30", label: "Within 30 minutes drive", desc: "Up to 30 km" },
   { value: "60", label: "Across the region", desc: "Up to 60 km" },

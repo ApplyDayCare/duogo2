@@ -24,7 +24,7 @@ const DESKTOP_NAV_ITEMS = [
   { label: "Chats", path: "/chats", icon: MessageCircle },
   { label: "Notifications", path: "/notifications", icon: Bell },
   { label: "History", path: "/history", icon: Clock },
-  { label: "Referral", path: "/referral", icon: Share2 },
+  { label: "Share duogo", path: "/referral", icon: Share2 },
   { label: "Profile", path: "/profile", icon: UserCircle },
 ];
 
@@ -394,7 +394,7 @@ const AppLayout = () => {
                   : pathname === "/history"
                   ? "Connection History"
                   : pathname === "/referral"
-                  ? "Invite Friends"
+                  ? "Share duogo"
                   : pathname === "/profile"
                   ? "My Profile"
                   : "duogo"}

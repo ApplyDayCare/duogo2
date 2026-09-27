@@ -166,7 +166,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
   const revealedName =
     match.user_type === "couple" && partnerName
       ? `${match.first_name} & ${partnerName}`
-      : match.first_name || "Community Member";
+      : match.first_name || "New Match";
 
   const distanceKm = calculateDistanceKm(myCity, match.location_city);
 
@@ -238,7 +238,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 ) : (
                   <User className="h-3.5 w-3.5 text-primary" />
                 )}
-                <span>{match.user_type === "couple" ? "Duo / Couple Profile" : "Solo Member Profile"}</span>
+                <span>{match.user_type === "couple" ? "Duo / Couple Profile" : "Solo Profile"}</span>
               </Badge>
             )}
 

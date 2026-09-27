@@ -38,7 +38,7 @@ const About = () => {
           </section>
 
           <p className="text-sm font-medium text-[#FF5436]">
-            Built with care · Welcoming genuine friendships everywhere
+            Built with care · Made for meeting people locally
           </p>
 
           <p className="text-sm">
