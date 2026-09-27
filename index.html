@@ -52,11 +52,12 @@
         console.log('[PWA] app was installed');
       });
 
-      // Register service worker to qualify for PWA installability and notifications
+      // Register service worker to qualify for PWA installability and notifications with cache-busting
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          navigator.serviceWorker.register('/sw.js?v=20260927-2', { scope: '/', updateViaCache: 'none' })
             .then(function(reg) {
+              reg.update();
               console.log('[PWA] Service Worker registered with scope:', reg.scope);
             })
             .catch(function(err) {
@@ -69,6 +70,6 @@
 
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/main.tsx?v=99"></script>
   </body>
 </html>

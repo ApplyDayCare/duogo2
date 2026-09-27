@@ -1,3 +1,24 @@
+// KILL SWITCH: Force mobile browser to clear old service workers and purge caches
+if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+  const killedFlag = "duogo_sw_purge_v99";
+  if (!localStorage.getItem(killedFlag)) {
+    navigator.serviceWorker.getRegistrations().then(function (registrations) {
+      for (const registration of registrations) {
+        registration.unregister();
+        console.log("Old Service Worker unregistered:", registration);
+      }
+    });
+    if ("caches" in window) {
+      caches.keys().then((keys) => {
+        for (const k of keys) {
+          caches.delete(k);
+        }
+      });
+    }
+    localStorage.setItem(killedFlag, "true");
+  }
+}
+
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";

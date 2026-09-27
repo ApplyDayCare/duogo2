@@ -140,7 +140,7 @@ self.addEventListener("notificationclick", (event) => {
 });
 
 self.addEventListener("pushsubscriptionchange", (event) => {
-  const applicationServerKey = urlBase64ToUint8Array("BPXs3kQMjHRgkldzFM4X7Ji1xeTlN7nQ39XaqSb_XSS_q9h20oJL7j6k7h1WuXurbTpcme6Y0Pu0XJyQgSpccv8");
+  const applicationServerKey = urlBase64ToUint8Array("BM2wzi9DNHlsYCm45Gn6JC6CAvoYW4HiEYj_-DWz3NqWD3Tybm4Qr82cI4taetONkD-oXaMiA_c_nNiRB2ZTXS4");
   event.waitUntil(
     self.registration.pushManager
       .subscribe({

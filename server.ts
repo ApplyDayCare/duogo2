@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
@@ -8,6 +9,39 @@ const PORT = 3000;
 const app = express();
 
 app.use(express.json());
+
+// Explicit high-priority handler for service worker to prevent 404s
+app.get("/sw.js", (_req, res) => {
+  res.setHeader("Content-Type", "application/javascript");
+  res.setHeader("Service-Worker-Allowed", "/");
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
+  const possiblePaths = [
+    path.join(process.cwd(), "public", "sw.js"),
+    path.join(process.cwd(), "dist", "sw.js"),
+    path.join(process.cwd(), "sw.js"),
+  ];
+
+  for (const filePath of possiblePaths) {
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
+    }
+  }
+
+  return res.status(404).send("// Service worker not found");
+});
+
+app.get("/offline.html", (_req, res) => {
+  res.setHeader("Content-Type", "text/html");
+  res.setHeader("Cache-Control", "no-cache");
+  const offlinePath = path.join(process.cwd(), "public", "offline.html");
+  if (fs.existsSync(offlinePath)) {
+    return res.sendFile(offlinePath);
+  }
+  res.status(200).send("<html><body><h1>Offline</h1></body></html>");
+});
 
 // Anti-caching middleware for dev and preview to ensure browsers always load fresh code
 app.use((req, res, next) => {
@@ -27,7 +61,7 @@ app.use((req, res, next) => {
 
 // Configure Web Push VAPID with strict 65-byte NIST P-256 validation
 function resolveValidVapidPublicKey(): string {
-  const fallback = "BPXs3kQMjHRgkldzFM4X7Ji1xeTlN7nQ39XaqSb_XSS_q9h20oJL7j6k7h1WuXurbTpcme6Y0Pu0XJyQgSpccv8";
+  const fallback = "BM2wzi9DNHlsYCm45Gn6JC6CAvoYW4HiEYj_-DWz3NqWD3Tybm4Qr82cI4taetONkD-oXaMiA_c_nNiRB2ZTXS4";
   const candidates = [
     process.env.VAPID_PUBLIC_KEY,
     process.env.VITE_VAPID_PUBLIC_KEY,
@@ -48,7 +82,7 @@ function resolveValidVapidPublicKey(): string {
 }
 
 function resolveValidVapidPrivateKey(): string {
-  const fallback = "JBkxVu_UN5klHeP4kZgbYCXM1nsOaQh3RUZNRVFR9_Y";
+  const fallback = "Cy3nQAPIo34G9OsMIb5zD5t-L14gJe-IRnHvDpjw32o";
   const candidates = [
     process.env.VAPID_PRIVATE_KEY,
     process.env.VITE_VAPID_PRIVATE_KEY,

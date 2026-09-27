@@ -16,10 +16,10 @@ const envPub = Deno.env.get("VAPID_PUBLIC_KEY");
 const envPriv = Deno.env.get("VAPID_PRIVATE_KEY");
 const VAPID_PUBLIC_KEY = (envPub && envPub.length > 50 && !envPub.startsWith("sb_"))
   ? envPub
-  : "BPXs3kQMjHRgkldzFM4X7Ji1xeTlN7nQ39XaqSb_XSS_q9h20oJL7j6k7h1WuXurbTpcme6Y0Pu0XJyQgSpccv8";
+  : "BM2wzi9DNHlsYCm45Gn6JC6CAvoYW4HiEYj_-DWz3NqWD3Tybm4Qr82cI4taetONkD-oXaMiA_c_nNiRB2ZTXS4";
 const VAPID_PRIVATE_KEY = (envPriv && envPriv.length > 30 && !envPriv.startsWith("sb_"))
   ? envPriv
-  : "JBkxVu_UN5klHeP4kZgbYCXM1nsOaQh3RUZNRVFR9_Y";
+  : "Cy3nQAPIo34G9OsMIb5zD5t-L14gJe-IRnHvDpjw32o";
 const rawSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:sayhello@duogo.space";
 const VAPID_SUBJECT =
   rawSubject.startsWith("mailto:") || rawSubject.startsWith("https://") || rawSubject.startsWith("http://")
