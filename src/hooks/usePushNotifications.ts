@@ -10,6 +10,7 @@ export interface PushNotificationState {
   hasVapidKey: boolean;
   requestPermission: () => Promise<boolean>;
   sendTestNotification: () => Promise<void>;
+  resetAndReconnectPush: () => Promise<boolean>;
   dispatchBackgroundNotification: (title: string, options?: NotificationOptions & { url?: string; type?: string }) => void;
   unsubscribeFromPush: () => Promise<boolean>;
 }
@@ -289,6 +290,57 @@ export function usePushNotifications(): PushNotificationState {
     }
   }, [user?.id, toast]);
 
+  // Reset and reconnect push device subscription
+  const resetAndReconnectPush = useCallback(async (): Promise<boolean> => {
+    try {
+      cachedVapidPublicKey = null;
+      let activeKey = await getEffectiveVapidPublicKey();
+      if (!activeKey) {
+        activeKey = DEFAULT_VAPID_PUBLIC_KEY;
+      }
+
+      const reg = swRegRef.current || (await navigator.serviceWorker.ready);
+      if (reg && "pushManager" in reg) {
+        const oldSub = await reg.pushManager.getSubscription();
+        if (oldSub) {
+          try {
+            await oldSub.unsubscribe();
+          } catch {}
+        }
+
+        if (user?.id) {
+          await supabase.from("push_subscriptions" as any).delete().eq("user_id", user.id);
+        }
+
+        const applicationServerKey = urlBase64ToUint8Array(activeKey);
+        const newSub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey as BufferSource,
+        });
+
+        if (newSub && user?.id) {
+          await saveSubscriptionToSupabase(newSub, user.id);
+          setIsSubscribed(true);
+          setPermission("granted");
+          toast({
+            title: "✅ Push Device Re-Linked",
+            description: "Fresh subscription registered with active server keys.",
+          });
+          return true;
+        }
+      }
+      return false;
+    } catch (err: any) {
+      console.error("[PWA Push] Reset error:", err);
+      toast({
+        title: "Re-link Failed",
+        description: err.message || "Failed to reset push subscription",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [user?.id, saveSubscriptionToSupabase, toast]);
+
   // Dispatch background notification via Service Worker
   const dispatchBackgroundNotification = useCallback(
     (title: string, options?: NotificationOptions & { url?: string; type?: string }) => {
@@ -530,6 +582,7 @@ export function usePushNotifications(): PushNotificationState {
     hasVapidKey,
     requestPermission,
     sendTestNotification,
+    resetAndReconnectPush,
     dispatchBackgroundNotification,
     unsubscribeFromPush,
   };

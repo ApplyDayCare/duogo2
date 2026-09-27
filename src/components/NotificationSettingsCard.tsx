@@ -17,6 +17,7 @@ import {
   Mail,
   Sparkles,
   MessageCircle,
+  RefreshCw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,10 +47,12 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
     requestPermission,
     unsubscribeFromPush,
     sendTestNotification,
+    resetAndReconnectPush,
   } = usePushNotifications();
 
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   // Stored preferences in localStorage (scoped to user)
   const storageKey = user ? `duogo_notification_preferences_${user.id}` : "duogo_notification_preferences";
@@ -114,6 +117,15 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
       await sendTestNotification();
     } finally {
       setTesting(false);
+    }
+  };
+
+  const handleResetPush = async () => {
+    setResetting(true);
+    try {
+      await resetAndReconnectPush();
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -286,18 +298,31 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
         </div>
 
         {/* Test Notification Action */}
-        <div className="pt-2 border-t border-[#F5EDE3] flex items-center justify-between">
+        <div className="pt-2 border-t border-[#F5EDE3] flex flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] text-[#706A62]">Verify your phone vibrates or receives an alert</p>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={testing || !isSubscribed}
-            onClick={handleSendTest}
-            className="rounded-full h-8 text-xs font-semibold border-[#EFE8DD] hover:border-[#FF5436] hover:text-[#FF5436] gap-1.5"
-          >
-            {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-            <span>Test Push</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={resetting || !isSupported}
+              onClick={handleResetPush}
+              title="Unsubscribe old token and re-register fresh FCM token"
+              className="rounded-full h-8 text-xs font-semibold border-[#EFE8DD] hover:border-[#FF5436] hover:text-[#FF5436] gap-1.5"
+            >
+              {resetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              <span>Re-link Device</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="default"
+              disabled={testing || !isSubscribed}
+              onClick={handleSendTest}
+              className="rounded-full h-8 text-xs font-semibold bg-[#FF5436] hover:bg-[#E84628] text-white gap-1.5 shadow-sm"
+            >
+              {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              <span>Test Push</span>
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
