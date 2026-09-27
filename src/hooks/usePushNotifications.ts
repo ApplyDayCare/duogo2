@@ -219,6 +219,20 @@ export function usePushNotifications(): PushNotificationState {
               console.warn("[PWA] Service Worker registration failed:", err);
             });
         });
+
+      // Listen for PUSH_SUBSCRIPTION_CHANGED from Service Worker
+      const handleSwMessage = (event: MessageEvent) => {
+        if (event.data?.type === "PUSH_SUBSCRIPTION_CHANGED" && user?.id) {
+          if (swRegRef.current) {
+            registerPushSubscription(swRegRef.current, user.id, true);
+          }
+        }
+      };
+      navigator.serviceWorker.addEventListener("message", handleSwMessage);
+
+      return () => {
+        navigator.serviceWorker.removeEventListener("message", handleSwMessage);
+      };
     }
   }, [user?.id, registerPushSubscription]);
 

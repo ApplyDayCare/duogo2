@@ -163,7 +163,14 @@ serve(async (req) => {
         };
 
         try {
-          await webpush.sendNotification(pushSubscription, payload);
+          await webpush.sendNotification(pushSubscription, payload, {
+            vapidDetails: {
+              subject: VAPID_SUBJECT,
+              publicKey: VAPID_PUBLIC_KEY,
+              privateKey: VAPID_PRIVATE_KEY,
+            },
+            TTL: 60,
+          });
           return { success: true, endpoint: sub.endpoint };
         } catch (err: any) {
           const status = err.statusCode || err.status || "unknown";

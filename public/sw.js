@@ -138,3 +138,39 @@ self.addEventListener("notificationclick", (event) => {
     })
   );
 });
+
+self.addEventListener("pushsubscriptionchange", (event) => {
+  const applicationServerKey = urlBase64ToUint8Array("BPXs3kQMjHRgkldzFM4X7Ji1xeTlN7nQ39XaqSb_XSS_q9h20oJL7j6k7h1WuXurbTpcme6Y0Pu0XJyQgSpccv8");
+  event.waitUntil(
+    self.registration.pushManager
+      .subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey,
+      })
+      .then((newSub) => {
+        return self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+          clients.forEach((client) => {
+            client.postMessage({
+              type: "PUSH_SUBSCRIPTION_CHANGED",
+              subscription: newSub ? newSub.toJSON() : null,
+            });
+          });
+        });
+      })
+      .catch((err) => {
+        console.warn("[SW] pushsubscriptionchange failed:", err);
+      })
+  );
+});
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
