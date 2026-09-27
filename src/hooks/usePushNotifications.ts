@@ -30,35 +30,15 @@ function isValidDecodedVapidKey(key: string): boolean {
 }
 
 export async function getEffectiveVapidPublicKey(): Promise<string> {
+  // 1. Check if explicitly passed via valid env var
   const envKey = (import.meta.env.VITE_VAPID_PUBLIC_KEY || "").trim();
-  if (envKey && isValidDecodedVapidKey(envKey)) return envKey;
+  if (envKey && isValidDecodedVapidKey(envKey) && !envKey.startsWith("sb_")) return envKey;
 
   if (cachedVapidPublicKey && isValidDecodedVapidKey(cachedVapidPublicKey)) return cachedVapidPublicKey;
 
-  // Try fetching directly from Supabase send-push Edge Function
+  // 2. Fetch from local server endpoint (/api/push/vapid-public-key)
   try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-    if (supabaseUrl) {
-      const edgeRes = await fetch(`${supabaseUrl}/functions/v1/send-push`, {
-        method: "GET",
-        headers: anonKey ? { apikey: anonKey, Authorization: `Bearer ${anonKey}` } : {},
-      });
-      if (edgeRes.ok) {
-        const data = await edgeRes.json();
-        if (data?.publicKey && isValidDecodedVapidKey(data.publicKey.trim())) {
-          cachedVapidPublicKey = data.publicKey.trim();
-          return cachedVapidPublicKey;
-        }
-      }
-    }
-  } catch (err) {
-    console.warn("[PWA Push] Failed to fetch VAPID key from Edge Function:", err);
-  }
-
-  // Fallback to local server endpoint
-  try {
-    const localRes = await fetch("/api/push/vapid-public-key");
+    const localRes = await fetch(`/api/push/vapid-public-key?t=${Date.now()}`);
     if (localRes.ok) {
       const data = await localRes.json();
       if (data?.publicKey && isValidDecodedVapidKey(data.publicKey.trim())) {
@@ -70,6 +50,8 @@ export async function getEffectiveVapidPublicKey(): Promise<string> {
     // ignore
   }
 
+  // 3. Fallback to constant
+  cachedVapidPublicKey = DEFAULT_VAPID_PUBLIC_KEY;
   return DEFAULT_VAPID_PUBLIC_KEY;
 }
 

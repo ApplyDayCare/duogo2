@@ -1,6 +1,6 @@
 // KILL SWITCH: Force mobile browser to clear old service workers and purge caches
 if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-  const killedFlag = "duogo_sw_purge_v99";
+  const killedFlag = "duogo_sw_purge_v101";
   if (!localStorage.getItem(killedFlag)) {
     navigator.serviceWorker.getRegistrations().then(function (registrations) {
       for (const registration of registrations) {
@@ -15,6 +15,11 @@ if (typeof window !== "undefined" && "serviceWorker" in navigator) {
         }
       });
     }
+    // Clear any stale cached VAPID tokens
+    try {
+      localStorage.removeItem("duogo_cached_vapid_key");
+      sessionStorage.clear();
+    } catch {}
     localStorage.setItem(killedFlag, "true");
   }
 }
