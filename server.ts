@@ -241,6 +241,58 @@ app.post("/api/push/dispatch", async (req, res) => {
 });
 
 /**
+ * Endpoint: Save / Upsert Web Push Subscription
+ */
+app.post("/api/push/subscribe", async (req, res) => {
+  try {
+    const { subscription, userId, user_id } = req.body;
+    const targetUserId = userId || user_id;
+
+    const sub = subscription || req.body;
+    const endpoint = sub.endpoint;
+    const p256dh = sub.keys?.p256dh || sub.p256dh;
+    const auth = sub.keys?.auth || sub.auth;
+
+    if (!endpoint || !p256dh || !auth) {
+      return res.status(400).json({ error: "Missing required subscription keys (endpoint, p256dh, auth)" });
+    }
+
+    const supabaseAdmin = getSupabaseAdmin();
+
+    // Check if subscription already exists for this endpoint
+    const { data: existing } = await supabaseAdmin
+      .from("push_subscriptions")
+      .select("id")
+      .eq("endpoint", endpoint)
+      .maybeSingle();
+
+    if (existing?.id) {
+      await supabaseAdmin
+        .from("push_subscriptions")
+        .update({
+          p256dh,
+          auth,
+          ...(targetUserId ? { user_id: targetUserId } : {}),
+        })
+        .eq("id", existing.id);
+    } else {
+      await supabaseAdmin.from("push_subscriptions").insert({
+        endpoint,
+        p256dh,
+        auth,
+        user_id: targetUserId,
+      });
+    }
+
+    console.log(`[Push API] Saved subscription for user ${targetUserId} (${endpoint.slice(0, 35)}...)`);
+    return res.json({ success: true, message: "Subscription saved successfully" });
+  } catch (err: any) {
+    console.error("[Push API] Failed to save subscription:", err);
+    return res.status(500).json({ error: err.message || "Failed to save subscription" });
+  }
+});
+
+/**
  * Transactional Email Dispatcher Utilities
  * Supports Resend (primary) and Brevo (SMTP REST), with intelligent fallback
  */

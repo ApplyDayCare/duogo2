@@ -94,25 +94,64 @@ export function usePushNotifications(): PushNotificationState {
       const p256dh = subJson.keys?.p256dh;
       const auth = subJson.keys?.auth;
 
-      if (!subscription.endpoint || !p256dh || !auth) return;
+      if (!subscription.endpoint || !p256dh || !auth) {
+        console.warn("[PWA Push] Missing endpoint/keys in subscription payload:", subJson);
+        return;
+      }
 
-      const { error } = await supabase
-        .from("push_subscriptions" as any)
-        .upsert(
-          {
-            user_id: userId,
-            endpoint: subscription.endpoint,
-            p256dh,
-            auth,
-            user_agent: navigator.userAgent,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id,endpoint" }
-        );
+      console.log(`[PWA Push] Syncing subscription for user ${userId} to Supabase...`, {
+        endpoint: subscription.endpoint.slice(0, 45) + "...",
+      });
 
-      if (error) {
-        // Fallback or non-blocking warn (e.g. if table migration hasn't run yet)
-        console.warn("[PWA Push] Supabase push_subscriptions upsert:", error.message);
+      // 1. Direct Supabase Client Upsert / Insert
+      try {
+        const { data: existing } = await supabase
+          .from("push_subscriptions")
+          .select("id")
+          .eq("endpoint", subscription.endpoint)
+          .maybeSingle();
+
+        if (existing?.id) {
+          await supabase
+            .from("push_subscriptions")
+            .update({
+              user_id: userId,
+              p256dh,
+              auth,
+            })
+            .eq("id", existing.id);
+          console.log("[PWA Push] Successfully updated existing push subscription row in Supabase.");
+        } else {
+          const { error: insertErr } = await supabase
+            .from("push_subscriptions")
+            .insert({
+              user_id: userId,
+              endpoint: subscription.endpoint,
+              p256dh,
+              auth,
+            });
+          if (insertErr) {
+            console.warn("[PWA Push] Direct insert error (will fallback to proxy):", insertErr.message);
+          } else {
+            console.log("[PWA Push] Successfully inserted new push subscription row into Supabase.");
+          }
+        }
+      } catch (clientErr) {
+        console.warn("[PWA Push] Client Supabase sync error:", clientErr);
+      }
+
+      // 2. Server-side proxy sync as backup with service_role access
+      try {
+        await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            subscription: subJson,
+          }),
+        });
+      } catch (proxyErr) {
+        console.warn("[PWA Push] Proxy push/subscribe sync:", proxyErr);
       }
     } catch (err) {
       console.warn("[PWA Push] Failed to sync subscription:", err);
