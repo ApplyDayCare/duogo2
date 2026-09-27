@@ -26,30 +26,55 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error("Uncaught error in component tree:", error, errorInfo);
   }
 
-  private handleReload = () => {
+  private handleReload = async () => {
     try {
+      // 1. Clear duogo reload keys from sessionStorage
       Object.keys(sessionStorage).forEach((k) => {
         if (k.startsWith("duogo_")) {
           sessionStorage.removeItem(k);
         }
       });
+
+      // 2. Unregister service workers so stale chunks are not intercepted
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          try {
+            await reg.unregister();
+          } catch {}
+        }
+      }
+
+      // 3. Clear CacheStorage
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
     } catch {
       // ignore
     }
-    window.location.reload();
+
+    // 4. Force hard reload with timestamp query param
+    const url = new URL(window.location.href);
+    url.searchParams.set("_v", Date.now().toString());
+    window.location.replace(url.toString());
   };
 
-  private handleGoHome = () => {
+  private handleGoHome = async () => {
     try {
       Object.keys(sessionStorage).forEach((k) => {
         if (k.startsWith("duogo_")) {
           sessionStorage.removeItem(k);
         }
       });
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
     } catch {
       // ignore
     }
-    window.location.href = "/dashboard";
+    window.location.replace(`/dashboard?_v=${Date.now()}`);
   };
 
   public render() {
