@@ -181,6 +181,20 @@ export const NotificationSettingsCard: React.FC<{ className?: string }> = ({ cla
           />
         </div>
 
+        {/* Lock screen / iOS guidance */}
+        <div className="p-3 rounded-2xl bg-[#FAF7F2] border border-[#EFE8DD] text-[11px] text-[#706A62] space-y-1">
+          <p className="font-bold text-[#1A1816] flex items-center gap-1.5">
+            <Smartphone className="h-3.5 w-3.5 text-[#FF5436]" />
+            Lock-Screen & Background Alerts
+          </p>
+          <p className="text-[10px] leading-relaxed">
+            • <strong>iPhone (iOS):</strong> Push notifications when closed require adding duogo to your Home Screen (tap Share <span className="font-mono text-xs">⎋</span> &rarr; &ldquo;Add to Home Screen&rdquo; in Safari).
+          </p>
+          <p className="text-[10px] leading-relaxed">
+            • <strong>Android:</strong> Make sure notifications and background data are allowed for duogo or Chrome in your phone settings.
+          </p>
+        </div>
+
         {/* Warning if blocked */}
         {permission === "denied" && (
           <div className="flex items-start gap-2 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800">

@@ -13,13 +13,18 @@ const corsHeaders = {
 
 const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") || "";
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") || "";
-const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:sayhello@duogo.space";
+const rawSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:sayhello@duogo.space";
+const VAPID_SUBJECT =
+  rawSubject.startsWith("mailto:") || rawSubject.startsWith("https://") || rawSubject.startsWith("http://")
+    ? rawSubject
+    : `mailto:${rawSubject}`;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   try {
     webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    console.log(`[send-push] VAPID configured with subject: ${VAPID_SUBJECT}`);
   } catch (vapidErr) {
     console.error("[send-push] Failed to set VAPID details:", vapidErr);
   }

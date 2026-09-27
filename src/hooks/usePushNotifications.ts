@@ -76,12 +76,16 @@ export function usePushNotifications(): PushNotificationState {
 
         let sub = await reg.pushManager.getSubscription();
 
-        if (!sub && hasVapidKey && vapidPublicKey) {
+        if (hasVapidKey && vapidPublicKey) {
           const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
-          sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey,
-          });
+
+          // If subscription doesn't exist, create it
+          if (!sub) {
+            sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey,
+            });
+          }
         }
 
         if (sub) {
@@ -255,40 +259,74 @@ export function usePushNotifications(): PushNotificationState {
     if (granted) {
       let sentViaServer = false;
 
-      // Try server-side VAPID dispatch first
+      // Ensure we have an active registered subscription in Supabase before sending test push
+      if (swRegRef.current && user?.id) {
+        await registerPushSubscription(swRegRef.current, user.id);
+      }
+
+      // Try Supabase Edge Function send-push dispatch
       try {
-        if (swRegRef.current && "pushManager" in swRegRef.current) {
-          const sub = await swRegRef.current.pushManager.getSubscription();
-          if (sub) {
-            const { data: { session } } = await supabase.auth.getSession();
-            const resp = await fetch("/api/push/dispatch", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-              },
-              body: JSON.stringify({
-                subscription: sub.toJSON(),
-                userId: user?.id,
-                title: "🎉 duogo: It's a Mutual Match!",
-                body: "You and Alex & Jordan both connected! Tap to plan your double date.",
-                url: "/matches",
-                type: "mutual_match",
-              }),
-            });
-            if (resp.ok) {
-              sentViaServer = true;
-            }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token && user?.id) {
+          const { data, error } = await supabase.functions.invoke("send-push", {
+            body: {
+              userId: user.id,
+              user_id: user.id,
+              title: "🎉 duogo: It's a Mutual Match!",
+              body: "Lock screen push received! You are all set to get alerts when closed.",
+              url: "/matches",
+              type: "mutual_match",
+              tag: `duogo-test-${Date.now()}`,
+            },
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+
+          if (!error && data?.sentCount > 0) {
+            sentViaServer = true;
           }
         }
       } catch (err) {
-        console.warn("[PWA Push] Server VAPID push test error:", err);
+        console.warn("[PWA Push] Supabase send-push test error:", err);
       }
 
-      // If server push wasn't available or errored, use service worker background push
+      // If server push wasn't available or errored, try express dispatch or local SW notification
       if (!sentViaServer) {
-        dispatchBackgroundNotification("🎉 duogo: It's a Mutual Match!", {
-          body: "You and Alex & Jordan both connected! Tap to plan your double date.",
+        try {
+          if (swRegRef.current && "pushManager" in swRegRef.current) {
+            const sub = await swRegRef.current.pushManager.getSubscription();
+            if (sub) {
+              const { data: { session } } = await supabase.auth.getSession();
+              const resp = await fetch("/api/push/dispatch", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+                },
+                body: JSON.stringify({
+                  subscription: sub.toJSON(),
+                  userId: user?.id,
+                  title: "🎉 duogo: It's a Mutual Match!",
+                  body: "Lock screen push received! You are all set to get alerts when closed.",
+                  url: "/matches",
+                  type: "mutual_match",
+                }),
+              });
+              if (resp.ok) {
+                sentViaServer = true;
+              }
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Fallback to local background notification if no server push was delivered
+      if (!sentViaServer) {
+        dispatchBackgroundNotification("🎉 duogo: Notification Preview", {
+          body: "Preview alert. To receive lock-screen push when closed, verify VAPID keys in Supabase Edge Functions.",
           url: "/matches",
           type: "mutual_match",
           tag: "duogo-test-notification",
@@ -296,11 +334,13 @@ export function usePushNotifications(): PushNotificationState {
       }
 
       toast({
-        title: sentViaServer ? "⚡ Server Push (VAPID) Sent!" : "Test Notification Dispatched",
-        description: "If the tab is minimized or your phone is locked, check your notifications.",
+        title: sentViaServer ? "⚡ Server Push (VAPID) Sent!" : "Local Notification Dispatched",
+        description: sentViaServer
+          ? "Delivered through FCM/APNs. Check your lock screen or phone notification shade."
+          : "Dispatched locally in browser. For lock-screen alerts when closed, ensure VAPID keys are configured in Supabase.",
       });
     }
-  }, [permission, requestPermission, dispatchBackgroundNotification, toast, user?.id]);
+  }, [permission, requestPermission, registerPushSubscription, dispatchBackgroundNotification, toast, user?.id]);
 
   // Listen for Realtime incoming messages and notifications when user is authenticated
   useEffect(() => {
